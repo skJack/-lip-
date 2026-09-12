@@ -1,0 +1,24 @@
+文件                                                  来源（π*0.6 = arXiv 2511.14759，源码 related_work/pi06-recap-learn-from-experience/source/figures/）
+pi06_teaser.png                                       π*0.6 Fig.1  figures/teaser.png（第 10 页总览）
+pi06_teaser_left.png / _mid.png / _right.png / _tasks.png   从 Fig.1 裁出的左（数据）/ 中（模型 + 价值函数）/ 右（循环 + 任务）/ 任务照片列（备用，未用）
+pi06_filmstrip.png                                    π*0.6 Fig.2  figures/filmstrip.png（封面底条、第 3 页）
+pi06_model_architecture.png                           π*0.6 Fig.3  figures/model_architecture.png（原图，未直接用）
+pi06_arch_vla.png                                     从 Fig.3 裁出的上半：π*0.6 VLA（第 11 页）
+pi06_arch_vf.png                                      从 Fig.3 裁出的下半：价值函数（第 13 页）
+pi06_arch_vf_chain.png                                从 Fig.3 裁出的价值函数 → advantage → binarization 链，左上残留的 prompt 框已涂白（第 15 页）
+pi06_task.png                                         π*0.6 Fig.6  figures/task.png（第 19 页）
+pi06_robot.jpg                                        π*0.6 Fig.5  figures/robot.jpg（第 4 页）
+pi06_vf_combined-1.png                                π*0.6 Fig.4  figures/vfs/combined.pdf，pdftoppm 220 dpi（原图，未直接用）
+pi06_vf_combined.png                                  Fig.4 裁白边（备用）
+pi06_vf_laundry.png / pi06_vf_fridge.png              Fig.4 左半（成功折衣）/ 右半（失败：开冰箱取滤水壶）；第 14 页用左半
+pi06_vf_coffee-1.png / pi06_vf_coffee.png             Appendix A Fig.13 咖啡 figures/vfs/coffee.pdf 渲染 / 裁白边（第 14 页）
+pi06_vf_box-1.png / pi06_vf_box.png                   Appendix A Fig.13 装箱 figures/vfs/box.pdf（备用，未用）
+pi06_vf_hang_towel-1.png / pi06_vf_hook-1.png         Appendix A Fig.13 挂毛巾 / 挂钩（备用，未用）
+pi06_exp1_*_throughput_plot.png                       π*0.6 Fig.7  figures/experiment1/（第 21 页四张）
+pi06_exp1_*_success_rate_plot.png                     π*0.6 Fig.8  figures/experiment1/（第 22 页四张）
+pi06_exp3_iter_laundry_throughput.png / _success.png  π*0.6 Fig.9 / Fig.10 T 恤 figures/experiment3/（第 6、23 页）
+pi06_exp3_iter_box_throughput.png / _success.png      π*0.6 Fig.9 / Fig.10 装箱 figures/experiment3/（第 23 页）
+pi06_exp2_extraction_throughput.png / _success.png    π*0.6 Fig.11 AWR / PPO 对比 figures/experiment2/（第 24 页）
+pi06_exp5_failure_success.png / _throughput.png       π*0.6 Fig.12 定向去毛病 figures/experiment5/（第 25 页）
+pi05_Figure_3.png                                     π0.5 (2504.16054) Fig.3，复制自第 22 期 media/（第 2 页回顾）
+pi05_fig3_posttrain.png                               π0.5 Fig.3 右半，复制自第 22 期（备用，未用）

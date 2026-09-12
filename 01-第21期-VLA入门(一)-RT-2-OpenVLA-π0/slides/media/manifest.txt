@@ -1,0 +1,27 @@
+文件                             来源
+rt2_teaser_hi.jpg                RT-2 (2307.15818) Fig.1  source/figures/rt2_teaser.pdf
+rt2_overall.png                  RT-2 Fig.5  rt2_overall_wide_dm.png（未用）
+rt2_emergent.png                 RT-2 Fig.6  rt2_emergent_dm.png（未用）
+rt2_capabilities.png             RT-2 Fig.2  RT2-capabilities-dm.png（未用）
+openvla_model_hi.png             OpenVLA (2406.09246) Fig.2  openvla_model.pdf
+openvla_speed_hi.png             OpenVLA Fig.6  inference_speed.pdf
+openvla_teaser_hi.jpg            OpenVLA Fig.1  openvla_teaser.pdf（未用）
+openvla_bridge_hi.jpg            OpenVLA Fig.3  bridge_results.pdf（未用）
+pi0_laundry_filmstrip.jpg        π0 (2410.24164) Fig.2  fig2_final.jpeg
+pi0_overview_hi.jpg              π0 Fig.3  overview.pdf
+pi0_data_chart.png               π0 Fig.4  combined-robot-allocation-chart.png
+pi0_robots_hi.png                π0 Fig.5  robots_compressed.pdf
+pi0_pretrain_film_hi.jpg         π0 Fig.6  pretrain_filmstrip_compressed.pdf（未用）
+pi0_pretrain_tasks_hi.png        π0 Fig.7  pretrain_tasks.pdf
+pi0_multistage_film_hi.jpg       π0 Fig.12 multi_stage_filmstrip_compressed.pdf（未用）
+pi0_complex_finetune.png         π0 Fig.13 complex_finetune.png
+pi0_timestep_hi.png              π0 Fig.14 timestep_sampling.pdf（未用）
+pi0_teaser_hi.jpg                π0 Fig.1  teaser_fig.pdf（未用）
+cam_base.png / cam_lwrist.png / cam_rwrist.png   从 π0 Fig.3 底部三张相机画面裁出
+robot_ur5e.png / robot_arx.png   从 π0 Fig.5 裁出的 UR5e / Bimanual ARX
+lab_rt2_robot.png                从 RT-2 Fig.1 右侧 "Closed-Loop Robot Control" 三张照片裁出
+lab_openvla_widowx.png           从 OpenVLA Fig.3 底部 WidowX 任务照片裁出
+lab_pi_fibocom.png               从 π0 Fig.5 裁出的 Mobile Fibocom
+pi0_finetune_sweep.png           π0 Fig.11 finetune_tasks_over_time.pdf
+pi0_language_tasks.png           π0 Fig.9  language_tasks.png
+pi0_dexterous_film.jpg           π0 Fig.10 learning_dexterous_tasks_filmstrip_compressed.pdf（未用）

@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>VLA 入门 · π0.7 · 第 24 期</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#F5F5F7; --ink:#1D1D1F; --muted:#6E6E73; --faint:#A1A1A6; --line:#D2D2D7; --card:#FFFFFF;
+  --accent:#0071E3;
+  --lang:#B03A2E; --lang-bg:#FBE0DC;
+  --goal:#8A6400; --goal-bg:#FCEFB4;
+  --meta:#6B3FA0; --meta-bg:#EEDFF7;
+  --mode:#2C6E49; --mode-bg:#D9F0E3;
+  --font:"PingFang SC","SF Pro Display","SF Pro SC","Hiragino Sans GB","Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono","Menlo","JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(1);transform-origin:center;background:var(--bg)}
+.slide{position:absolute;inset:0;padding:92px 128px 84px;display:none;flex-direction:column}
+.slide.active{display:flex}
+.kicker{font-size:22px;font-weight:500;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.kicker b{color:var(--ink);font-weight:600;margin-right:14px}
+h1{font-size:70px;font-weight:600;letter-spacing:-.012em;line-height:1.15;margin-top:20px}
+h1 .thin{font-weight:400;color:var(--muted)}
+.sub{font-size:30px;color:var(--muted);margin-top:14px;font-weight:400;line-height:1.4}
+.fig{flex:1;min-height:0;position:relative;margin-top:40px}
+.fig img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.fig.card{background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.fig.card img{padding:30px}
+.fig.photo{border-radius:26px;overflow:hidden}
+.fig.photo img{object-fit:cover}
+.fig video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.fig.video{background:#000;border-radius:26px;overflow:hidden}
+.fig2 > .ph{flex:1}
+.ph video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.grid2{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:20px;flex:1;min-height:0;margin-top:40px}
+.slide.film{padding:0;background:#000}
+.film video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.film .ov{position:absolute;left:50%;top:40px;transform:translateX(-50%);color:#fff;font-size:22px;letter-spacing:.14em;opacity:.8;z-index:2;white-space:nowrap}
+.vcol{flex:1;display:flex;flex-direction:column;min-height:0}
+.vcol .ph{flex:1;min-height:0}
+.vcap{margin-top:18px;font-size:27px;color:var(--muted);text-align:center;line-height:1.4}
+.vcap b{color:var(--ink);font-weight:600}
+.diagbox{flex:1;min-height:0;position:relative;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.diagbox svg{position:absolute;inset:0;width:100%;height:100%}
+.fig2{flex:1;min-height:0;display:flex;gap:30px;margin-top:40px}
+.fig2 .fig{margin:0}
+.note{margin-top:30px;font-size:29px;color:var(--muted);text-align:center;line-height:1.45}
+.note b{color:var(--ink);font-weight:600}
+.src{position:absolute;right:128px;bottom:40px;font-family:var(--mono);font-size:17px;color:var(--faint);letter-spacing:.06em}
+/* big numbers */
+.stats{display:flex;gap:80px;justify-content:center;align-items:flex-start}
+.stat{text-align:center;min-width:300px}
+.stat .v{font-size:110px;font-weight:600;letter-spacing:-.025em;line-height:1}
+.stat .v small{font-size:44px;font-weight:500;color:var(--muted);margin-left:6px}
+.stat .k{font-size:25px;color:var(--muted);margin-top:18px;line-height:1.4}
+.stat.accent .v{color:var(--accent)}
+/* cards */
+.cards{display:flex;gap:32px;justify-content:center;flex:1;min-height:0;margin-top:44px;align-items:center}
+.card{flex:1;min-height:320px;display:flex;flex-direction:column;justify-content:center;background:var(--card);border-radius:30px;padding:54px 36px;box-shadow:0 14px 48px rgba(0,0,0,.06);text-align:center}
+.card .big{font-size:64px;font-weight:600;letter-spacing:-.02em;line-height:1.05}
+.card .big.mono{font-family:var(--mono);font-size:40px;letter-spacing:0}
+.card .h{font-size:26px;color:var(--muted);margin-top:22px;line-height:1.45}
+.card.lang .big{color:var(--lang)} .card.goal .big{color:var(--goal)} .card.meta .big{color:var(--meta)} .card.mode .big{color:var(--mode)}
+/* prompt chips */
+.prompt{font-family:var(--mono);font-size:40px;line-height:2;text-align:center;flex:1;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;padding:0 40px}
+.chip{display:inline-block;padding:2px 22px;border-radius:14px;margin:0 6px;white-space:nowrap}
+.chip.obs{background:#E8E8ED;color:var(--ink)}
+.chip.lang{background:var(--lang-bg);color:var(--lang)}
+.chip.goal{background:var(--goal-bg);color:var(--goal)}
+.chip.meta{background:var(--meta-bg);color:var(--meta)}
+.chip.mode{background:var(--mode-bg);color:var(--mode)}
+.legend{display:flex;gap:40px;justify-content:center;font-size:26px;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:18px;height:18px;border-radius:5px;margin-right:12px;vertical-align:-2px}
+/* prompt 演进四行 */
+.rows{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:30px;margin-top:16px}
+.row{display:flex;align-items:center;gap:30px}
+.row .who{width:190px;flex:none;text-align:right;font-family:var(--mono);font-size:19px;letter-spacing:.06em;color:var(--muted)}
+.row .who b{display:block;font-family:var(--font);font-size:36px;letter-spacing:-.01em;color:var(--ink);font-weight:600;margin-bottom:2px}
+.row.now .who b{color:var(--accent)}
+.row .line{flex:1;font-family:var(--mono);display:flex;flex-wrap:wrap;gap:10px 6px;align-items:center}
+.row .chip{font-size:24px;padding:2px 14px;margin:0;border-radius:12px}
+.row.now .chip{font-size:26px}
+.row .delta{width:300px;flex:none;font-size:24px;color:var(--muted);line-height:1.4}
+.row.now .delta{color:var(--ink)}
+/* timeline */
+.timeline{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 20px}
+.tl-row{position:relative;display:flex;justify-content:space-between;padding-top:56px}
+.tl-row:before{content:"";position:absolute;left:8%;right:8%;top:0;height:2px;background:var(--line)}
+.tl{flex:1;text-align:center;position:relative}
+.tl .dot{position:absolute;left:50%;top:-66px;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:var(--line)}
+.tl.now .dot{background:var(--accent);box-shadow:0 0 0 10px rgba(0,113,227,.15)}
+.tl .d{font-family:var(--mono);font-size:20px;color:var(--muted);letter-spacing:.06em}
+.tl .n{font-size:52px;font-weight:600;margin-top:10px;letter-spacing:-.01em}
+.tl.now .n{color:var(--accent)}
+.tl .w{font-size:24px;color:var(--muted);margin-top:12px;line-height:1.4;padding:0 18px}
+/* photo grid */
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;flex:1;min-height:0;margin-top:44px}
+.ph{position:relative;border-radius:22px;overflow:hidden;background:#000}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ph .cap{position:absolute;left:0;right:0;bottom:0;padding:26px 24px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:28px;font-weight:600;line-height:1.3}
+.ph .cap small{display:block;font-size:20px;font-weight:400;opacity:.8;margin-top:6px;letter-spacing:.04em}
+/* two columns of text */
+.two{display:flex;gap:80px;flex:1;margin-top:48px;align-items:flex-start}
+.two .col{flex:1}
+.h2{font-size:22px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;font-weight:500}
+.li{font-size:31px;line-height:1.45;padding:20px 0;border-top:1px solid var(--line)}
+.li:last-child{border-bottom:1px solid var(--line)}
+.li b{font-weight:600}
+.vs{display:flex;gap:60px;flex:1;margin-top:56px;align-items:stretch}
+.vs .box{flex:1;background:var(--card);border-radius:30px;padding:52px 56px;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.vs .box .t{font-size:24px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+.vs .box .m{font-size:44px;font-weight:600;line-height:1.3;margin-top:22px;letter-spacing:-.01em}
+.vs .box .s{font-size:27px;color:var(--muted);line-height:1.5;margin-top:22px}
+.vs .box.dim .m{color:var(--muted)}
+/* cover / end */
+.cover{padding:0}
+.cover .t{position:absolute;left:128px;top:150px}
+.cover .kicker{font-size:24px}
+.cover h1{font-size:230px;letter-spacing:-.035em;line-height:.95;margin-top:26px}
+.cover .p{font-size:42px;color:var(--muted);margin-top:26px;font-weight:400}
+.cover .p b{color:var(--ink);font-weight:600}
+.cover .brand{position:absolute;right:128px;top:158px;font-size:26px;letter-spacing:.14em;color:var(--muted)}
+.cover .photos{position:absolute;left:0;right:0;bottom:0;height:330px;display:flex;gap:6px;background:#000}
+.cover .photos img{flex:1;min-width:0;height:100%;object-fit:cover;display:block}
+.end{justify-content:center}
+.end .timeline{flex:0 0 auto;margin-bottom:70px}
+.end .big{font-size:44px;text-align:center;color:var(--muted);margin-top:30px;line-height:1.5}
+.end .big b{color:var(--ink);font-weight:600}
+.end .fine{text-align:center;font-family:var(--mono);font-size:22px;color:var(--faint);margin-top:40px;letter-spacing:.06em}
+/* nav (top-left page control) */
+#nav-hot{position:fixed;left:0;top:0;width:220px;height:110px;z-index:20}
+#nav-btn{position:fixed;left:14px;top:14px;height:44px;padding:0 14px 0 10px;border-radius:10px;background:rgba(29,29,31,.82);color:#fff;font-size:18px;font-family:var(--mono);display:flex;align-items:center;gap:10px;cursor:pointer;opacity:.22;transition:opacity .25s;z-index:21;user-select:none}
+#nav-btn span.pg{font-size:18px;letter-spacing:.06em}
+#nav-btn .b{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14)}
+#nav-btn .b:hover{background:rgba(255,255,255,.3)}
+#nav-hot:hover ~ #nav-btn,#nav-btn:hover,#nav-btn.open{opacity:1}
+#nav-panel{position:fixed;left:14px;top:66px;width:440px;max-height:calc(100vh - 90px);overflow:auto;background:#fff;color:#1D1D1F;border:1px solid #D2D2D7;border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.18);padding:8px;display:none;z-index:22;font-family:var(--font);font-size:14px}
+#nav-panel.open{display:block}
+#nav-panel .sec-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:#6E6E73;padding:10px 10px 4px;text-transform:uppercase}
+#nav-panel .it{display:flex;gap:10px;align-items:baseline;padding:7px 10px;border-radius:8px;cursor:pointer;line-height:1.35}
+#nav-panel .it:hover{background:#F5F5F7}
+#nav-panel .it.cur{background:#E8F0FE;color:#0071E3}
+#nav-panel .it .k{font-family:var(--mono);font-size:12px;color:#6E6E73;min-width:24px;text-align:right}
+#nav-panel .it.cur .k{color:#0071E3}
+#hud{position:fixed;left:18px;bottom:14px;font-family:var(--mono);font-size:13px;color:#8e8e93;opacity:0;transition:opacity .6s;pointer-events:none;z-index:9}
+#hud.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- 1 -->
+<section class="slide cover" data-sec="封面" data-title="封面">
+  <div class="t">
+    <div class="kicker">第 24 期 · VLA 入门（四）· Physical Intelligence · 2026-04</div>
+    <h1>π0.7</h1>
+    <div class="p">一个通用模型，<b>零样本</b>追平专门练过的 RL specialist</div>
+  </div>
+  <div class="brand">可lip</div>
+  <div class="photos">
+    <img src="media/fig1_photo_espresso.jpg" alt="">
+    <img src="media/fig1_photo_airfryer.jpg" alt="">
+    <img src="media/fig1_photo_laundry.jpg" alt="">
+    <img src="media/fig1_photo_ur5e_fold.jpg" alt="">
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="slide film" data-sec="00 先看它能做什么" data-title="官方演示片">
+  <video src="https://website.pi-asset.com/pi07/Pi07VFINAL.mp4" muted controls playsinline preload="metadata"></video>
+  <div class="ov">π0.7 · PI 官方演示片 · 4 分钟 · pi.website/pi07</div>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-sec="00 先看它能做什么" data-title="π0.7 能做什么">
+  <div class="kicker"><b>00</b>π0.7 能做什么</div>
+  <h1>四种能力，一个模型，<span class="thin">不做任务专属微调</span></h1>
+  <div class="grid4">
+    <div class="ph"><video src="https://website.pi-asset.com/pi07/coffee_compressed.mp4" muted loop playsinline preload="auto"></video><div class="cap">灵巧任务开箱即用<br><small>做浓缩咖啡 · 5×</small></div></div>
+    <div class="ph"><video src="https://website.pi-asset.com/pi07/clean_desk_interactive_demo_compressed.mp4" muted loop playsinline preload="auto"></video><div class="cap">跟随开放指令<br><small>人一句一句说 · 2×</small></div></div>
+    <div class="ph"><video src="https://website.pi-asset.com/pi07/shirt_folding_processed_no_overlay_compressed.mp4" muted loop playsinline preload="auto"></video><div class="cap">零样本换到新机器人<br><small>UR5e 叠衬衫 · 1×</small></div></div>
+    <div class="ph"><video src="https://website.pi-asset.com/pi07/detailed_coaching_air_fryer_compressed.mp4" muted loop playsinline preload="auto"></video><div class="cap">用语言教会新任务<br><small>气炸锅 · 1×</small></div></div>
+  </div>
+  <div class="src">Sec.I · pi.website/pi07 官网视频</div>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-sec="00 回顾" data-title="π0.5 → π*0.6 → π0.7">
+  <div class="kicker"><b>00</b>回顾</div>
+  <h1>π0.5 → π*0.6 → π0.7</h1>
+  <div class="sub">上期一个任务要练一个 RL specialist，这期一个模型全接</div>
+  <div class="timeline"><div class="tl-row">
+    <div class="tl"><div class="dot"></div><div class="d">2024-10</div><div class="n">π0</div><div class="w">flow matching<br>一次出 50 步动作</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2025-04</div><div class="n">π0.5</div><div class="w">五类数据 co-training<br>先出子任务，再出动作</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2025-11</div><div class="n">π*0.6</div><div class="w">Gemma 3 基座 + RL<br>每个任务一个 specialist</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2026-03</div><div class="n">MEM</div><div class="w">视觉历史编码器<br>+ 语言记忆</div></div>
+    <div class="tl now"><div class="dot"></div><div class="d">2026-04 · 本期</div><div class="n">π0.7</div><div class="w">把「怎么做、做得怎样」<br>写进 prompt</div></div>
+  </div></div>
+  <div class="src">arXiv 2604.15483 · v2 2026-04-24 · 未开源</div>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-sec="00 前置 · MEM" data-title="MEM ①：给 VLA 加两级记忆">
+  <div class="kicker"><b>00</b>前置 · MEM · 2026-03</div>
+  <h1>MEM：<span class="thin">给 VLA 加两级记忆</span></h1>
+  <div class="fig card"><img src="media/mem_figure1v10.png" alt=""></div>
+  <div class="note"><b>短期</b>：视频编码器把最近几秒的画面压进当前帧　·　<b>长期</b>：高层策略自己维护的一段语言摘要</div>
+  <div class="src">MEM · arXiv 2603.03596 · Fig.1</div>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-sec="00 前置 · MEM" data-title="MEM ②：视频编码器">
+  <div class="kicker"><b>00</b>前置 · MEM · 视频编码器</div>
+  <h1>历史挤进当前帧：<span class="thin">token 数和单帧一样</span></h1>
+  <div class="fig card"><img src="media/mem_video_encoderv5.png" alt=""></div>
+  <div class="note">ViT 每 4 层插一次跨时间的因果注意力，不加参数　·　六个记忆任务平均进度 <b>≈30% → ≈73%</b>（估读）　·　π0.7 沿用：4 路相机 × 6 帧，448×448</div>
+  <div class="src">MEM · Fig.3 · Fig.8 · π0.7 Sec.VI-B</div>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-sec="01 问题" data-title="问题：VLA 缺组合泛化">
+  <div class="kicker"><b>01</b>问题</div>
+  <h1>训练过的任务，也要再做一次专属微调</h1>
+  <div class="vs">
+    <div class="box dim">
+      <div class="t">大语言模型</div>
+      <div class="m">把见过的能力组合成新的</div>
+      <div class="s">套用没见过的输出格式、做 chain-of-thought、建立不寻常的联系</div>
+    </div>
+    <div class="box">
+      <div class="t">VLA · 到 π*0.6 为止</div>
+      <div class="m">新任务做不了，旧任务要微调</div>
+      <div class="s">想拿更多、更杂的数据换泛化，朴素训练会把不同质量、不同策略平均到一起</div>
+    </div>
+  </div>
+  <div class="src">Sec.I · Sec.III</div>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-sec="02 方法 · 数据" data-title="数据来源：全都要">
+  <div class="kicker"><b>02</b>方法 · 数据</div>
+  <h1>好的坏的、机器人的人的，<span class="thin">全都要</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/fig1_robot_data.png" alt=""></div>
+    <div class="fig card"><img src="media/fig1_nonrobot_data.png" alt=""></div>
+  </div>
+  <div class="note">示范 · 评测时跑出来的自主数据（含 <b>π*0.6 的 RL rollout 和失败</b>）· 人类干预 · 开源机器人数据 · 第一视角人类视频 · 网页 · 视频描述</div>
+  <div class="src">Fig.1 · Sec.VI-A</div>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-sec="02 方法 · 数据" data-title="一条训练数据长什么样">
+  <div class="kicker"><b>02</b>方法 · 数据 · 标注</div>
+  <h1>一条训练数据长什么样</h1>
+  <div class="fig card"><img src="media/fig3_food_block.png" alt=""></div>
+  <div class="note"><span class="chip lang" style="font-size:26px;padding:2px 16px">① 子任务指令</span><span class="chip goal" style="font-size:26px;padding:2px 16px">② 子目标图</span><span class="chip meta" style="font-size:26px;padding:2px 16px">③ 元数据</span><span class="chip mode" style="font-size:26px;padding:2px 16px">④ 控制模式</span>　每条数据都配上这四样，训练时随机丢</div>
+  <div class="src">Fig.3 · Sec.V</div>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-sec="02 方法 · 数据" data-title="元数据 · 控制模式">
+  <div class="kicker"><b>02</b>方法 · 数据 · 元数据</div>
+  <h1>元数据：<span class="thin">这条数据做得怎么样</span></h1>
+  <div class="cards">
+    <div class="card meta"><div class="big mono">Speed: 2000</div><div class="h">整段用了多少步<br>按 500 步分箱</div></div>
+    <div class="card meta"><div class="big mono">Quality: 5</div><div class="h">整体质量 1–5<br>人工粗标</div></div>
+    <div class="card meta"><div class="big mono">Mistake: false</div><div class="h">当前这一段有没有失误<br>人工粗标</div></div>
+    <div class="card mode"><div class="big mono">Mode: joint</div><div class="h">关节控制 / 末端控制<br>训练时两种都有</div></div>
+  </div>
+  <div class="note">推理时固定填：速度取该任务 episode 长度的 <b>15% 分位</b>，质量 <b>5</b>，失误 <b>false</b></div>
+  <div class="src">Sec.V-C · Sec.V-D · Sec.VII</div>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-sec="02 方法 · 数据" data-title="关节控制 vs 末端控制">
+  <div class="kicker"><b>02</b>方法 · 数据 · 控制模式</div>
+  <h1>关节控制 vs 末端控制：<span class="thin">同一个动作，两种写法</span></h1>
+  <div class="fig2">
+    <div class="vcol"><div class="diagbox"><svg viewBox="0 0 760 540" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<defs><marker id="arB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0071E3"/></marker></defs>
+<text x="40" y="58" font-family="PingFang SC, Helvetica Neue, sans-serif" font-size="30" font-weight="600" fill="#1D1D1F">关节控制 · joint</text>
+<text x="40" y="96" font-family="PingFang SC, Helvetica Neue, sans-serif" font-size="22" fill="#6E6E73">每个关节转到多少度，电机直接执行</text>
+<g transform="translate(0,-30)"><g transform="translate(0,0)"><rect x="70" y="470" width="180" height="26" rx="8" fill="#1D1D1F"/><rect x="140" y="420" width="40" height="52" rx="6" fill="#1D1D1F"/><g stroke="#1D1D1F" stroke-width="18" stroke-linecap="round" fill="none"><line x1="160" y1="420" x2="160" y2="350"/><line x1="160" y1="350" x2="330" y2="200"/><line x1="330" y1="200" x2="520" y2="250"/><line x1="520" y1="250" x2="580" y2="260"/><line x1="580" y1="260" x2="640" y2="250"/><line x1="640" y1="250" x2="675" y2="248"/></g><g stroke="#1D1D1F" stroke-width="10" stroke-linecap="round" fill="none"><line x1="675" y1="236" x2="725" y2="224"/><line x1="675" y1="260" x2="725" y2="272"/></g><g fill="#fff" stroke="#0071E3" stroke-width="6"><circle cx="160" cy="420" r="17"/><circle cx="160" cy="350" r="17"/><circle cx="330" cy="200" r="17"/><circle cx="520" cy="250" r="17"/><circle cx="580" cy="260" r="14"/><circle cx="640" cy="250" r="14"/></g></g>
+<g fill="none" stroke="#0071E3" stroke-width="4" marker-end="url(#arB)">
+<path d="M 128 420 A 32 32 0 1 1 160 452"/><path d="M 128 350 A 32 32 0 1 1 160 382"/><path d="M 298 200 A 32 32 0 1 1 330 232"/><path d="M 488 250 A 32 32 0 1 1 520 282"/><path d="M 552 260 A 28 28 0 1 1 580 288"/><path d="M 612 250 A 28 28 0 1 1 640 278"/>
+</g>
+<g font-family="SF Mono, Menlo, monospace" font-size="26" fill="#0071E3" font-weight="600">
+<text x="96" y="434">θ1</text><text x="96" y="364">θ2</text><text x="288" y="176">θ3</text><text x="500" y="222">θ4</text><text x="556" y="316">θ5</text><text x="626" y="222">θ6</text>
+</g>
+<text x="690" y="304" font-family="PingFang SC, sans-serif" font-size="22" fill="#6E6E73">夹爪</text>
+</g>
+<text x="40" y="520" font-family="PingFang SC, sans-serif" font-size="20" fill="#6E6E73">每个关节里一个电机 + 一个编码器 · 6 个关节 = 6 自由度</text>
+</svg></div><div class="vcap"><span class="chip mode" style="font-size:26px">[ θ1  θ2  θ3  θ4  θ5  θ6  夹爪 ]</span></div></div>
+    <div class="vcol"><div class="diagbox"><svg viewBox="0 0 760 540" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<defs>
+<marker id="arX" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#D0342C"/></marker>
+<marker id="arY" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2C6E49"/></marker>
+<marker id="arZ" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0071E3"/></marker>
+<marker id="arG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6E6E73"/></marker>
+</defs>
+<text x="40" y="58" font-family="PingFang SC, Helvetica Neue, sans-serif" font-size="30" font-weight="600" fill="#1D1D1F">末端控制 · end-effector (ee)</text>
+<text x="40" y="96" font-family="PingFang SC, Helvetica Neue, sans-serif" font-size="22" fill="#6E6E73">只说夹爪到哪、朝哪；逆运动学 IK 翻成关节角</text>
+<g transform="translate(0,-30)"><g transform="translate(-80,0)"><rect x="70" y="470" width="180" height="26" rx="8" fill="#C7C7CC"/><rect x="140" y="420" width="40" height="52" rx="6" fill="#C7C7CC"/><g stroke="#C7C7CC" stroke-width="18" stroke-linecap="round" fill="none"><line x1="160" y1="420" x2="160" y2="350"/><line x1="160" y1="350" x2="330" y2="200"/><line x1="330" y1="200" x2="520" y2="250"/><line x1="520" y1="250" x2="580" y2="260"/><line x1="580" y1="260" x2="640" y2="250"/><line x1="640" y1="250" x2="675" y2="248"/></g><g stroke="#C7C7CC" stroke-width="10" stroke-linecap="round" fill="none"><line x1="675" y1="236" x2="725" y2="224"/><line x1="675" y1="260" x2="725" y2="272"/></g><g fill="#fff" stroke="#D2D2D7" stroke-width="6"><circle cx="160" cy="420" r="17"/><circle cx="160" cy="350" r="17"/><circle cx="330" cy="200" r="17"/><circle cx="520" cy="250" r="17"/><circle cx="580" cy="260" r="14"/><circle cx="640" cy="250" r="14"/></g></g>
+<g stroke-width="5" fill="none">
+<line x1="595" y1="248" x2="720" y2="248" stroke="#D0342C" marker-end="url(#arX)"/>
+<line x1="595" y1="248" x2="595" y2="128" stroke="#0071E3" marker-end="url(#arZ)"/>
+<line x1="595" y1="248" x2="520" y2="188" stroke="#2C6E49" marker-end="url(#arY)"/>
+</g>
+<circle cx="595" cy="248" r="8" fill="#1D1D1F"/>
+<g font-family="SF Mono, Menlo, monospace" font-size="26" font-weight="600">
+<text x="726" y="256" fill="#D0342C">x</text><text x="584" y="118" fill="#0071E3">z</text><text x="494" y="184" fill="#2C6E49">y</text>
+</g>
+<g fill="none" stroke-width="3">
+<path d="M 680 224 A 20 12 0 1 1 700 236" stroke="#D0342C" marker-end="url(#arX)"/>
+<path d="M 572 150 A 12 20 0 1 1 588 132" stroke="#0071E3" marker-end="url(#arZ)"/>
+<path d="M 528 214 A 14 16 0 1 1 546 200" stroke="#2C6E49" marker-end="url(#arY)"/>
+</g>
+<g font-family="SF Mono, Menlo, monospace" font-size="20">
+<text x="706" y="212" fill="#D0342C">roll</text><text x="540" y="160" fill="#0071E3">yaw</text><text x="468" y="232" fill="#2C6E49">pitch</text>
+</g>
+</g>
+<text x="40" y="488" font-family="PingFang SC, sans-serif" font-size="21" fill="#1D1D1F">位姿 (x, y, z, roll, pitch, yaw) → <tspan font-weight="600">IK</tspan> → θ1 … θ6 → 电机</text>
+<text x="40" y="520" font-family="PingFang SC, sans-serif" font-size="19" fill="#6E6E73">正运动学：关节角 → 位姿，唯一解　逆运动学：位姿 → 关节角，多解或无解</text>
+</svg></div><div class="vcap"><span class="chip mode" style="font-size:26px">[ x  y  z  roll  pitch  yaw  夹爪 ]</span></div></div>
+  </div>
+  <div class="note">电机只认关节角，末端位姿要先过一步 IK　·　π0.7 两种数据都训，prompt 里一个词切换，<b>唯一不做 dropout</b> 的成分</div>
+  <div class="src">Sec.V-D · Sec.V-E · Sec.VIII · 示意图自绘</div>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-sec="02 方法 · 数据" data-title="机器人硬件：自由度怎么数">
+  <div class="kicker"><b>02</b>方法 · 数据 · 机器人硬件</div>
+  <h1>自由度怎么数：<span class="thin">臂 6，夹爪 1，底盘 3</span></h1>
+  <div class="fig card"><img src="media/pi07_pi07robots_v5.png" alt=""></div>
+  <div class="note">自由度 = 能独立运动的轴数；动作向量 = 所有自由度的目标值排成一行　·　模型 → PD 控制器 → 电机 → 编码器读回本体状态　·　50 Hz，UR5e 20 Hz</div>
+  <div class="src">Fig.4 · Sec.VIII</div>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-sec="02 方法 · 数据" data-title="思路：把 prompt 扩写">
+  <div class="kicker"><b>02</b>方法 · 数据 · 和前几代比 · Prompt Expansion</div>
+  <h1>把 prompt 扩写：做什么、怎么做、做得怎样</h1>
+  <div class="rows">
+    <div class="row"><div class="who"><b>π0</b>2024-10</div><div class="line"><span class="chip obs">&lt;观测&gt;</span><span class="chip lang">Task: fold the shirt.</span><span class="chip obs">&lt;本体状态&gt;</span></div><div class="delta">只有一句任务</div></div>
+    <div class="row"><div class="who"><b>π0.5</b>2025-04</div><div class="line"><span class="chip obs">&lt;观测&gt;</span><span class="chip lang">Task: clean the kitchen.</span><span class="chip lang">Subtask: open the fridge door.</span><span class="chip obs">&lt;本体状态&gt;</span></div><div class="delta">+ 子任务，模型自己先出、再喂给自己</div></div>
+    <div class="row"><div class="who"><b>π*0.6</b>2025-11</div><div class="line"><span class="chip obs">&lt;观测&gt;</span><span class="chip lang">Task: make a doppio.</span><span class="chip lang">Subtask: tamp the coffee.</span><span class="chip meta">Advantage: positive.</span><span class="chip obs">&lt;本体状态&gt;</span></div><div class="delta">+ 好坏，一个 bit</div></div>
+    <div class="row now"><div class="who"><b>π0.7</b>2026-04</div><div class="line"><span class="chip obs">&lt;观测&gt;</span><span class="chip goal">&lt;子目标图&gt;</span><span class="chip lang">Task: peel vegetables.</span><span class="chip lang">Subtask: pick up the peeler.</span><span class="chip meta">Speed: 8000.</span><span class="chip meta">Quality: 5.</span><span class="chip meta">Mistake: false.</span><span class="chip mode">Control Mode: joint.</span><span class="chip obs">&lt;本体状态&gt;</span></div><div class="delta">+ 做完长什么样<br>+ 做得怎样，三项<br>+ 用哪种控制</div></div>
+  </div>
+  <div class="legend"><span><i style="background:var(--lang-bg)"></i>做什么</span><span><i style="background:var(--goal-bg)"></i>做完长什么样</span><span><i style="background:var(--meta-bg)"></i>做得怎样</span><span><i style="background:var(--mode-bg)"></i>用哪种控制</span></div>
+  <div class="note">训练时每条数据都配上这段上下文；测试时把它填成最好的那一档</div>
+  <div class="src">π0 · π0.5 Sec.IV-A · π*0.6 Sec.V-B · π0.7 Sec.V-E</div>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-sec="02 方法 · 架构" data-title="架构总览">
+  <div class="kicker"><b>02</b>方法 · 架构</div>
+  <h1>架构总览：<span class="thin">一个 5B 的 VLA，两个帮手</span></h1>
+  <div class="fig card"><img src="media/pi07_model_architecture.png" alt=""></div>
+  <div class="note"><b>π0.7</b>：Gemma 3 4B 骨干 + 860M action expert　·　<b>高层策略</b>：同架构，出子任务　·　<b>世界模型</b>：BAGEL 14B，出子目标图</div>
+  <div class="src">Fig.2 · Sec.IV</div>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-sec="02 方法 · 架构" data-title="高层策略 · 子任务指令">
+  <div class="kicker"><b>02</b>方法 · 架构 · 高层策略</div>
+  <h1>高层策略：<span class="thin">子任务由它给，或者人现场说</span></h1>
+  <div class="fig2">
+    <div class="vcol"><div class="ph"><video src="https://website.pi-asset.com/pi07/zeroshot_air_fryer_attempt_compressed.mp4" muted loop playsinline preload="auto"></video></div><div class="vcap"><b>零样本</b> · 只给一句「把红薯放进气炸锅」· 做不下来 · 5×</div></div>
+    <div class="vcol"><div class="ph"><video src="https://website.pi-asset.com/pi07/detailed_coaching_air_fryer_compressed.mp4" muted loop playsinline preload="auto"></video></div><div class="vcap"><b>Coaching</b> · 人一步一步说 · 做完了 · 1×</div></div>
+  </div>
+  <div class="note">高层策略是拿 π0.7 权重微调出来的另一个实例；子任务变成纯输入，人随时能接管，这就是 <b>coaching</b></div>
+  <div class="src">Sec.V-A · Fig.14 · pi.website/pi07 官网视频</div>
+</section>
+
+<!-- 16 -->
+<section class="slide" data-sec="02 方法 · 架构" data-title="世界模型 · 子目标图">
+  <div class="kicker"><b>02</b>方法 · 架构 · 世界模型</div>
+  <h1>世界模型：<span class="thin">画出「做完长什么样」</span></h1>
+  <div class="fig card"><img src="media/fig3_shirt_block.png" alt=""></div>
+  <div class="note">从 <b>BAGEL 14B</b> 初始化，flow matching 预测这一段结束时的画面；三路相机各出一张</div>
+  <div class="src">Fig.3 · Sec.V-B · Appendix C</div>
+</section>
+
+<!-- 17 -->
+<section class="slide" data-sec="02 方法 · 训练与推理" data-title="训练：随机丢">
+  <div class="kicker"><b>02</b>方法 · 训练</div>
+  <h1>训练：<span class="thin">随机丢，测试时随便配</span></h1>
+  <div class="cards">
+    <div class="card goal"><div class="big">25%</div><div class="h">只有这么多样本带子目标图</div></div>
+    <div class="card lang"><div class="big">30%</div><div class="h">带图的样本里，再把子任务文本丢掉</div></div>
+    <div class="card meta"><div class="big">15% + 5%</div><div class="h">元数据整体丢 15%<br>三个分量再各自丢 5%</div></div>
+    <div class="card mode"><div class="big">0%</div><div class="h">控制模式不丢</div></div>
+  </div>
+  <div class="note">带图的样本不能多：有了未来的画面，动作预测退化成 <b>inverse dynamics</b>，学得太快，别的就不学了</div>
+  <div class="src">Sec.V-E · Sec.VI-C</div>
+</section>
+
+<!-- 18 -->
+<section class="slide" data-sec="02 方法 · 训练与推理" data-title="推理：三个模型异步跑">
+  <div class="kicker"><b>02</b>方法 · 推理</div>
+  <h1>推理：<span class="thin">三个模型异步跑</span></h1>
+  <div class="fig card" style="flex:1.1"><img src="media/fig2_hl_wm_bottom.png" alt=""></div>
+  <div class="stats" style="margin-top:34px">
+    <div class="stat"><div class="v">38<small>ms</small></div><div class="k">最小配置 · 单张 H100</div></div>
+    <div class="stat"><div class="v">127<small>ms</small></div><div class="k">开历史编码器 + 子目标图 · 最坏情况</div></div>
+    <div class="stat accent"><div class="v">1.25<small>s</small></div><div class="k">世界模型出一张子目标 · 4 张 H100</div></div>
+  </div>
+  <div class="note">5 步去噪出 50 步动作，执行 15 或 25 步　·　子目标每 4 秒或子任务变化时刷新</div>
+  <div class="src">Alg.1 · Sec.VII · Appendix D</div>
+</section>
+
+<!-- 19 -->
+<section class="slide" data-sec="03 实验" data-title="开箱即用 · 四段视频">
+  <div class="kicker"><b>03</b>实验 · 开箱即用</div>
+  <h1>同一个模型，<span class="thin">不做任务专属微调</span></h1>
+  <div class="grid2">
+    <div class="ph"><video src="https://website.pi-asset.com/pi07/diverselaundry_compressed.mp4" muted loop playsinline preload="auto"></video><div class="cap">多样衣物 · 5×</div></div>
+    <div class="ph"><video src="https://website.pi-asset.com/pi07/trash_compressed.mp4" muted loop playsinline preload="auto"></video><div class="cap">换垃圾袋 · 5×</div></div>
+    <div class="ph"><video src="https://website.pi-asset.com/pi07/cut_zucchini_compressed.mp4" muted loop playsinline preload="auto"></video><div class="cap">切西葫芦 · 5×</div></div>
+    <div class="ph"><video src="https://website.pi-asset.com/pi07/insideout_compressed.mp4" muted loop playsinline preload="auto"></video><div class="cap">T 恤翻面再叠好 · 5×</div></div>
+  </div>
+  <div class="src">pi.website/pi07 官网视频</div>
+</section>
+
+<!-- 20 -->
+<section class="slide" data-sec="03 实验" data-title="开箱即用 vs RL specialist">
+  <div class="kicker"><b>03</b>实验 · 开箱即用</div>
+  <h1>一个模型，追平四个 RL specialist</h1>
+  <div class="fig card"><img src="media/fig6_top_rl_specialist.png" alt=""></div>
+  <div class="note">T 恤、咖啡持平；多样衣物、装箱吞吐量约 <b>1.45 倍</b>（估读）</div>
+  <div class="src">Fig.6 上 · Sec.IX-A · 柱状图估读</div>
+</section>
+
+<!-- 21 -->
+<section class="slide" data-sec="03 实验" data-title="消融：去元数据 / 去评测数据">
+  <div class="kicker"><b>03</b>实验 · 消融</div>
+  <h1>去掉元数据，或去掉评测数据，<span class="thin">都掉</span></h1>
+  <div class="fig card"><img src="media/pi07_distillation_ablations.png" alt=""></div>
+  <div class="note">装箱吞吐量 1.0 → <b>≈0.24</b>（无元数据）/ <b>≈0.57</b>（无评测数据）　·　咖啡成功率 ≈95% → ≈52% / ≈63%</div>
+  <div class="src">Fig.7 · Sec.IX-A · 柱状图估读</div>
+</section>
+
+<!-- 22 -->
+<section class="slide" data-sec="03 实验" data-title="指令跟随：没见过的家">
+  <div class="kicker"><b>03</b>实验 · 指令跟随</div>
+  <h1>没见过的厨房，跟随开放指令 <span class="thin">≈87%</span></h1>
+  <div class="fig card"><img src="media/pi07_instruction_following.png" alt=""></div>
+  <div class="note">14 个场景 · 每个 3–6 条指令 · 4 个未见厨房 + 2 个未见卧室　·　π0.5 ≈28% → π0.6 ≈54% → <b>π0.7 ≈87%</b>（估读）</div>
+  <div class="src">Fig.9 · Sec.IX-B · 柱状图估读</div>
+</section>
+
+<!-- 23 -->
+<section class="slide" data-sec="03 实验" data-title="语言不够的地方，子目标图来补">
+  <div class="kicker"><b>03</b>实验 · 指令跟随</div>
+  <h1>语言不够的地方，<span class="thin">子目标图来补</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/pi07_instruction_generalization.png" alt=""></div>
+    <div class="fig card"><img src="media/pi07_compositional_generalization.png" alt=""></div>
+  </div>
+  <div class="note">复杂指令：π0.7 <b>≈36%</b>，带子目标图 <b>≈64%</b>　·　微波炉 → 冰箱：只有带图的 π0.7 能做，<b>≈73%</b>（估读）</div>
+  <div class="src">Fig.10 · Fig.11 · Sec.IX-B · 柱状图估读</div>
+</section>
+
+<!-- 24 -->
+<section class="slide" data-sec="03 实验" data-title="从没在 UR5e 上叠过衣服">
+  <div class="kicker"><b>03</b>实验 · 跨 embodiment</div>
+  <h1>从没在 UR5e 上叠过衣服</h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/fig12_right_folding.png" alt=""></div>
+    <div class="stats" style="flex-direction:column;gap:56px;justify-content:center;flex:0 0 620px">
+      <div class="stat accent"><div class="v">85.6%</div><div class="k">π0.7 (GC) · task progress · 成功率 80%</div></div>
+      <div class="stat"><div class="v">90.9%</div><div class="k">10 名前 2% 的遥操作员首次在 UR5e 上叠 · 成功率 80.6%</div></div>
+    </div>
+  </div>
+  <div class="src">Fig.12 右 · Appendix F · 人类对照为论文原数</div>
+</section>
+
+<!-- 25 -->
+<section class="slide" data-sec="03 实验" data-title="UR5e 叠衬衫 · 视频">
+  <div class="kicker"><b>03</b>实验 · 跨 embodiment</div>
+  <h1>源机器人上人在教，<span class="thin">UR5e 上它自己叠</span></h1>
+  <div class="fig2">
+    <div class="vcol"><div class="ph"><video src="https://website.pi-asset.com/pi07/ARX_shirt_fold_teleop_compressed.mp4" muted loop playsinline preload="auto"></video></div><div class="vcap"><b>源机器人</b> · 静态双臂 · 人类遥操作 · 1×</div></div>
+    <div class="vcol"><div class="ph"><video src="https://website.pi-asset.com/pi07/ur5_shirt_folding_with_goal_overlay_labeled_compressed.mp4" muted loop playsinline preload="auto"></video></div><div class="vcap"><b>UR5e</b> · π0.7 自主 · 左上角是生成的子目标图 · 1×</div></div>
+  </div>
+  <div class="src">pi.website/pi07 官网视频</div>
+</section>
+
+<!-- 26 -->
+<section class="slide" data-sec="03 实验" data-title="语言 coaching 长程新任务">
+  <div class="kicker"><b>03</b>实验 · 组合泛化</div>
+  <h1>长程新任务：<span class="thin">人用语言一步一步教</span></h1>
+  <div class="fig card"><img src="media/pi07_long_horizon_task_generalization.png" alt=""></div>
+  <div class="note">气炸锅装红薯：π0.5 ≈13% · π0.6 ≈25% · <b>π0.7 ≈97%</b>　·　烤百吉饼 ≈47%，加子目标图 ≈79%（估读）</div>
+  <div class="src">Fig.15 · Sec.IX-D · 柱状图估读</div>
+</section>
+
+<!-- 27 -->
+<section class="slide" data-sec="03 实验" data-title="全自主 · 高层策略 + 世界模型">
+  <div class="kicker"><b>03</b>实验 · 组合泛化</div>
+  <h1>全自主：<span class="thin">高层策略出指令，世界模型出子目标图</span></h1>
+  <div class="fig video"><video src="https://website.pi-asset.com/pi07/vis_HL_policy_GG_air_fryer.mp4" muted loop playsinline preload="auto"></video></div>
+  <div class="note">画面上方是高层策略当前给出的指令，左上角是世界模型生成的子目标图　·　5×</div>
+  <div class="src">pi.website/pi07 官网视频</div>
+</section>
+
+<!-- 28 -->
+<section class="slide" data-sec="03 实验" data-title="数据规模与多样性">
+  <div class="kicker"><b>03</b>实验 · 数据规模</div>
+  <h1>低质量数据：<span class="thin">有元数据是养分，没有是毒药</span></h1>
+  <div class="fig card"><img src="media/pi07_generalization_and_conditioning_full.png" alt=""></div>
+  <div class="note">左：全量数据时吞吐量 <b>≈23</b> vs <b>≈9</b> 次 / 小时　·　右：去掉最多样的 20% 数据，新任务掉到 ≈8%（估读）</div>
+  <div class="src">Fig.18 · Sec.IX-E · 估读</div>
+</section>
+
+<!-- 29 -->
+<section class="slide" data-sec="04 小结" data-title="局限">
+  <div class="kicker"><b>04</b>小结</div>
+  <h1>局限</h1>
+  <div class="two">
+    <div class="col">
+      <div class="h2">作者自己说的</div>
+      <div class="li">未见任务、未见「任务 × 机器人」组合，成功率 <b>60–80%</b>；已见任务 90% 以上</div>
+      <div class="li">数据太大太杂，说不清什么是真正「未见」；泛化可能主要是<b>重混</b>已有技能</div>
+    </div>
+    <div class="col">
+      <div class="h2">我读出来的</div>
+      <div class="li">元数据、分段、失误标注全靠人</div>
+      <div class="li">5B 只是策略；整套是 5B + 14B 世界模型 + 高层策略，子目标图要 <b>4 张 H100</b></div>
+      <div class="li">纯语言的复杂指代只有 ≈36%，靠世界模型把话翻成图来补</div>
+      <div class="li">只和自家模型比，试验次数正文没说；<b>不开源</b></div>
+    </div>
+  </div>
+  <div class="src">Sec.X</div>
+</section>
+
+<!-- 30 -->
+<section class="slide end" data-sec="04 收尾" data-title="收尾">
+  <div class="timeline"><div class="tl-row">
+    <div class="tl"><div class="dot"></div><div class="d">2024-10</div><div class="n">π0</div><div class="w">VLM 骨干 + flow matching<br>开源 openpi</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2025-04</div><div class="n">π0.5</div><div class="w">五类数据 · 高层 + 低层<br>一句话进没见过的家</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2025-11</div><div class="n">π*0.6</div><div class="w">从自己的经验里学<br>13 小时咖啡 · 工厂装箱</div></div>
+    <div class="tl now"><div class="dot"></div><div class="d">2026-04</div><div class="n">π0.7</div><div class="w">记忆 + 世界模型 + 元数据<br>一个模型接住全部</div></div>
+  </div></div>
+  <div class="big">上期的一句 <b>Advantage: positive</b>，这期变成了 <b>Quality: 5. Mistake: false.</b><br>好坏写进输入这条路，从 specialist 走到了 generalist</div>
+  <div class="big" style="margin-top:36px;font-size:36px">下期：具身智能的另一条线，<b>世界模型 / World Action Model</b></div>
+  <div class="fine">π0.7 未开源 · 元数据条件化和架构无关，可以在 openpi 的 π0.5 上复现</div>
+</section>
+
+</div>
+
+<div id="nav-hot"></div>
+<div id="nav-btn"><div class="b" id="nb-prev">‹</div><span class="pg" id="nb-pg">1 / 30</span><div class="b" id="nb-next">›</div><div class="b" id="nb-list">☰</div></div>
+<div id="nav-panel"></div>
+<div id="hud"></div>
+
+<script>
+(function(){
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const hud=document.getElementById('hud');
+  let cur=-1, showCounter=false;
+  function fit(){ const s=Math.min(innerWidth/1920, innerHeight/1080); stage.style.transform=`translate(-50%,-50%) scale(${s})`; if(cur>=0) fitFigs(slides[cur]); }
+  // 让白色图卡贴合图片比例：宽图不留大片空白，剩余空间上下均分
+  function fitFigs(sl){
+    sl.querySelectorAll(':scope > .fig.card, :scope > .fig.video').forEach(f=>{
+      const img=f.querySelector('img,video'); if(!img) return;
+      const nw=img.naturalWidth||img.videoWidth, nh=img.naturalHeight||img.videoHeight; if(!nw||!nh) return;
+      f.style.flex=''; f.style.width=''; f.style.height=''; f.style.margin='';
+      const W=f.clientWidth, H=f.clientHeight; if(!W||!H) return;
+      const pad=f.classList.contains('card')?60:0, ar=nw/nh;
+      let w=W, h=(W-pad)/ar+pad; if(h>H){ h=H; w=(H-pad)*ar+pad; }
+      f.style.flex='0 0 auto'; f.style.width=Math.round(w)+'px'; f.style.height=Math.round(h)+'px'; f.style.margin='auto';
+    });
+    // 两图并排（.fig2）：每张卡各自贴合图片比例，行内居中
+    sl.querySelectorAll(':scope > .fig2').forEach(row=>{
+      const cards=[...row.querySelectorAll(':scope > .fig.card')]; if(!cards.length) return;
+      cards.forEach(f=>{ f.style.flex=''; f.style.width=''; f.style.height=''; f.style.alignSelf=''; });
+      row.style.justifyContent='';
+      const H=row.clientHeight; if(!H) return;
+      const sizes=cards.map(f=>{ const img=f.querySelector('img'); if(!img||!img.naturalWidth) return null;
+        const W=f.clientWidth, pad=60, ar=img.naturalWidth/img.naturalHeight; let w=W, h=(W-pad)/ar+pad; if(h>H){ h=H; w=(H-pad)*ar+pad; } return [w,h]; });
+      if(sizes.some(x=>!x)) return;
+      cards.forEach((f,i)=>{ f.style.flex='0 0 auto'; f.style.width=Math.round(sizes[i][0])+'px'; f.style.height=Math.round(sizes[i][1])+'px'; f.style.alignSelf='center'; });
+      row.style.justifyContent='center';
+    });
+  }
+  document.querySelectorAll('.slide > .fig.card img, .slide > .fig2 > .fig.card img').forEach(img=>img.addEventListener('load',()=>{ const sl=img.closest('.slide'); if(sl.classList.contains('active')) fitFigs(sl); }));
+  document.querySelectorAll('.slide > .fig.video video').forEach(v=>v.addEventListener('loadedmetadata',()=>{ const sl=v.closest('.slide'); if(sl.classList.contains('active')) fitFigs(sl); }));
+  function show(n){
+    n=Math.max(0,Math.min(slides.length-1,n)); if(n===cur) return;
+    slides.forEach((s,k)=>{ const on=k===n; s.classList.toggle('active',on); s.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(e){} v.play().catch(()=>{}); } else { v.pause(); } }); });
+    cur=n; history.replaceState(null,'','#'+(n+1)); updateHud(); fitFigs(slides[n]);
+  }
+  const navBtn=document.getElementById('nav-btn'), panel=document.getElementById('nav-panel'), pg=document.getElementById('nb-pg');
+  (function buildNav(){
+    let html='', lastSec=null;
+    slides.forEach((sl,k)=>{
+      const sec=sl.dataset.sec||''; const h=sl.querySelector('h1');
+      let title=sl.dataset.title||(h?h.textContent.trim():''); if(!title) title=sec;
+      if(sec!==lastSec){ html+=`<div class="sec-title">${sec||'—'}</div>`; lastSec=sec; }
+      html+=`<div class="it" data-k="${k}"><span class="k">${k+1}</span><span>${title}</span></div>`;
+    });
+    panel.innerHTML=html;
+  })();
+  function toggleNav(force){ const on=(force===undefined)?!panel.classList.contains('open'):force; panel.classList.toggle('open',on); navBtn.classList.toggle('open',on); }
+  document.getElementById('nb-list').addEventListener('click',e=>{ e.stopPropagation(); toggleNav(); });
+  document.getElementById('nb-prev').addEventListener('click',e=>{ e.stopPropagation(); prev(); });
+  document.getElementById('nb-next').addEventListener('click',e=>{ e.stopPropagation(); next(); });
+  navBtn.addEventListener('click',e=>{ e.stopPropagation(); });
+  panel.addEventListener('click',e=>{ e.stopPropagation(); const it=e.target.closest('.it'); if(!it) return; show(parseInt(it.dataset.k,10)); toggleNav(false); });
+  function updateHud(){ pg.textContent=`${cur+1} / ${slides.length}`; hud.textContent = showCounter ? `${cur+1} / ${slides.length}` : '← → 翻页 · F 全屏 · C 页码 · 左上角选页'; panel.querySelectorAll('.it').forEach((el,k)=>el.classList.toggle('cur',k===cur)); }
+  function next(){ show(cur+1); } function prev(){ show(cur-1); }
+  let buf='', bt=null;
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if(e.key==='Escape'){ toggleNav(false); }
+    else if(e.key==='g'||e.key==='G'){ toggleNav(); }
+    else if(e.key==='Home'){ show(0); } else if(e.key==='End'){ show(slides.length-1); }
+    else if(e.key==='f'||e.key==='F'){ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }
+    else if(e.key==='c'||e.key==='C'){ showCounter=!showCounter; hud.classList.toggle('show',showCounter); updateHud(); }
+    else if(/^[0-9]$/.test(e.key)){ buf=(buf+e.key).slice(-2); clearTimeout(bt); bt=setTimeout(()=>{ const k=parseInt(buf,10); if(k>=1&&k<=slides.length) show(k-1); buf=''; },500); }
+  });
+  addEventListener('click',e=>{ if(e.target.closest('a,#nav-panel,#nav-btn,#nav-hot')) return; if(panel.classList.contains('open')){ toggleNav(false); return; } const x=e.clientX/innerWidth; if(x<0.2) prev(); else next(); });
+  addEventListener('resize',fit); fit();
+  const h=parseInt((location.hash||'#1').slice(1),10); show(isNaN(h)?0:h-1);
+  if(/[?&]nav=1/.test(location.search)) toggleNav(true);
+  hud.classList.add('show'); setTimeout(()=>{ if(!showCounter) hud.classList.remove('show'); },4000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>VLA 入门 · π*0.6 强化学习 · 第 23 期</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#EEF2F6; --card:#FFFFFF; --ink:#0B1220; --muted:#5B6B7F; --line:#D3DBE5;
+  --blue:#2457F5; --blue-soft:#E3EAFF; --orange:#FF6B1A; --orange-soft:#FFE9DB; --green:#1B9E77; --green-soft:#DDF3EC;
+  --gold:#C98A00; --gold-soft:#FFF3C4; --red:#C0392B; --red-soft:#FBE3E0;
+  --font:"PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono","Menlo","JetBrains Mono",monospace;
+  --serif:"STIX Two Text","Times New Roman","Songti SC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(1);transform-origin:center;background:var(--bg)}
+.slide{position:absolute;inset:0;padding:84px 104px 72px;display:none;flex-direction:column}
+.slide.active{display:flex}
+.grid{position:absolute;inset:0;pointer-events:none;opacity:.55}
+.head{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:22px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;position:relative;z-index:1}
+.head .sec{display:flex;gap:18px;align-items:center}
+.head .sec b{color:var(--ink);font-weight:600}
+.head .sec i{width:10px;height:10px;border-radius:50%;background:var(--blue);display:inline-block}
+h1{font-size:60px;font-weight:600;line-height:1.2;margin-top:16px;letter-spacing:.01em;position:relative;z-index:1}
+h1 small{font-size:28px;color:var(--muted);font-weight:400;margin-left:20px}
+.body{flex:1;position:relative;margin-top:26px;display:flex;gap:36px;min-height:0;z-index:1}
+.col{display:flex;flex-direction:column;gap:18px;min-width:0}
+.center{align-items:center;justify-content:center}
+.frame{position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:0 8px 30px rgba(11,18,32,.06)}
+.frame img,.frame video{display:block;width:100%;height:100%;object-fit:contain;border-radius:6px;background:#fff}
+.frame.photo img{object-fit:cover}
+.frame.fig{padding:30px 10px 10px}
+.frame .tag{position:absolute;top:-16px;left:18px;background:var(--ink);color:#fff;font-family:var(--mono);font-size:19px;letter-spacing:.06em;padding:5px 12px;border-radius:6px;white-space:nowrap;z-index:2}
+.frame .tag.blue{background:var(--blue)} .frame .tag.orange{background:var(--orange)} .frame .tag.green{background:var(--green)} .frame .tag.gold{background:var(--gold)}
+.cap{font-size:30px;color:var(--muted);line-height:1.45}
+.cap b{color:var(--ink);font-weight:600}
+.big{font-size:42px;line-height:1.45;font-weight:500}
+.blue{color:var(--blue)} .orange{color:var(--orange)} .green{color:var(--green)} .gold{color:var(--gold)} .red{color:var(--red)} .muted{color:var(--muted)}
+.list{list-style:none;font-size:34px;line-height:1.45}
+.list li{display:flex;gap:22px;align-items:flex-start;padding:16px 0;border-top:1px solid var(--line)}
+.list li:last-child{border-bottom:1px solid var(--line)}
+.list .n{font-family:var(--mono);font-size:24px;color:var(--muted);min-width:50px;padding-top:9px}
+.pill{display:inline-block;padding:8px 18px;border-radius:999px;font-size:26px;background:var(--card);border:1px solid var(--line)}
+.arrow{font-size:60px;color:var(--muted);align-self:center;font-weight:300}
+.chain{display:flex;flex-direction:column;gap:14px}
+.chain .step{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 24px;font-size:30px;line-height:1.35;position:relative}
+.chain .step.blue{border-left:8px solid var(--blue)} .chain .step.orange{border-left:8px solid var(--orange)} .chain .step.green{border-left:8px solid var(--green)} .chain .step.gold{border-left:8px solid var(--gold)} .chain .step.red{border-left:8px solid var(--red)}
+.chain .step.tight{padding:12px 22px;font-size:28px}
+.chain .step .lab{display:block;font-family:var(--mono);font-size:19px;letter-spacing:.1em;color:var(--muted);margin-bottom:4px}
+.who{display:inline-block;font-family:var(--mono);font-size:18px;letter-spacing:.06em;padding:2px 10px;border-radius:6px;background:var(--red-soft);color:var(--red);margin-left:10px;vertical-align:middle}
+.who.auto{background:var(--green-soft);color:var(--green)}
+table{border-collapse:collapse;width:100%;font-size:30px;line-height:1.35}
+th,td{padding:16px 20px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:21px;letter-spacing:.1em;color:var(--muted);font-weight:500;text-transform:uppercase}
+td:first-child{font-weight:600;white-space:nowrap}
+.foot{position:absolute;left:104px;right:104px;bottom:40px;display:flex;justify-content:space-between;align-items:flex-end;gap:40px;font-family:var(--mono);font-size:20px;color:var(--muted);letter-spacing:.08em;z-index:1}
+.foot .src{opacity:.85;white-space:nowrap}
+.foot .cap{display:none} /* 沿用第 21、22 期：页脚小字不显示；要恢复删这一行 */
+.foot .cap{font-family:var(--font);font-size:28px;max-width:1420px;letter-spacing:0}
+/* stats */
+.stats{display:flex;gap:22px}
+.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 26px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat .v{font-size:50px;font-weight:600;line-height:1.15;letter-spacing:.01em}
+.stat .v small{font-size:28px;color:var(--muted);font-weight:400;margin-left:8px}
+.stat .k{font-family:var(--mono);font-size:20px;letter-spacing:.08em;color:var(--muted)}
+.stat.blue .v{color:var(--blue)} .stat.orange .v{color:var(--orange)} .stat.gold .v{color:var(--gold)} .stat.green .v{color:var(--green)} .stat.red .v{color:var(--red)}
+.stat.gain{border:2px solid var(--orange);background:var(--orange-soft)} .stat.gain .k{color:var(--orange)} .stat.gain .v{color:var(--ink)}
+.stat.warn{border:2px solid var(--red);background:var(--red-soft)} .stat.warn .k{color:var(--red)} .stat.warn .v{color:var(--ink)}
+.stat .v.m{font-size:34px;line-height:1.3}
+.stat .v.s{font-size:28px;line-height:1.35;font-weight:500}
+.col > .stat,.col > .fbox,.col > .frame,.body > .stat{flex:0 0 auto} /* 直接放在竖排列里的卡片不拉伸 */
+/* formulas */
+.formula{font-family:var(--serif);font-size:44px;line-height:1.5;letter-spacing:.01em}
+.formula i{font-style:italic}
+.formula sup,.formula sub{font-size:60%}
+.fbox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 30px;display:flex;flex-direction:column;gap:8px}
+.fbox .lab{font-family:var(--mono);font-size:20px;letter-spacing:.1em;color:var(--muted)}
+.fbox.gold{border:2px solid var(--gold);background:var(--gold-soft)}
+/* token strip */
+.toks{display:flex;gap:10px;align-items:stretch}
+.tk{border-radius:12px;padding:22px 20px;display:block;font-size:28px;line-height:1.3;min-width:0}
+.tk .lab{display:block;font-family:var(--mono);font-size:19px;letter-spacing:.08em;opacity:.8;margin-bottom:8px}
+.tk.vlm{background:var(--blue-soft);border:2px solid var(--blue);color:var(--blue)}
+.tk.q{background:var(--green-soft);border:2px solid var(--green);color:var(--green)}
+.tk.act{background:var(--orange-soft);border:2px solid var(--orange);color:var(--orange)}
+.tk.adv{background:var(--gold-soft);border:2px solid var(--gold);color:var(--gold)}
+.tk.plain{background:var(--card);border:2px solid var(--line);color:var(--ink)}
+/* comparison table */
+table.cmp td:nth-child(2){color:var(--muted)}
+table.cmp td:nth-child(3){background:var(--blue-soft);color:var(--ink)}
+table.cmp th:nth-child(3){color:var(--blue)}
+.lh{font-family:var(--serif);font-style:italic;font-size:1.08em}
+/* segments (advantage conditioning) */
+.segs{display:flex;gap:14px}
+.seg{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;font-size:26px;line-height:1.3}
+.seg .h{display:block;font-family:var(--mono);font-size:19px;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+.seg .tag2{display:inline-block;font-family:var(--mono);font-size:21px;padding:4px 12px;border-radius:8px;margin-top:8px}
+.seg.pos{border-top:8px solid var(--gold)} .seg.pos .tag2{background:var(--gold-soft);color:var(--gold)}
+.seg.neg{border-top:8px solid var(--muted)} .seg.neg .tag2{background:#E9EDF2;color:var(--muted)}
+/* svg diagrams */
+.diag{width:100%;height:100%}
+.diag text{font-family:var(--font)}
+.diag .mono{font-family:var(--mono)}
+/* nav (top-left page control) */
+#nav-hot{position:fixed;left:0;top:0;width:220px;height:110px;z-index:20}
+#nav-btn{position:fixed;left:14px;top:14px;height:44px;padding:0 14px 0 10px;border-radius:10px;background:rgba(11,18,32,.82);color:#fff;font-size:18px;font-family:var(--mono);display:flex;align-items:center;gap:10px;cursor:pointer;opacity:.22;transition:opacity .25s;z-index:21;user-select:none}
+#nav-btn span.pg{font-size:18px;letter-spacing:.06em}
+#nav-btn .b{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14)}
+#nav-btn .b:hover{background:rgba(255,255,255,.3)}
+#nav-hot:hover ~ #nav-btn,#nav-btn:hover,#nav-btn.open{opacity:1}
+#nav-panel{position:fixed;left:14px;top:66px;width:440px;max-height:calc(100vh - 90px);overflow:auto;background:#fff;color:#0B1220;border:1px solid #D3DBE5;border-radius:12px;box-shadow:0 16px 48px rgba(11,18,32,.22);padding:8px;display:none;z-index:22;font-family:var(--font);font-size:14px}
+#nav-panel.open{display:block}
+#nav-panel .sec-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:#5B6B7F;padding:10px 10px 4px;text-transform:uppercase}
+#nav-panel .it{display:flex;gap:10px;align-items:baseline;padding:7px 10px;border-radius:8px;cursor:pointer;line-height:1.35}
+#nav-panel .it:hover{background:#EEF2F6}
+#nav-panel .it.cur{background:#E3EAFF;color:#2457F5}
+#nav-panel .it .k{font-family:var(--mono);font-size:12px;color:#5B6B7F;min-width:24px;text-align:right}
+#nav-panel .it.cur .k{color:#2457F5}
+#hud{position:fixed;left:18px;bottom:14px;font-family:var(--mono);font-size:13px;color:#7f8c9c;opacity:0;transition:opacity .6s;pointer-events:none;z-index:9}
+#hud.show{opacity:1}
+/* cover / end */
+.cover{padding:0}
+.cover .band{position:absolute;left:0;right:0;bottom:0;height:300px;background:#000}
+.cover .band img{width:100%;height:100%;object-fit:cover;opacity:.95}
+.cover .txt{position:absolute;left:104px;top:150px}
+.cover .txt .eb{font-family:var(--mono);font-size:24px;letter-spacing:.16em;color:var(--muted);margin-bottom:26px}
+.cover .txt h1{font-size:150px;line-height:1;margin:0 0 26px;letter-spacing:.02em;font-weight:600}
+.cover .txt p{font-size:44px;font-weight:400;color:var(--muted)}
+.cover .txt p b{color:var(--ink);font-weight:600}
+.cover .brand{position:absolute;right:104px;top:170px;font-family:var(--mono);font-size:26px;letter-spacing:.14em;color:var(--muted)}
+.end{align-items:center;justify-content:center;text-align:center}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- 1 -->
+<section class="slide cover" data-sec="封面" data-title="封面">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="txt">
+    <div class="eb">第 23 期 · VLA 入门（三）· 强化学习 × VLA</div>
+    <h1>VLA</h1>
+    <p><b>π0.5</b> (2025-04) → <b>π*0.6</b> (2025-11) · 从自己的经验里学</p>
+  </div>
+  <div class="brand">可lip</div>
+  <div class="band"><img src="media/pi06_filmstrip.png" alt=""></div>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-sec="00 回顾" data-title="回顾 π0.5 → π0.6 → π*0.6">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>00</b>回顾</div><div>π0.5 · 2025-04 · 上期 → π0.6 模型卡 · 2025-11 → π*0.6 · ARXIV 2511.14759</div></div>
+  <h1>π0.5 → π0.6 → π*0.6<small>基座换大了；π*0.6 在序列里只多插了一句话</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="frame fig" style="width:900px;height:560px;flex:none"><img src="media/pi05_Figure_3.png" alt=""><div class="tag">上期 · π0.5 Fig.3 · 先离散 token 预训练，后接 flow expert；同一模型先出子任务再出动作</div></div>
+    <div class="col" style="flex:1;justify-content:center">
+      <div class="chain">
+        <div class="step tight"><span class="lab">2025-04 · π0.5（上期）</span>PaliGemma 3B + 300M expert · 五类数据 co-training · 进没见过的家</div>
+        <div class="step tight blue"><span class="lab">2025-11 · π0.6 · 只有模型卡</span>骨干换 <b>Gemma 3 4B</b> · expert 增到 <b>860M</b> · 更多机器人平台的数据 · Knowledge Insulation 训练</div>
+        <div class="step tight gold"><span class="lab">2025-11 · π*0.6（本期）· RECAP</span>π0.6 之上只加一样：序列里插一句 <b>“Advantage: positive / negative”</b>，再配一个价值函数；用自己跑出来的数据训</div>
+      </div>
+      <div class="stat gain"><div class="k">本期目标</div><div class="v m">让机器人从自己的经验里变快、变稳：最难任务吞吐量翻倍、失败率减半</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 2504.16054 · π*0.6 2511.14759 Sec.V-A · 模型未开源</div></div>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-sec="00 回顾" data-title="π*0.6 能做什么">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>00</b>π*0.6 能做什么</div><div>PHYSICAL INTELLIGENCE · DEPLOYMENT · SEC.I</div></div>
+  <h1>π*0.6 能做什么<small>三个真实任务，连续几小时不停</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div class="frame fig" style="width:1712px;height:560px"><img src="media/pi06_filmstrip.png" alt=""><div class="tag">Fig.2 · 做浓缩咖啡 · 装纸箱 · 折多样衣物</div></div>
+    <div class="stats">
+      <div class="stat gold"><div class="v">13 小时</div><div class="k">连续做浓缩咖啡不中断</div></div>
+      <div class="stat"><div class="v">2 小时+</div><div class="k">陌生的家 · 没见过的衣物 · 无人干预</div></div>
+      <div class="stat"><div class="v">工厂</div><div class="k">组装真实用于包装的纸箱</div></div>
+      <div class="stat gain"><div class="k">来自自己的经验</div><div class="v m">最难任务吞吐量 2× 以上 · 失败率约减半</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.I · Fig.2</div></div>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-sec="01 背景" data-title="模仿学习：现在怎么训">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>背景 · 模仿学习</div><div>IMITATION LEARNING · SUPERVISED FINE-TUNING</div></div>
+  <h1>模仿学习：现在怎么训<small>π0 到 π0.5 全是这条路</small></h1>
+  <div class="body center" style="gap:26px">
+    <div class="col" style="width:560px;gap:14px">
+      <div class="frame photo" style="height:330px"><img src="media/pi06_robot.jpg" alt=""><div class="tag">π*0.6 Fig.5 · 双臂 · 三路相机 · 50 Hz</div></div>
+      <div class="chain">
+        <div class="step blue"><span class="lab">数据 · 人类遥操作示范</span>人带着机器人做一遍，50 Hz 录下画面、关节角、人的动作</div>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col" style="width:560px;gap:14px">
+      <div class="fbox" style="height:200px;justify-content:center"><div class="lab">训练目标 · 只有一句话</div><div class="formula" style="font-size:38px">min −log π<sub>θ</sub>(<i>a</i><sub>t</sub> | <i>o</i><sub>t</sub>, ℓ)</div></div>
+      <div class="chain">
+        <div class="step orange"><span class="lab">含义</span>看到这个画面，输出人当时做的那个动作</div>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="col" style="width:560px;gap:14px">
+      <div class="chain">
+        <div class="step"><span class="lab">隐含假设</span>数据里每个动作都对、都值得学；所有样本一律平等</div>
+        <div class="step"><span class="lab">损失里没有的东西</span>“这个动作比那个好”；只保留成功示范；没有奖励</div>
+        <div class="step gold"><span class="lab">上限</span>示范数据的水平</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.I · Sec.III · 素材整理 §2.1</div></div>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-sec="01 背景" data-title="天花板一：复合误差">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>背景 · 天花板一</div><div>COMPOUNDING ERROR · ROSS, GORDON &amp; BAGNELL 2011</div></div>
+  <h1>天花板一：复合误差<small>一步走错，剩下几千步全在陌生地带</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="frame" style="width:1000px;height:600px;flex:none;padding:20px">
+      <svg class="diag" viewBox="0 0 960 560">
+        <polygon points="30,300 930,250 930,345 30,395" fill="#E3EAFF" stroke="#2457F5" stroke-width="2" stroke-dasharray="10 8"/>
+        <text x="48" y="268" font-size="26" fill="#2457F5">示范数据覆盖的状态（人会进入的状态）</text>
+        <path d="M60,350 C230,345 350,340 470,318 C560,300 640,240 720,170 C790,110 840,70 900,40" fill="none" stroke="#FF6B1A" stroke-width="7" stroke-linecap="round"/>
+        <circle cx="60" cy="350" r="11" fill="#FF6B1A"/>
+        <circle cx="470" cy="318" r="11" fill="#FF6B1A"/>
+        <circle cx="900" cy="40" r="11" fill="#FF6B1A"/>
+        <text x="40" y="440" font-size="26" fill="#0B1220">第 1 步 · 偏一点，还在分布内，能纠回来</text>
+        <text x="400" y="470" font-size="26" fill="#0B1220">第 50 步 · 误差累积，状态开始陌生</text>
+        <text x="520" y="80" font-size="26" fill="#0B1220">第 200 步 · 没见过的状态，只能瞎猜</text>
+        <text x="48" y="530" font-size="24" fill="#5B6B7F">橙线：策略自己执行的轨迹</text>
+      </svg>
+    </div>
+    <div class="col" style="flex:1;justify-content:center;gap:18px">
+      <div class="fbox"><div class="lab">每步犯错概率 ε · 跑 T 步 · 总错误</div><div class="formula" style="font-size:40px">直觉 ε × T &nbsp;&nbsp; 实际 <b class="orange">ε × T<sup>2</sup></b></div><div class="cap" style="font-size:25px">第 t 步犯错，之后 T − t 步全处在陌生状态；累加 ≈ ε T²/2</div></div>
+      <div class="stat"><div class="k">折 T 恤 · 200 s × 50 Hz</div><div class="v s">上万步。人从不会把衣服抓成一团，示范里没有“衣服皱成团”这一帧；模型手滑后只能重复抓或卡住，超时</div></div>
+      <div class="stat gain"><div class="k">结论</div><div class="v m">答案不在数据里：模型记住全部示范也解决不了</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">DAgger 2011 · π*0.6 Sec.I · 素材整理 §2.2</div></div>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-sec="01 背景" data-title="天花板二：超不过示范 · 两条破法">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>背景 · 天花板二</div><div>FIG.9 · FIG.10 · T-SHIRT TASK · 估读</div></div>
+  <h1>天花板二：超不过示范<small>两条破法，都要先让策略自己跑</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="col" style="width:760px;flex:none;justify-content:center;gap:16px">
+      <div style="display:flex;gap:16px;height:440px">
+        <div class="frame fig" style="flex:1"><img src="media/pi06_exp3_iter_laundry_throughput.png" alt=""><div class="tag">Fig.9 · 吞吐量 · 两轮</div></div>
+        <div class="frame fig" style="flex:1"><img src="media/pi06_exp3_iter_laundry_success.png" alt=""><div class="tag">Fig.10 · 成功率 · 两轮</div></div>
+      </div>
+      <div class="cap" style="font-size:25px">T 恤任务：成功率第一轮就到 90%+，第二轮涨的几乎全是速度</div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center;gap:16px">
+      <div class="chain">
+        <div class="step"><span class="lab">SFT 的上限</span>示范数据的水平：模仿人，最快也只能跟人一样快</div>
+        <div class="step gold"><span class="lab">RL 的上限</span>奖励函数定义的最优：奖励说“每多花一秒扣一分”，模型自己去找比人快的做法</div>
+        <div class="step red"><span class="lab">破法 ① · 人类干预（DAgger）</span>策略自己跑，人在它犯错的状态下接管，补正确动作</div>
+        <div class="step gold"><span class="lab">破法 ② · 强化学习</span>策略自己跑，只需要知道结果好坏，不需要人给正确答案</div>
+      </div>
+      <div class="stat gain"><div class="k">共同前提</div><div class="v m">先让策略自己跑起来 · π*0.6 两条都用</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.VI-C · Fig.9 · Fig.10 · 素材整理 §2.3</div></div>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-sec="02 强化学习" data-title="强化学习 · 基本概念">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>强化学习</div><div>REINFORCEMENT LEARNING · SEC.III PRELIMINARIES</div></div>
+  <h1>强化学习：四个概念<small>策略 · 奖励 · 价值 · 优势</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="frame" style="width:900px;height:620px;flex:none;padding:20px">
+      <svg class="diag" viewBox="0 0 860 580">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B7F"/></marker></defs>
+        <rect x="30" y="200" width="300" height="170" rx="18" fill="#E3EAFF" stroke="#2457F5" stroke-width="3"/>
+        <text x="180" y="270" font-size="34" text-anchor="middle" fill="#2457F5" font-weight="600">策略 π(a | o)</text>
+        <text x="180" y="320" font-size="24" text-anchor="middle" fill="#2457F5">VLA 模型</text>
+        <rect x="470" y="200" width="380" height="170" rx="18" fill="#F1F4F8" stroke="#5B6B7F" stroke-width="3"/>
+        <text x="660" y="268" font-size="34" text-anchor="middle" fill="#0B1220" font-weight="600">环境</text>
+        <text x="660" y="318" font-size="22" text-anchor="middle" fill="#5B6B7F">真实世界 · 机器人和桌上的物体</text>
+        <path d="M330,240 L465,240" fill="none" stroke="#5B6B7F" stroke-width="4" marker-end="url(#ah)"/>
+        <text x="398" y="215" font-size="28" text-anchor="middle" fill="#FF6B1A" font-weight="600">动作 a<tspan font-size="20" dy="8">t</tspan></text>
+        <path d="M470,330 L335,330" fill="none" stroke="#5B6B7F" stroke-width="4" marker-end="url(#ah)"/>
+        <text x="400" y="375" font-size="28" text-anchor="middle" fill="#2457F5" font-weight="600">观测 o<tspan font-size="20" dy="8">t+1</tspan></text>
+        <path d="M660,370 L660,470 L180,470 L180,375" fill="none" stroke="#C98A00" stroke-width="4" marker-end="url(#ah)"/>
+        <text x="420" y="510" font-size="28" text-anchor="middle" fill="#C98A00" font-weight="600">奖励 r<tspan font-size="20" dy="8">t</tspan>（一个数）</text>
+        <text x="430" y="120" font-size="26" text-anchor="middle" fill="#5B6B7F">一条 episode：o₀, a₀, o₁, a₁, … , o<tspan font-size="18" dy="8">T</tspan></text>
+        <text x="430" y="60" font-size="26" text-anchor="middle" fill="#0B1220">每一步：看观测 → 出动作 → 世界变化 → 拿到奖励</text>
+      </svg>
+    </div>
+    <div class="col" style="flex:1;justify-content:center;gap:14px">
+      <div class="fbox"><div class="lab">回报 · 一条 episode 的总分（本文不打折扣）</div><div class="formula" style="font-size:36px">R = Σ<sub>t</sub> r<sub>t</sub></div></div>
+      <div class="fbox"><div class="lab">价值 · 从这个画面出发，预期还能拿多少</div><div class="formula" style="font-size:36px">V(o<sub>t</sub>) = E[ Σ<sub>t'≥t</sub> r<sub>t'</sub> ]</div></div>
+      <div class="fbox gold"><div class="lab">优势 · 这一手比平均水平好多少</div><div class="formula" style="font-size:36px">A(o<sub>t</sub>, a<sub>t</sub>) = 实际拿到的 − V(o<sub>t</sub>)</div></div>
+      <div class="fbox"><div class="lab">目标</div><div class="formula" style="font-size:36px">max<sub>π</sub> E[R]：让未来总回报最大</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.III · Sutton &amp; Barto 2018</div></div>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-sec="02 强化学习" data-title="例子：外卖骑手">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>强化学习 · 例子</div><div>一单外卖 = 一条 EPISODE · 导航 ETA = 价值函数</div></div>
+  <h1>例子：外卖骑手<small>奖励定义目标，价值把目标摊到每一步，优势给每一步打分，改进朝目标走</small></h1>
+  <div class="body" style="flex-direction:column;gap:20px">
+    <div style="display:flex;gap:30px;height:545px">
+      <div class="frame" style="width:800px;flex:none;padding:14px">
+        <svg class="diag" viewBox="0 0 900 600">
+          <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#FF6B1A"/></marker></defs>
+          <text x="40" y="46" font-size="22" fill="#0B1220">奖励：每多花 1 分钟 −1 · 送到 0 · 餐洒了 / 超时投诉 −大扣分</text>
+          <g stroke="#E1E6EE" stroke-width="16" stroke-linecap="round">
+            <line x1="60" y1="160" x2="840" y2="160"/><line x1="60" y1="310" x2="840" y2="310"/><line x1="60" y1="460" x2="840" y2="460"/>
+            <line x1="150" y1="90" x2="150" y2="530"/><line x1="450" y1="90" x2="450" y2="530"/><line x1="750" y1="90" x2="750" y2="530"/>
+          </g>
+          <path d="M150,460 L150,310 L450,310 L450,160 L728,160" fill="none" stroke="#FF6B1A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#ah2)"/>
+          <circle cx="150" cy="460" r="16" fill="#2457F5"/>
+          <text x="150" y="512" font-size="24" text-anchor="middle" fill="#2457F5" font-weight="600">餐厅 · 取餐</text>
+          <text x="150" y="542" font-size="20" text-anchor="middle" fill="#5B6B7F">导航：还要 20 分钟</text>
+          <circle cx="450" cy="310" r="16" fill="#C98A00"/>
+          <text x="475" y="352" font-size="22" fill="#C98A00" font-weight="600">跑了 5 分钟</text>
+          <text x="475" y="380" font-size="20" fill="#5B6B7F">导航：还要 12 分钟</text>
+          <circle cx="750" cy="160" r="16" fill="#1B9E77"/>
+          <text x="750" y="120" font-size="24" text-anchor="middle" fill="#1B9E77" font-weight="600">顾客 · 送达</text>
+          <rect x="500" y="400" width="350" height="92" rx="14" fill="#FFF3C4" stroke="#C98A00" stroke-width="2"/>
+          <text x="675" y="438" font-size="24" text-anchor="middle" fill="#C98A00" font-weight="600">优势 = 20 − 5 − 12 = +3 分钟</text>
+          <text x="675" y="470" font-size="20" text-anchor="middle" fill="#5B6B7F">这 5 分钟的走法比平时快</text>
+          <text x="40" y="586" font-size="22" fill="#0B1220">回报 = −送达用时 · 价值 = ETA · 目标 = 每小时送最多单</text>
+        </svg>
+      </div>
+      <div class="col" style="flex:1;justify-content:center">
+        <div class="chain" style="gap:9px">
+          <div class="step tight gold" style="font-size:23px;padding:9px 18px"><span class="lab" style="font-size:18px">① 奖励 r<sub>t</sub> · 每一步的分</span>每多花 1 分钟 −1 · 送到 0 · 洒了 / 超时 −大扣分 <span class="muted">→ 机器人每步 −1，第 12 页</span></div>
+          <div class="step tight" style="font-size:23px;padding:9px 18px"><span class="lab" style="font-size:18px">② 回报 R · 一单的总分</span>把这一单的奖励全加起来 = −送达用时（失败再扣一笔）</div>
+          <div class="step tight orange" style="font-size:23px;padding:9px 18px"><span class="lab" style="font-size:18px">③ 目标 · 由奖励定义出来</span>找一种跑法，让平均每单的总分最高 = 平均用时最短 = 每小时送最多单 <span class="muted">→ 吞吐量，第 20 页</span></div>
+          <div class="step tight blue" style="font-size:23px;padding:9px 18px"><span class="lab" style="font-size:18px">④ 价值 V(o) · 把总分摊到每个路口</span>从这个路口出发，按现在的跑法平均还要多久 = 导航 ETA <span class="muted">→ 倒计时器，第 13 页</span></div>
+          <div class="step tight gold" style="font-size:23px;padding:9px 18px"><span class="lab" style="font-size:18px">⑤ 优势 A · 给单独一步打分</span>这一段比 ETA 预期多省了几分钟：20 − 5 − 12 = +3 <span class="muted">→ 单位换成秒，第 15 页</span></div>
+          <div class="step tight green" style="font-size:23px;padding:9px 18px"><span class="lab" style="font-size:18px">⑥ 改进 · 朝目标走</span>优势为正的走法多做、为负的少做，平均用时就下降；ETA 随之变短，下一轮的基准线抬高 <span class="muted">→ 贴标签，第 16 页</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">模仿学习的骑手</div><div class="v s">跟着老骑手把路线走一遍，只会走过的路；最快也和师傅一样快</div></div>
+      <div class="stat gold"><div class="k">强化学习的骑手</div><div class="v s">自己跑单、看每单用时；快的走法多走、慢的少走；能超过师傅</div></div>
+      <div class="stat"><div class="k">人类干预</div><div class="v s">老骑手在拐错的路口接管一下方向，再放手</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">生活化示例 · 对应 π*0.6 Sec.III · Sec.V-C</div></div>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-sec="02 强化学习" data-title="RL 和 SFT 差在哪">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>强化学习 · 对比</div><div>SFT VS RL · 三层差别</div></div>
+  <h1>RL 和 SFT 差在哪<small>多出来的维度是「未来」，不是「负样本」</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px;justify-content:center">
+    <table class="cmp" style="font-size:28px;line-height:1.3">
+      <tr><th style="padding:10px 18px"></th><th style="padding:10px 18px">SFT · 模仿学习</th><th style="padding:10px 18px">RL · 强化学习</th></tr>
+      <tr><td style="padding:14px 18px">监督信号从哪来</td><td style="padding:14px 18px">数据里的动作：模仿这个</td><td style="padding:14px 18px">奖励：最大化未来回报，可以优化数据里没人做到过的目标</td></tr>
+      <tr><td style="padding:14px 18px">时序信用分配</td><td style="padding:14px 18px">没有；每一帧各算各的</td><td style="padding:14px 18px">价值函数把 episode 末尾一个成 / 败信号，传回中间每一步</td></tr>
+      <tr><td style="padding:14px 18px">数据分布</td><td style="padding:14px 18px">人会进入的状态</td><td style="padding:14px 18px">策略自己进入的状态，包括它自己犯的错</td></tr>
+      <tr><td style="padding:14px 18px">一句话</td><td style="padding:14px 18px">学人会做的动作</td><td style="padding:14px 18px">学让未来更好的动作</td></tr>
+    </table>
+    <div class="stats">
+      <div class="stat"><div class="k">RL 里的「负」</div><div class="v m">低于这批数据的某个分位，和失败是两回事；具体比例在步骤 ③ 的阈值那页</div></div>
+      <div class="stat"><div class="k">有负样本 ≠ RL</div><div class="v m">DPO 有正负对但没有价值函数；DAgger 没有负样本，却解决了分布问题</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.III · Appendix E · 素材整理 §3</div></div>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-sec="02 强化学习" data-title="在 VLA 上做 RL 的三个坑">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>强化学习 · 难点</div><div>WHY RL ON VLA IS HARD · SEC.II · SEC.IV-B</div></div>
+  <h1>在 VLA 上做 RL 的三个坑<small>每个坑对应 π*0.6 的一个对策</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px;justify-content:center">
+    <table style="font-size:27px;line-height:1.3">
+      <tr><th style="padding:10px 18px">坑</th><th style="padding:10px 18px">为什么致命</th><th style="padding:10px 18px;color:var(--gold)">π*0.6 的对策</th></tr>
+      <tr><td style="padding:14px 18px">① flow matching 算不出似然</td><td style="padding:14px 18px">PPO 一类策略梯度要 π<sub>new</sub> / π<sub>old</sub> 这个比值，flow 模型给不出；前作只好用离散动作或高斯动作</td><td style="padding:14px 18px;background:var(--gold-soft)">不用比值：把好坏写进<b>输入</b>，照常做监督学习（advantage conditioning）</td></tr>
+      <tr><td style="padding:14px 18px">② on-policy 太贵</td><td style="padding:14px 18px">真机一条 episode 200–600 秒；每次更新都重采几百条，做不起</td><td style="padding:14px 18px;background:var(--gold-soft)">攒一批 → 离线训 → 再采；旧数据全部复用（迭代式离线 RL）</td></tr>
+      <tr><td style="padding:14px 18px">③ 真机没有奖励函数</td><td style="padding:14px 18px">仿真里 reward 是代码写的，现实里没有，而且模糊、有噪声</td><td style="padding:14px 18px;background:var(--gold-soft)">人只标每条 episode 成 / 败；逐帧分数由价值函数自动生成</td></tr>
+    </table>
+    <div class="stats">
+      <div class="stat"><div class="k">前作 ① · 直接 PPO</div><div class="v s">多在仿真里；真机每次更新都要重采</div></div>
+      <div class="stat"><div class="k">前作 ② · 冻结 VLA 外面套一层</div><div class="v s">残差策略 · 只调 action head · 扩散噪声空间（DSRL）；VLA 本身不动</div></div>
+      <div class="stat"><div class="k">前作 ③ · 价值函数 + 真机</div><div class="v s">CO-RFT · GRAPE · VLAC：抓放、推物体级别的任务</div></div>
+      <div class="stat gain"><div class="k">π*0.6</div><div class="v s">端到端训整个 flow VLA（4B + 860M）；5–15 分钟的多阶段任务</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.II · Sec.IV-B · 素材整理 §4 · §10.4</div></div>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-sec="03 π*0.6 · RECAP" data-title="RECAP 总览：三步循环">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>03</b>π*0.6 · RECAP</div><div>RL WITH EXPERIENCE &amp; CORRECTIONS VIA ADVANTAGE-CONDITIONED POLICIES · FIG.1 · ALG.1</div></div>
+  <h1>RECAP 总览：三步循环<small>采数据 → 训价值函数 → 训策略，可以重复</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div class="frame fig" style="width:1712px;height:560px"><img src="media/pi06_teaser.png" alt=""><div class="tag">Fig.1 · 左：三类数据 · 中：VLA + 价值函数 · 右：真机 rollout、干预与标注</div></div>
+    <div class="stats">
+      <div class="stat red"><div class="k">① 采数据</div><div class="v s">当前策略上真机跑；人标每条 episode 成 / 败；可选中途接管纠正</div></div>
+      <div class="stat blue"><div class="k">② 训价值函数</div><div class="v s">用到目前为止的全部数据，预测“照现在这样还要多久做完”</div></div>
+      <div class="stat gold"><div class="k">③ 训策略</div><div class="v s">价值函数算优势 → 二值化 → 当文本 token 放进序列，照常监督学习</div></div>
+      <div class="stat gain"><div class="k">用法</div><div class="v s">预训练做 ②③；每个任务再做 ①②③ 一到多轮 · 骑手版：跑一批单 → 更新导航 → 改跑法</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.IV · Alg.1 · Fig.1</div></div>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-sec="03 π*0.6 · RECAP" data-title="步骤 ① 奖励：三行定义">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>03</b>π*0.6 · 步骤 ①</div><div>REWARD · SEC.V-C · 人只标 1 BIT</div></div>
+  <h1>步骤 ①　奖励：三行定义<small>回报 = 到成功还剩多少步，取负</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="col" style="width:820px;flex:none;justify-content:center;gap:18px">
+      <div class="fbox gold" style="padding:30px 36px">
+        <div class="lab">每一步的奖励 r<sub>t</sub></div>
+        <div class="formula" style="font-size:40px;line-height:1.7">r<sub>t</sub> = <b>0</b> &nbsp;&nbsp;最后一步且成功<br>r<sub>t</sub> = <b>−C<sub>fail</sub></b> &nbsp;&nbsp;最后一步且失败（大常数）<br>r<sub>t</sub> = <b>−1</b> &nbsp;&nbsp;其余每一步</div>
+      </div>
+      <div class="fbox"><div class="lab">累加（不打折扣）· 按任务最大长度归一化到 (−1, 0)</div><div class="formula" style="font-size:40px">R<sub>t</sub> = −(T − t) = −（还剩多少步）</div></div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center;gap:16px">
+      <div class="chain">
+        <div class="step red"><span class="lab">人做的事</span>看录像，给整条 episode 点一下：成 / 败。1 个 bit</div>
+        <div class="step gold"><span class="lab">−1 / 步 · 管快</span>多花一步多扣一分；最大化回报 = 尽快做完</div>
+        <div class="step gold"><span class="lab">−C<sub>fail</sub> · 管对</span>例：成功的一杯 120 s，起点回报 −6000；失败的一杯离结束还有 500 步时，没有 C<sub>fail</sub> 是 −500，比成功的起点还高；设 C<sub>fail</sub> = 10 万（假设值）就变成 −100500</div>
+        <div class="step"><span class="lab">结果</span>速度和成功率被压进同一个数；C<sub>fail</sub> 的数值论文没给</div>
+        <div class="step gold"><span class="lab">就像骑手</span>每分钟 −1 管快；餐洒了那一笔管对：没有它，快送到时洒了的单，分数反而比刚出发的高</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.V-C · 素材整理 §5 设计一</div></div>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-sec="03 π*0.6 · RECAP" data-title="步骤 ② 价值函数：倒着数帧">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>03</b>π*0.6 · 步骤 ②</div><div>DISTRIBUTIONAL VALUE FUNCTION · 201 BINS · MONTE CARLO · SEC.IV-A</div></div>
+  <h1>步骤 ②　价值函数：倒着数帧<small>1 个 bit 展开成上万个逐帧标签</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="col" style="width:820px;flex:none;justify-content:center;gap:18px">
+      <div class="frame fig" style="height:420px"><img src="media/pi06_arch_vf.png" alt=""><div class="tag">Fig.3 下半 · 价值函数 670M · 输入同 VLA · 输出 201 个 bin 上的分布</div></div>
+      <div class="fbox"><div class="lab">训练 · 把 R<sub>t</sub> 离散成 201 个 bin，做分类交叉熵</div><div class="formula" style="font-size:34px">V(o<sub>t</sub>, ℓ) = Σ<sub>b</sub> p<sub>φ</sub>(b | o<sub>t</sub>, ℓ) · v(b)</div></div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center;gap:16px">
+      <table style="font-size:28px;line-height:1.3">
+        <tr><th style="padding:8px 16px">一条 32 秒成功折衣录像 · 网络看到的画面</th><th style="padding:8px 16px">还剩几帧</th><th style="padding:8px 16px">要输出的标签</th></tr>
+        <tr><td style="padding:12px 16px">第 0 帧 · 衣服还在筐里</td><td style="padding:12px 16px">1600</td><td style="padding:12px 16px;font-family:var(--mono)">−1600</td></tr>
+        <tr><td style="padding:12px 16px">第 800 帧 · 摊平，捏住肩角</td><td style="padding:12px 16px">800</td><td style="padding:12px 16px;font-family:var(--mono)">−800</td></tr>
+        <tr><td style="padding:12px 16px">第 1600 帧 · 折好码放</td><td style="padding:12px 16px">0</td><td style="padding:12px 16px;font-family:var(--mono)">0</td></tr>
+      </table>
+      <div class="stats">
+        <div class="stat gold"><div class="v">1 → 10000</div><div class="k">200 s × 50 Hz：人标 1 bit，自动展开成 10000 帧标签</div></div>
+        <div class="stat"><div class="v m">纯监督</div><div class="k">没有 TD、没有 target network、不会发散；论文自认不如 Q 函数最优，但“简单、极其可靠”</div></div>
+      </div>
+      <div class="stat gain"><div class="k">为什么是分布</div><div class="v s">能表达“大概还剩 60 秒，但有可能砸锅”；标量回归给不出。论文只引文献，没做消融</div></div>
+      <div class="stat gold"><div class="k">就像训练导航</div><div class="v s">把过去每一单倒着记，每个路口标上「到送达实际还用了几分钟」；看多了就会看着路口猜 ETA</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.IV-A · Eq.2 · Sec.V-C · Fig.3</div></div>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-sec="03 π*0.6 · RECAP" data-title="价值函数能定位失误">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>03</b>π*0.6 · 价值函数</div><div>FIG.4 · FIG.13 · VALUE DROPS AT MISTAKES</div></div>
+  <h1>价值函数能定位失误<small>骤降处 = 手滑；回升处 = 纠正回来</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:30px;height:560px">
+      <div class="frame fig" style="flex:1"><img src="media/pi06_vf_laundry.png" alt=""><div class="tag">Fig.4 左 · 成功的折衣 episode：左臂抡起把叠好的衣服弄皱（红）→ 恢复并折好（绿）</div></div>
+      <div class="frame fig" style="flex:1"><img src="media/pi06_vf_coffee.png" alt=""><div class="tag">Fig.13 · 做咖啡：多次掉落手柄（红）→ 成功继续（绿）</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">曲线读法</div><div class="v s">纵轴是归一化的“还要多久”，0 = 完成；平稳上升 = 顺利推进</div></div>
+      <div class="stat"><div class="k">单条录像里没有这个标注</div><div class="v s">失败 episode 的标签是均匀压低每一帧的；哪一帧出错，人没标</div></div>
+      <div class="stat gain"><div class="k">定位是泛化出来的</div><div class="v s">从数万小时预训练数据学到“什么画面后面要花很久”：衣服皱成团 → 骤降</div></div>
+      <div class="stat gold"><div class="k">就像导航</div><div class="v s">拐进堵死的小巷那一刻 ETA 跳高：没人标过这条巷子，是从别的骑手的历史里学的</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Fig.4 · Appendix A · Fig.13 · 素材整理 §7.6</div></div>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-sec="03 π*0.6 · RECAP" data-title="步骤 ③ 优势与二值化">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>03</b>π*0.6 · 步骤 ③</div><div>ADVANTAGE · N = 50 STEPS = 1 S · THRESHOLD ε · APPENDIX E</div></div>
+  <h1>步骤 ③　优势与二值化<small>进步必须跑赢时钟</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="frame fig" style="width:640px;height:700px;flex:none"><img src="media/pi06_arch_vf_chain.png" alt=""><div class="tag">Fig.3 · 价值函数 → advantage → 二值化 → 标签</div></div>
+    <div class="col" style="flex:1;justify-content:center;gap:16px">
+      <div class="fbox gold"><div class="lab">优势 · 微调阶段往前看 N = 50 步（1 秒）</div><div class="formula" style="font-size:36px">A(o<sub>t</sub>, a<sub>t</sub>) = Σ<sub>t'=t</sub><sup>t+N−1</sup> r<sub>t'</sub> + V(o<sub>t+N</sub>) − V(o<sub>t</sub>)</div></div>
+      <div class="toks" style="height:150px">
+        <div class="tk plain" style="flex:1;font-size:24px"><span class="lab">这一秒之前</span>预计还要 <b>84 秒</b><br>V(o<sub>t</sub>) = −84</div>
+        <div class="tk plain" style="flex:1;font-size:24px"><span class="lab">过了 1 秒</span>时钟走了 <b>1 秒</b><br>Σ r = −1</div>
+        <div class="tk plain" style="flex:1;font-size:24px"><span class="lab">现在</span>预计还要 <b>80 秒</b><br>V(o<sub>t+N</sub>) = −80</div>
+        <div class="tk adv" style="flex:1.2;font-size:24px"><span class="lab">优势</span>−1 − 80 + 84 = <b>+3 秒</b><br>这一秒做得比平均好</div>
+      </div>
+      <div class="fbox"><div class="lab">二值化 · 阈值 ε<sub>ℓ</sub> 按任务分位数定</div><div class="formula" style="font-size:36px">I<sub>t</sub> = 𝟙( A &gt; ε<sub>ℓ</sub> ) → positive / negative</div><div class="cap" style="font-size:24px">就像不记赚了几分钟，只在每段路上盖一个「比平时快」的章；阈值 = 只给最快的三四成路段盖章。定法：把这一轮所有样本的优势值从大到小排，排到 40% 处的值就是 ε</div></div>
+      <div class="stats">
+        <div class="stat"><div class="v">30%</div><div class="k">预训练 · 示范数据里为正的比例</div></div>
+        <div class="stat"><div class="v">40%</div><div class="k">微调 · 每轮 rollout 里为正的比例</div></div>
+        <div class="stat gold"><div class="v">10%</div><div class="k">T 恤任务 · 成功率已顶天，只追最快一档</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.III · Sec.IV-B · Appendix E · 素材整理 §5 设计三</div></div>
+</section>
+
+<!-- 16 -->
+<section class="slide" data-sec="03 π*0.6 · RECAP" data-title="步骤 ④ 一条训练样本长什么样">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>03</b>π*0.6 · 步骤 ④</div><div>ADVANTAGE CONDITIONING · EQ.3 · 一帧一条样本</div></div>
+  <h1>步骤 ④　一条训练样本长什么样<small>每一帧一条样本、一个标签；上岗只填 positive</small></h1>
+  <div class="body" style="flex-direction:column;gap:16px">
+    <div class="fbox" style="gap:10px;padding:16px 24px">
+      <div class="lab">第 t 帧的样本 · 一个序列 · 标签只是输入，损失只算在动作上</div>
+      <div class="toks" style="height:100px">
+        <div class="tk vlm" style="flex:1;font-size:22px;padding:14px 16px"><span class="lab">输入</span>3 张图 + 关节角</div>
+        <div class="tk vlm" style="flex:1.05;font-size:22px;padding:14px 16px"><span class="lab">输入 · 任务</span>“make a doppio”</div>
+        <div class="tk vlm" style="flex:1.15;font-size:22px;padding:14px 16px"><span class="lab">骨干先出 · 子任务</span>“grind the beans”</div>
+        <div class="tk adv" style="flex:1.35;font-size:22px;padding:14px 16px"><span class="lab">输入 · 这一帧自己的标签</span>“Advantage: positive”</div>
+        <div class="tk act" style="flex:1.45;font-size:22px;padding:14px 16px"><span class="lab">要预测 · 交叉熵</span>FAST token · t 到 t+49 步</div>
+        <div class="tk act" style="flex:1.45;font-size:22px;padding:14px 16px"><span class="lab">要预测 · flow matching</span>expert · 同一段连续动作</div>
+      </div>
+      <div class="cap" style="font-size:22px">第 t+1 帧是另一条样本：动作块和这条重叠 49 步，标签是它自己算的；一条 6000 帧的 episode = 6000 条样本</div>
+    </div>
+    <div style="display:flex;gap:30px;flex:1;min-height:0">
+      <div class="col" style="width:900px;flex:none;justify-content:center;gap:8px">
+        <table style="font-size:22px;line-height:1.2;white-space:nowrap">
+          <tr><th style="padding:6px 12px;text-transform:none">同一条 episode · 起始帧 t</th><th style="padding:6px 12px;text-transform:none">V(o<sub>t</sub>)</th><th style="padding:6px 12px;text-transform:none">V(o<sub>t+50</sub>)</th><th style="padding:6px 12px;text-transform:none">优势</th><th style="padding:6px 12px;text-transform:none">标签（ε = 0.5 s）</th></tr>
+          <tr><td style="padding:7px 12px">1000</td><td style="padding:7px 12px">−84.0 s</td><td style="padding:7px 12px">−80.0 s</td><td style="padding:7px 12px">+3.0</td><td style="padding:8px 12px;color:var(--gold);font-weight:600">positive</td></tr>
+          <tr><td style="padding:7px 12px">1001</td><td style="padding:7px 12px">−83.9 s</td><td style="padding:7px 12px">−80.1 s</td><td style="padding:7px 12px">+2.8</td><td style="padding:8px 12px;color:var(--gold);font-weight:600">positive</td></tr>
+          <tr><td style="padding:7px 12px">1500</td><td style="padding:7px 12px">−70.0 s</td><td style="padding:7px 12px">−72.0 s</td><td style="padding:7px 12px">−3.0</td><td style="padding:8px 12px;color:var(--muted);font-weight:600">negative</td></tr>
+          <tr><td style="padding:7px 12px">1501</td><td style="padding:7px 12px">−70.1 s</td><td style="padding:7px 12px">−71.6 s</td><td style="padding:7px 12px">−2.5</td><td style="padding:8px 12px;color:var(--muted);font-weight:600">negative</td></tr>
+        </table>
+        <div class="cap" style="font-size:21px">优势 = −1 + V(o<sub>t+50</sub>) − V(o<sub>t</sub>)；相邻帧只差一点，标签一段一段同号，翻转发生在穿过 ε 的地方；数字为示例</div>
+      </div>
+      <div class="col" style="flex:1;justify-content:center">
+        <div class="chain" style="gap:10px">
+          <div class="step tight gold" style="font-size:24px;padding:10px 20px"><span class="lab">episode 级 vs 帧级</span>人只标 1 个成 / 败；奖励、价值、优势、标签四层全是逐帧的</div>
+          <div class="step tight red" style="font-size:24px;padding:10px 20px"><span class="lab">两条例外</span>人类接管期间的帧一律 positive；式 3 的 α 不调，改成 30% 的样本随机删掉标签</div>
+          <div class="step tight" style="font-size:24px;padding:10px 20px"><span class="lab">推理 · β = 1</span>永远填 positive：π̂ = π<sub>ref</sub>(a | I = True, o, ℓ)，保证不比 π<sub>ref</sub> 差（MARWIL / CFGRL）</div>
+        </div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="fbox" style="flex:1.5;padding:12px 22px;gap:4px;justify-content:center"><div class="lab">训练目标 · Eq.3 · 全部样本都用，一条不丢</div><div class="formula" style="font-size:30px">min<sub>θ</sub> E[ −log π<sub>θ</sub>(a<sub>t</sub> | o<sub>t</sub>, ℓ) − α log π<sub>θ</sub>(a<sub>t</sub> | <b class="gold">I<sub>t</sub></b>, o<sub>t</sub>, ℓ) ]</div></div>
+      <div class="stat" style="padding:12px 22px"><div class="k">对比 · AWR 加权回归</div><div class="v s" style="font-size:25px">坏样本权重 e<sup>A/β</sup> ≈ 0，等于白采；就像回看录像时把慢的路段快进跳过</div></div>
+      <div class="stat gain" style="padding:12px 22px"><div class="k">π*0.6</div><div class="v s" style="font-size:25px">好坏编码进输入，不编码进梯度：全部样本平权，只是标签不同；就像每段路都贴「快 / 慢」，上路只照「快」的走</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.IV-B · Eq.3 · Sec.V-B · Appendix E</div></div>
+</section>
+
+<!-- 17 -->
+<section class="slide" data-sec="03 π*0.6 · RECAP" data-title="模型：π0.6 → π*0.6">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>03</b>π*0.6 · 模型</div><div>FIG.3 · GEMMA 3 4B + 860M EXPERT · VALUE FUNCTION 670M</div></div>
+  <h1>模型：π0.6 → π*0.6<small>四步里的东西各放在序列的哪里；标签插在子任务之后、动作之前</small></h1>
+  <div class="body" style="flex-direction:column;gap:18px">
+    <div class="frame fig" style="width:1712px;height:395px"><img src="media/pi06_arch_vla.png" alt=""><div class="tag">Fig.3 上半 · π*0.6 VLA：骨干出子任务文本 + FAST 离散动作；action expert 出连续动作；右下红绿小块 = advantage 标签</div></div>
+    <div class="toks" style="height:118px">
+      <div class="tk vlm" style="flex:2;font-size:24px"><span class="lab">输入</span>3 张图 + 关节角 + 任务 ℓ “make a doppio”</div>
+      <div class="tk vlm" style="flex:1.6;font-size:24px"><span class="lab">骨干先出</span>子任务 <span class="lh">ℓ̂</span> “tamp the coffee”</div>
+      <div class="tk adv" style="flex:1.7;font-size:24px"><span class="lab">π*0.6 新增 · 文本</span>“Advantage: positive”</div>
+      <div class="tk act" style="flex:1.5;font-size:24px"><span class="lab">骨干再出</span>FAST 离散动作 token</div>
+      <div class="tk act" style="flex:1.7;font-size:24px"><span class="lab">action expert 860M</span>flow matching → 50 Hz 连续动作块</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">4B + 860M</div><div class="k">Gemma 3 骨干 + action expert · Knowledge Insulation：expert 停梯度</div></div>
+      <div class="stat blue"><div class="v">670M</div><div class="k">价值函数 · SigLIP 400M + Gemma 270M · 同样的输入，输出一个分布</div></div>
+      <div class="stat gain"><div class="k">位置决定影响范围</div><div class="v s">标签在 <span class="lh">ℓ̂</span> 之后、动作之前：只有动作的似然带上这个条件，子任务预测不受影响；就像标签只贴在「这段怎么骑」前面，不管「下一站去哪」</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.V-A · Sec.V-B · Fig.3</div></div>
+</section>
+
+<!-- 18 -->
+<section class="slide" data-sec="03 π*0.6 · RECAP" data-title="完整流程：七个阶段">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>03</b>π*0.6 · 完整流程</div><div>ALG.1 · SEC.V-D · 红标 = 需要人</div></div>
+  <h1>完整流程：七个阶段<small>只有两处需要人；每轮都从预训练 checkpoint 重来</small></h1>
+  <div class="body" style="flex-direction:column;gap:18px">
+   <div style="display:flex;gap:30px;flex:1;min-height:0">
+    <div class="col" style="flex:1;justify-content:center">
+      <div class="chain">
+        <div class="step tight blue"><span class="lab">阶段 1 · 预训练价值函数<span class="who">人 · 每条 1 bit</span></span>数据：通用预训练集，数万小时、多机器人、多任务示范 · 起点：670M VLM · 产物 V<sub>pre</sub>；就像用全城历史单训导航</div>
+        <div class="step tight gold"><span class="lab">阶段 2 · 预训练策略<span class="who auto">自动</span></span>数据：同一预训练集，标签由 V<sub>pre</sub> 算（约 30% positive）· 起点：π0.6 基座 · 产物 π<sub>pre</sub></div>
+        <div class="step tight"><span class="lab">阶段 3 · 目标任务 SFT<span class="who auto">自动</span></span>数据：这个任务的人类示范，在部署的那台机器人上遥操作采的 · 起点：π<sub>pre</sub> · 标签全填 positive = 普通监督微调 · 产物 π⁰；就像先照老骑手的路线走几天</div>
+        <div class="step tight red"><span class="lab">阶段 4 · 真机采数据<span class="who">人 · 标注 · 接管 · 复位</span></span>π⁰ 上真机跑几百条：自主成功 / 自主失败 / 人中途接管 · 加进数据集 D，示范也留着</div>
+      </div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center">
+      <div class="chain">
+        <div class="step tight blue"><span class="lab">阶段 5 · 微调价值函数<span class="who auto">自动</span></span>数据：D 全部（示范 + rollout + 干预）· 起点：V<sub>pre</sub>，不接着上一轮 · 产物 V¹</div>
+        <div class="step tight gold"><span class="lab">阶段 6 · 微调策略<span class="who auto">自动</span></span>数据：D 全部，标签由 V¹ 重新算（约 40% positive；干预段强制 positive）· 起点：π<sub>pre</sub> · 产物 π¹</div>
+        <div class="step tight"><span class="lab">阶段 7 · 推理</span>π¹ 上岗，标签永远填 positive，其余和 π0.5 一样</div>
+        <div class="step tight orange"><span class="lab">再来一轮 · 回到阶段 4</span>用 π¹ 再跑几百条加进 D；V² / π² 仍从 V<sub>pre</sub> / π<sub>pre</sub> 起（避免漂移）；论文实测 2 轮，“通常一轮就有显著提升”</div>
+      </div>
+    </div>
+   </div>
+    <div class="stat gain" style="flex:0 0 auto"><div class="k">以咖啡为例，走一遍</div><div class="v s">阶段 1–2 和咖啡无关 → 阶段 3 的示范是人在这台机器人上做咖啡的录像 → 阶段 4 π⁰ 做 414 杯自主 + 429 杯有人随时接管 → 阶段 5–6 用这 843 条 + 示范，从 V<sub>pre</sub> / π<sub>pre</sub> 重训 → 阶段 7 连续做 13 小时</div></div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Alg.1 · Sec.V-D · Appendix E</div></div>
+</section>
+
+<!-- 19 -->
+<section class="slide" data-sec="03 π*0.6 · RECAP" data-title="真机采数据：三种 episode">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>03</b>π*0.6 · 阶段 4</div><div>DATA COLLECTION · AUTONOMOUS + INTERVENTIONS · APPENDIX E</div></div>
+  <h1>真机采数据：三种 episode<small>干预修大错，自主 rollout 调速度</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="col" style="width:700px;flex:none;justify-content:center;gap:16px">
+      <div class="chain">
+        <div class="step tight green"><span class="lab">① 纯自主 → 成功</span>按算出来的优势贴标签 · 例：一杯浓缩从磨豆到出品全部自己做完</div>
+        <div class="step tight"><span class="lab">② 纯自主 → 失败</span>整条 −C<sub>fail</sub>；中间纠正得好的段仍可为正 · 例：手柄掉了，或 200 s 没做完</div>
+        <div class="step tight red"><span class="lab">③ 中途人接管纠正，再放手</span>接管段强制 positive，就像老骑手带的那段默认算「快」；机器人犯错段算出来是 negative · 例：锁手柄卡住，人接过来锁上，再放手去萃取</div>
+      </div>
+      <div class="stat gain"><div class="k">对照组</div><div class="v s">帧 2900–3000 机器人犯错 / 帧 3000–3600 人接管：画面几乎一样，模型同时看到错和对</div></div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center;gap:16px">
+      <table style="font-size:26px;line-height:1.3">
+        <tr><th style="padding:8px 16px">任务</th><th style="padding:8px 16px">真机数据</th><th style="padding:8px 16px">机器</th></tr>
+        <tr><td style="padding:11px 16px">T 恤 / 短裤</td><td style="padding:11px 16px">每轮 300 条纯自主，<b>不用干预</b>；2 轮</td><td style="padding:11px 16px">4 台</td></tr>
+        <tr><td style="padding:11px 16px">多样衣物</td><td style="padding:11px 16px">450 评测 + 287 干预</td><td style="padding:11px 16px">—</td></tr>
+        <tr><td style="padding:11px 16px">定向去毛病</td><td style="padding:11px 16px">约 1000 自主 + 280 + 378 干预</td><td style="padding:11px 16px">3 台</td></tr>
+        <tr><td style="padding:11px 16px">装箱</td><td style="padding:11px 16px">每轮 600 自主 + 360 干预；2 轮</td><td style="padding:11px 16px">3 台</td></tr>
+        <tr><td style="padding:11px 16px">咖啡</td><td style="padding:11px 16px">414 自主 + 429 干预；1 轮</td><td style="padding:11px 16px">—</td></tr>
+      </table>
+      <div class="stats">
+        <div class="stat"><div class="k">干预的分工 · 论文原话</div><div class="v s">接管本身是破坏性事件；专家也保证不了一致质量；改不了“整体速度”这种细节</div></div>
+        <div class="stat"><div class="k">T 恤为什么不用干预</div><div class="v s">策略已快到接近遥操作员，人跟不上、接不了管；也为了检验纯 RL 的贡献</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.V-D · Sec.VI-C · Appendix E</div></div>
+</section>
+
+<!-- 20 -->
+<section class="slide" data-sec="04 实验" data-title="实验 · 五个任务与两个指标">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>实验 · 任务与指标</div><div>FIG.6 · SEC.VI-A · THROUGHPUT · SUCCESS RATE</div></div>
+  <h1>五个任务、两个指标<small>吞吐量把速度和成功率算进同一个数</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:30px;height:470px">
+      <div class="frame fig" style="width:1240px;flex:none"><img src="media/pi06_task.png" alt=""><div class="tag">Fig.6 · 上：初始 · 下：成功 · 底：成功判据</div></div>
+      <div class="col" style="flex:1;justify-content:center;gap:16px">
+        <div class="stat gold"><div class="v m">吞吐量 throughput</div><div class="k">每小时成功完成多少次 = 速度 × 成功率</div><div class="cap" style="font-size:24px">一小时做 10 杯成 9 杯 → 9；做 4 杯成 4 杯 → 4。只看成功率会选错</div></div>
+        <div class="stat"><div class="v m">成功率</div><div class="k">人看录像、多维度打分、聚合成一个成 / 败</div></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">T 恤 / 短裤</div><div class="v s">取出 → 摊平 → 折叠 → 码放；200 s</div></div>
+      <div class="stat"><div class="k">多样衣物</div><div class="v s">11 类；只报最难的扣扣子衬衫；500 s</div></div>
+      <div class="stat"><div class="k">定向去毛病</div><div class="v s">单件橙 T 恤，领口必须朝上；200 s</div></div>
+      <div class="stat"><div class="k">双份浓缩</div><div class="v s">磨豆 → 压粉 → 锁手柄 → 萃取 → 出品；不掉不洒；200 s</div></div>
+      <div class="stat"><div class="k">装箱 · 工厂</div><div class="v s">平板 → 折箱 → 贴标 → 放进货箱；600 s</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.VI-A · Sec.VI-C · Fig.6</div></div>
+</section>
+
+<!-- 21 -->
+<section class="slide" data-sec="04 实验" data-title="五级对照阶梯">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>实验 · 对照</div><div>BASELINES · SEC.VI-B · ④ → ⑤ = 经验的净贡献</div></div>
+  <h1>五级对照阶梯<small>每一级只多加一样东西</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="col" style="flex:1.3;justify-content:center">
+      <div class="chain">
+        <div class="step tight"><span class="lab">① π0.5 预训练</span>上期的模型，没有 RL</div>
+        <div class="step tight"><span class="lab">② π0.6 预训练 · 纯监督</span>+ 更大骨干、更多平台数据；没有 advantage 接口</div>
+        <div class="step tight blue"><span class="lab">③ π*0.6 RL 预训练</span>+ advantage 接口 + 离线 RL 预训练；没针对下游任务</div>
+        <div class="step tight orange"><span class="lab">④ π*0.6 offline RL + SFT · 关键对照</span>+ 目标任务示范微调（标签全 True）；没有机器人自己跑出来的经验；像只照着老骑手路线走过的新骑手</div>
+        <div class="step tight gold"><span class="lab">⑤ π*0.6 RECAP（Ours）</span>+ 真机自主 rollout + 人类干预；自己跑过两批单的骑手</div>
+      </div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center;gap:16px">
+      <div class="stat gain"><div class="k">④ → ⑤</div><div class="v m">“从经验中学习”的净贡献；论文所有“翻倍”“减半”都相对 ④，不是相对最弱的 π0.5</div></div>
+      <div class="stat"><div class="k">另两个对照 · 策略提取方法</div><div class="v s">AWR · PPO：喂完全相同的真机数据，从 π0.6（无 advantage 接口）起步</div></div>
+      <div class="stat warn"><div class="k">注意</div><div class="v s">AWR / PPO 与 RECAP 的起点不同，这个对比混着“离线 RL 预训练”这一项，不是纯算法消融</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.VI-B · 素材整理 §9.3</div></div>
+</section>
+
+<!-- 22 -->
+<section class="slide" data-sec="04 实验" data-title="主结果 · 吞吐量">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>实验 · 主结果 ①</div><div>FIG.7 · THROUGHPUT · 误差棒 = 标准误 · 估读</div></div>
+  <h1>主结果：吞吐量<small>每小时成功次数；最右一根是 RECAP</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:22px;height:540px">
+      <div class="frame fig" style="flex:1.2"><img src="media/pi06_exp1_Laundry_T-Shirts_and_Shorts_throughput_plot.png" alt=""><div class="tag">T 恤 / 短裤</div></div>
+      <div class="frame fig" style="flex:1.2"><img src="media/pi06_exp1_Laundry_Diverse_-_Hardest_Item_throughput_plot.png" alt=""><div class="tag">多样衣物 · 最难项</div></div>
+      <div class="frame fig" style="flex:1"><img src="media/pi06_exp1_Make_Espresso_throughput_plot.png" alt=""><div class="tag">浓缩咖啡</div></div>
+      <div class="frame fig" style="flex:1"><img src="media/pi06_exp1_Box_Assembly_throughput_plot.png" alt=""><div class="tag">装箱</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat gold"><div class="v">2× 以上</div><div class="k">多样衣物 ≈4 → ≈8.5 · 咖啡 ≈15 → ≈29 次 / 小时 · ④ → ⑤</div></div>
+      <div class="stat"><div class="v">≈33 → ≈60</div><div class="k">T 恤 · 成功率已接近上限，吞吐量仍显著涨</div></div>
+      <div class="stat"><div class="v">≈10 → ≈13</div><div class="k">装箱 · 大部分失败是超时</div></div>
+      <div class="stat"><div class="v">≈3 → ≈17</div><div class="k">T 恤 · π0.5 → π0.6 基座本身的提升（① → ②）</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Fig.7 · Sec.VI-C · 柱状图估读</div></div>
+</section>
+
+<!-- 23 -->
+<section class="slide" data-sec="04 实验" data-title="主结果 · 成功率">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>实验 · 主结果 ②</div><div>FIG.8 · SUCCESS RATE · 人工标注 · 估读</div></div>
+  <h1>主结果：成功率<small>除多样衣物外全部 90%+</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:22px;height:540px">
+      <div class="frame fig" style="flex:1"><img src="media/pi06_exp1_Laundry_T-Shirts_and_Shorts_success_rate_plot.png" alt=""><div class="tag">T 恤 / 短裤</div></div>
+      <div class="frame fig" style="flex:1"><img src="media/pi06_exp1_Laundry_Diverse_-_Hardest_Item_success_rate_plot.png" alt=""><div class="tag">多样衣物 · 最难项</div></div>
+      <div class="frame fig" style="flex:.85"><img src="media/pi06_exp1_Make_Espresso_success_rate_plot.png" alt=""><div class="tag">浓缩咖啡</div></div>
+      <div class="frame fig" style="flex:1.45"><img src="media/pi06_exp1_Box_Assembly_success_rate_plot.png" alt=""><div class="tag">装箱 · 四个子阶段</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat gold"><div class="v">90%+</div><div class="k">T 恤 · 咖啡 · 装箱各子阶段；能拿去用的门槛</div></div>
+      <div class="stat"><div class="v">失败率 ÷ 2</div><div class="k">多样衣物 ≈43% → ≈75% · 咖啡 ≈38% → ≈92% · ④ → ⑤</div></div>
+      <div class="stat"><div class="v m">四个子阶段都最高</div><div class="k">装箱 · 取板 / 折箱 / 贴标 / 入箱 · RECAP 最均衡</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Fig.8 · Sec.VI-C · 柱状图估读</div></div>
+</section>
+
+<!-- 24 -->
+<section class="slide" data-sec="04 实验" data-title="多轮迭代">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>实验 · 多轮迭代</div><div>FIG.9 · FIG.10 · i = 0 → 1 → 2 · 估读</div></div>
+  <h1>多轮迭代<small>T 恤只用纯自主数据；装箱自主 + 干预</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:22px;height:540px">
+      <div class="frame fig" style="flex:1"><img src="media/pi06_exp3_iter_laundry_throughput.png" alt=""><div class="tag">T 恤 · 吞吐量</div></div>
+      <div class="frame fig" style="flex:1"><img src="media/pi06_exp3_iter_laundry_success.png" alt=""><div class="tag">T 恤 · 成功率</div></div>
+      <div class="frame fig" style="flex:1"><img src="media/pi06_exp3_iter_box_throughput.png" alt=""><div class="tag">装箱 · 吞吐量</div></div>
+      <div class="frame fig" style="flex:1.6"><img src="media/pi06_exp3_iter_box_success.png" alt=""><div class="tag">装箱 · 成功率 · 子阶段</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat gold"><div class="v">+50%</div><div class="k">T 恤 · 纯自主 · 每轮 300 条 · 4 台机器 · 2 轮 · 没有任何人类干预</div></div>
+      <div class="stat"><div class="v m">第一轮成功率就 90%+</div><div class="k">T 恤 · 第二轮几乎全是提速</div></div>
+      <div class="stat"><div class="v">2×</div><div class="k">装箱 · 每轮 600 自主 + 360 干预 · 第一轮先降后升（论文未解释）</div></div>
+      <div class="stat"><div class="v m">折箱、贴标 ≈90%</div><div class="k">装箱 · 剩余失败主要在最后码到堆上</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Fig.9 · Fig.10 · Sec.VI-C · 柱状图估读</div></div>
+</section>
+
+<!-- 25 -->
+<section class="slide" data-sec="04 实验" data-title="AWR vs PPO vs RECAP">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>实验 · 策略提取对比</div><div>FIG.11 · SAME DATA · T-SHIRT TASK · 估读</div></div>
+  <h1>同样的数据，换成 AWR 或 PPO<small>两者都难以超过 offline RL + SFT 这个起点</small></h1>
+  <div class="body" style="gap:36px">
+    <div style="display:flex;gap:22px;width:1100px;flex:none;height:660px">
+      <div class="frame fig" style="flex:1"><img src="media/pi06_exp2_extraction_throughput.png" alt=""><div class="tag">Fig.11 · 吞吐量</div></div>
+      <div class="frame fig" style="flex:1"><img src="media/pi06_exp2_extraction_success.png" alt=""><div class="tag">Fig.11 · 成功率</div></div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center;gap:16px">
+      <div class="stat"><div class="k">AWR · 加权回归</div><div class="v s">成功率还行（≈91%），但策略慢很多，吞吐量 ≈31 vs ≈60</div></div>
+      <div class="stat"><div class="k">PPO · DPPO / FPO 变体 + SPO 信赖域</div><div class="v s">离线设定下必须用极小信赖域 η = 0.01 才稳；稳了但学不到东西，≈22 次 / 小时</div></div>
+      <div class="stat gain"><div class="k">数据对 baseline 略有利</div><div class="v s">这批数据是跑 RECAP 时收的，质量比 baseline 自己能收到的更好</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Fig.11 · Sec.VI-C · Appendix C · 柱状图估读</div></div>
+</section>
+
+<!-- 26 -->
+<section class="slide" data-sec="04 实验" data-title="定向去除一个失败模式">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>实验 · 定向去毛病</div><div>FIG.12 · STRICT CRITERION · ADVERSARIAL INITIAL CONDITION</div></div>
+  <h1>定向去除一个失败模式<small>换一个标注标准，行为就跟着变</small></h1>
+  <div class="body" style="gap:36px">
+    <div style="display:flex;gap:22px;width:1000px;flex:none;height:660px">
+      <div class="frame fig" style="flex:1"><img src="media/pi06_exp5_failure_success.png" alt=""><div class="tag">Fig.12 · 成功率</div></div>
+      <div class="frame fig" style="flex:1"><img src="media/pi06_exp5_failure_throughput.png" alt=""><div class="tag">Fig.12 · 吞吐量</div></div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center;gap:16px">
+      <div class="stat"><div class="k">设定</div><div class="v s">单件橙色 T 恤；严格标准：领口居中朝上；初始摆放故意让 ④ 经常折错</div></div>
+      <div class="stat gold"><div class="v">≈23% → 97%</div><div class="k">2 轮 · 每轮 600 条 · 速度也快</div></div>
+      <div class="stat gain"><div class="k">意义</div><div class="v s">不改奖励代码、不改模型，只改标注员的勾选标准；就像只改「怎样算送达」的规则，骑手跑两批单就改过来</div></div>
+      <div class="stat warn"><div class="k">论文自相矛盾</div><div class="v s">正文说“完全通过 RL，无干预数据”；附录列了 280 + 378 条干预 episode。引用 97% 时别说“纯 RL”</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Fig.12 · Sec.VI-C · Appendix E · 柱状图估读</div></div>
+</section>
+
+<!-- 27 -->
+<section class="slide" data-sec="05 小结" data-title="小结：借来的 · 新的 · 放弃的">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>05</b>小结</div><div>WHAT IS BORROWED · WHAT IS NEW · WHAT IS GIVEN UP</div></div>
+  <h1>小结<small>RECAP 是把 RL 塞进监督学习流程的接口设计</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div class="stats" style="flex:1">
+      <div class="stat" style="gap:10px"><div class="k">借来的</div><div class="v s">advantage conditioning（Kumar 2019 · Decision Transformer）<br>改进保证定理（MARWIL · CFGRL）<br>分布式价值函数 201 bin（Bellemare 2017）<br>人类干预 HG-DAgger · Knowledge Insulation · FAST</div></div>
+      <div class="stat gold" style="gap:10px"><div class="k">新的</div><div class="v s">这个组合本身<br>阈值 ε 代替测试时的 β<br>预训练阶段就引入 advantage<br>示范 + 旧 rollout + 新 rollout + 干预，同一个目标函数<br>首次在 5–15 分钟任务上跑通</div></div>
+      <div class="stat" style="gap:10px"><div class="k">放弃的</div><div class="v s">无 stitching：蒙特卡洛拼不出数据里没有的好动作<br>探索是贪心的，靠策略随机性和人<br>不在线：攒一批 → 训 → 再采<br>不全自动：标注、干预、场景复位靠人</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat warn"><div class="k">缺口 · 我读出来的</div><div class="v s">几乎没做内部消融（201 bin / N=50 / 阈值 / 30% dropout 都没比）；评测 rollout 同时进了训练集；只和 PI 自家模型比；未开源</div></div>
+      <div class="stat"><div class="k">作者自述局限 · Sec.VII</div><div class="v s">系统不全自动；探索朴素；不是并发的在线 RL；让 RL 成为 VLA 的实用工具“还需要更多研究”</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π*0.6 · Sec.I · Sec.VII · 素材整理 §10.6 · §10.7 · §11</div></div>
+</section>
+
+<!-- 28 -->
+<section class="slide end" data-sec="05 收尾" data-title="收尾">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="body center" style="flex-direction:column;gap:50px">
+    <div class="stats" style="width:1600px">
+      <div class="stat"><div class="k">2025-04 · 上期</div><div class="v">π0.5</div><div class="cap" style="font-size:26px">五类数据 co-training · 进没见过的家 · 上限仍是示范</div></div>
+      <div class="arrow">→</div>
+      <div class="stat gold"><div class="k">2025-11 · 本期</div><div class="v">π*0.6</div><div class="cap" style="font-size:26px">价值函数 + 一句 “Advantage: positive” · 从自己的经验里学 · 吞吐量 2× · 13 小时咖啡</div></div>
+    </div>
+    <div class="big muted">下期：π0.7 · 可 prompt 的通用模型，零样本追平 RL specialist</div>
+    <div class="cap" style="font-family:var(--mono);font-size:24px;letter-spacing:.06em">π*0.6 未开源 · 思路可在 openpi 的 π0.5 上复现：加一个价值头，把 advantage 二值化写进 prompt</div>
+  </div>
+</section>
+
+</div>
+
+<div id="nav-hot"></div>
+<div id="nav-btn"><div class="b" id="nb-prev">‹</div><span class="pg" id="nb-pg">1 / 28</span><div class="b" id="nb-next">›</div><div class="b" id="nb-list">☰</div></div>
+<div id="nav-panel"></div>
+<div id="hud"></div>
+
+<script>
+(function(){
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const hud=document.getElementById('hud');
+  let cur=-1, showCounter=false;
+  // background grid
+  const grids=document.querySelectorAll('svg.grid');
+  const gridMarkup=(()=>{
+    const vx=960, vy=330; let s='';
+    for(let x=-1400;x<=3300;x+=190){ s+=`<line x1="${vx}" y1="${vy}" x2="${x}" y2="1080" stroke="#D3DBE5" stroke-width="1"/>`; }
+    let y=vy+40, step=8; while(y<1080){ s+=`<line x1="0" y1="${y}" x2="1920" y2="${y}" stroke="#D3DBE5" stroke-width="1"/>`; step*=1.32; y+=step; }
+    return `<g opacity="0.8"><rect x="0" y="0" width="1920" height="${vy+60}" fill="url(#fade)"/></g>`+s+`<rect x="0" y="0" width="1920" height="1080" fill="url(#fade)"/><defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EEF2F6" stop-opacity="1"/><stop offset="0.55" stop-color="#EEF2F6" stop-opacity="1"/><stop offset="1" stop-color="#EEF2F6" stop-opacity="0.35"/></linearGradient></defs>`;
+  })();
+  grids.forEach(g=>{ g.innerHTML=gridMarkup; });
+  function fit(){ const s=Math.min(innerWidth/1920, innerHeight/1080); stage.style.transform=`translate(-50%,-50%) scale(${s})`; }
+  function show(n){
+    n=Math.max(0,Math.min(slides.length-1,n)); if(n===cur) return;
+    slides.forEach((s,k)=>{ const on=k===n; s.classList.toggle('active',on); s.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(e){} v.play().catch(()=>{}); } else { v.pause(); } }); });
+    cur=n; history.replaceState(null,'','#'+(n+1)); updateHud();
+  }
+  const navBtn=document.getElementById('nav-btn'), panel=document.getElementById('nav-panel'), pg=document.getElementById('nb-pg');
+  (function buildNav(){
+    let html='', lastSec=null;
+    slides.forEach((sl,k)=>{
+      const sec=sl.dataset.sec||''; const h=sl.querySelector('h1');
+      let title=sl.dataset.title||(h?h.childNodes[0].textContent.trim():''); if(!title) title=sec;
+      if(sec!==lastSec){ html+=`<div class="sec-title">${sec||'—'}</div>`; lastSec=sec; }
+      html+=`<div class="it" data-k="${k}"><span class="k">${k+1}</span><span>${title}</span></div>`;
+    });
+    panel.innerHTML=html;
+  })();
+  function toggleNav(force){ const on=(force===undefined)?!panel.classList.contains('open'):force; panel.classList.toggle('open',on); navBtn.classList.toggle('open',on); }
+  document.getElementById('nb-list').addEventListener('click',e=>{ e.stopPropagation(); toggleNav(); });
+  document.getElementById('nb-prev').addEventListener('click',e=>{ e.stopPropagation(); prev(); });
+  document.getElementById('nb-next').addEventListener('click',e=>{ e.stopPropagation(); next(); });
+  navBtn.addEventListener('click',e=>{ e.stopPropagation(); });
+  panel.addEventListener('click',e=>{ e.stopPropagation(); const it=e.target.closest('.it'); if(!it) return; show(parseInt(it.dataset.k,10)); toggleNav(false); });
+  function updateHud(){ pg.textContent=`${cur+1} / ${slides.length}`; hud.textContent = showCounter ? `${cur+1} / ${slides.length}` : '← → 翻页 · F 全屏 · C 页码 · 左上角选页'; panel.querySelectorAll('.it').forEach((el,k)=>el.classList.toggle('cur',k===cur)); }
+  function next(){ show(cur+1); } function prev(){ show(cur-1); }
+  let buf='', bt=null;
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if(e.key==='Escape'){ toggleNav(false); }
+    else if(e.key==='g'||e.key==='G'){ toggleNav(); }
+    else if(e.key==='Home'){ show(0); } else if(e.key==='End'){ show(slides.length-1); }
+    else if(e.key==='f'||e.key==='F'){ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }
+    else if(e.key==='c'||e.key==='C'){ showCounter=!showCounter; hud.classList.toggle('show',showCounter); updateHud(); }
+    else if(/^[0-9]$/.test(e.key)){ buf=(buf+e.key).slice(-2); clearTimeout(bt); bt=setTimeout(()=>{ const k=parseInt(buf,10); if(k>=1&&k<=slides.length) show(k-1); buf=''; },500); }
+  });
+  addEventListener('click',e=>{ if(e.target.closest('a,#nav-panel,#nav-btn,#nav-hot')) return; if(panel.classList.contains('open')){ toggleNav(false); return; } const x=e.clientX/innerWidth; if(x<0.2) prev(); else next(); });
+  addEventListener('resize',fit); fit();
+  const h=parseInt((location.hash||'#1').slice(1),10); show(isNaN(h)?0:h-1);
+  if(/[?&]nav=1/.test(location.search)) toggleNav(true);
+  hud.classList.add('show'); setTimeout(()=>{ if(!showCounter) hud.classList.remove('show'); },4000);
+})();
+</script>
+</body>
+</html>

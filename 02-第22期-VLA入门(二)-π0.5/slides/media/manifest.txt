@@ -1,0 +1,48 @@
+文件                                   来源
+pi05_final_fig2.png                    π0.5 (2504.16054) Fig.2  figures/final_fig2.pdf（封面底条）
+pi05_pibnb-teaser-bedroom.png          π0.5 Fig.1  figures/pibnb-teaser-bedroom.pdf
+pi05_Figure_3.png                      π0.5 Fig.3  figures/Figure_3.pdf（模型总览）
+pi05_fig3_pretrain.png                 从 Fig.3 裁出的左半（预训练）
+pi05_fig3_posttrain.png                从 Fig.3 裁出的右半（后训练与推理）
+pi05_pretraining-finetuning-tasks.png  π0.5 Fig.4  figures/pretraining-finetuning-tasks.pdf（五类数据示例）
+pi05_tasks_vi_col.png                  从 Fig.4 裁出的 Verbal instruction 列
+pi05_tasks_hl_panel.png                从 Fig.4 裁出的 High-level subtask 面板（未用）
+pi05_tasks_robot_cols.png              从 Fig.4 裁出的三类机器人数据列（未用）
+pi05_robot_system_overview.png         π0.5 Fig.5  figures/robot_system_overview.pdf
+pi05_visualize_eval_envs.png           π0.5 Fig.6  figures/visualize_eval_envs.pdf
+pi05_final_real_home_eval_filmstrip.png π0.5 Fig.7a figures/final_real_home_eval_filmstrip.pdf
+pi05_real_home_quantitative_eval_plot.png π0.5 Fig.7b figures/real_home_quantitative_eval_plot.png
+pi05_env_scaling.png                   π0.5 Fig.8  figures/env_scaling.png
+pi05_env_scaling_results0.png          π0.5 Fig.9  figures/env_scaling_results0.png
+pi05_performance_vs_ll_data.png        π0.5 Fig.10 figures/performance_vs_ll_data.png
+pi05_data_vs_generalization.png        π0.5 Fig.11 figures/data_vs_generalization.png
+pi05_performance_vs_ll_model.png       π0.5 Fig.12 figures/performance_vs_ll_model.png
+pi05_performance_vs_hl_data.png        π0.5 Fig.13 figures/performance_vs_hl_data.png
+pi05_ll_drawer.jpg / pi05_ll_sink.jpg / pi05_rare_objects.jpg   π0.5 Fig.14 语言跟随初始场景照片
+pi05_overall_breakdown.png             π0.5 Fig.15 figures/overall_breakdown.png（未用）
+pi05_language_vs_model.png             π0.5 Fig.16 figures/language_vs_model.png
+pi05_attention_mask.png                π0.5 Fig.17 figures/attention_mask.png
+pi05_HL_breakdowns.png                 π0.5 附录 figures/HL_breakdowns.png（未用）
+pi0_data_chart.png / pi0_overview_hi.jpg / pi0_teaser_hi.jpg   π0 Fig.4 / Fig.3 / Fig.1，复制自第 21 期 media/
+pi0_robots_hi.png / pi0_laundry_filmstrip.jpg                  π0 Fig.5 / Fig.2，复制自第 21 期（未用）
+fast_teaser.png                        π0-FAST (2501.09747) Fig.2  figures/teaser.pdf（未用）
+fast_convergence.jpg                   π0-FAST Fig.1  figures/convergence_2.jpg
+fast_convergence_chart.png / fast_convergence_photos.png   从 Fig.1 裁出的收敛曲线 / 下方照片
+fast_dct_method.png                    π0-FAST Fig.4  figures/dct_method.pdf
+fast_main_result.png                   π0-FAST Fig.6  figures/main_result.pdf（未用）
+fast_pi0_multi_task.png                π0-FAST Fig.11 figures/pi0_multi_task.pdf
+fast_pi0_compute_matched.png           π0-FAST Fig.15 figures/pi0_compute_matched.pdf（未用）
+fast_pi0_single_task.png               π0-FAST Fig.9  figures/pi0_single_task.pdf（未用）
+fast_bench_test_compression.png        π0-FAST Fig.8  figures/bench_test_compression.pdf（未用）
+fast_droid_quali.png                   π0-FAST Fig.7  figures/droid_quali.pdf（未用）
+fast_fig_dataset_comparison.png        π0-FAST Fig.12 figures/fig_dataset_comparison.pdf（未用）
+fast_task_*.jpg                        π0-FAST 附录 任务初始状态照片（未用）
+hirobot_teaser_v2.png                  Hi Robot (2502.19417) Fig.1  figures/teaser_v2.pdf（未用）
+hirobot_block_diagram_v2.png           Hi Robot Fig.2  figures/block_diagram_v2.pdf
+hirobot_data_gen_v3.png                Hi Robot Fig.3  figures/data_gen_v3.pdf
+hirobot_tasks_v2.png                   Hi Robot Fig.4  figures/tasks_v2.pdf
+hirobot_tasks_grocery.png              从 Fig.4 裁出的超市购物行
+hirobot_baselines_v2.png               Hi Robot Fig.5  figures/baselines_v2.pdf
+hirobot_qualitative_comparison_v2.png  Hi Robot Fig.6  figures/qualitative_comparison_v2.pdf（未用）
+hirobot_ablation_data_v2.png / hirobot_ablation_hierarchy_v2.png   Hi Robot Fig.7 / Fig.8（未用）
+fast_teaser_right.png                  从 π0-FAST Fig.2 右半裁出：tokenizer 分数 vs 控制频率

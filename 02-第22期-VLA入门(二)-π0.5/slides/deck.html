@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>VLA 入门 · π0.5 · 第 22 期</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#EEF2F6; --card:#FFFFFF; --ink:#0B1220; --muted:#5B6B7F; --line:#D3DBE5;
+  --blue:#2457F5; --blue-soft:#E3EAFF; --orange:#FF6B1A; --orange-soft:#FFE9DB; --green:#1B9E77; --green-soft:#DDF3EC;
+  --font:"PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono","Menlo","JetBrains Mono",monospace;
+  --serif:"STIX Two Text","Times New Roman","Songti SC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(1);transform-origin:center;background:var(--bg)}
+.slide{position:absolute;inset:0;padding:84px 104px 72px;display:none;flex-direction:column}
+.slide.active{display:flex}
+.grid{position:absolute;inset:0;pointer-events:none;opacity:.55}
+.head{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:22px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;position:relative;z-index:1}
+.head .sec{display:flex;gap:18px;align-items:center}
+.head .sec b{color:var(--ink);font-weight:600}
+.head .sec i{width:10px;height:10px;border-radius:50%;background:var(--blue);display:inline-block}
+h1{font-size:60px;font-weight:600;line-height:1.2;margin-top:16px;letter-spacing:.01em;position:relative;z-index:1}
+h1 small{font-size:28px;color:var(--muted);font-weight:400;margin-left:20px}
+.body{flex:1;position:relative;margin-top:26px;display:flex;gap:36px;min-height:0;z-index:1}
+.col{display:flex;flex-direction:column;gap:18px;min-width:0}
+.center{align-items:center;justify-content:center}
+.frame{position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:0 8px 30px rgba(11,18,32,.06)}
+.frame img,.frame video{display:block;width:100%;height:100%;object-fit:contain;border-radius:6px;background:#fff}
+.frame.photo img{object-fit:cover}
+.frame.fig{padding:30px 10px 10px}
+.frame .tag{position:absolute;top:-16px;left:18px;background:var(--ink);color:#fff;font-family:var(--mono);font-size:19px;letter-spacing:.06em;padding:5px 12px;border-radius:6px;white-space:nowrap;z-index:2}
+.frame .tag.blue{background:var(--blue)} .frame .tag.orange{background:var(--orange)} .frame .tag.green{background:var(--green)}
+.cap{font-size:30px;color:var(--muted);line-height:1.45}
+.cap b{color:var(--ink);font-weight:600}
+.big{font-size:42px;line-height:1.45;font-weight:500}
+.blue{color:var(--blue)} .orange{color:var(--orange)} .green{color:var(--green)} .muted{color:var(--muted)}
+.list{list-style:none;font-size:34px;line-height:1.45}
+.list li{display:flex;gap:22px;align-items:flex-start;padding:16px 0;border-top:1px solid var(--line)}
+.list li:last-child{border-bottom:1px solid var(--line)}
+.list .n{font-family:var(--mono);font-size:24px;color:var(--muted);min-width:50px;padding-top:9px}
+.pill{display:inline-block;padding:8px 18px;border-radius:999px;font-size:26px;background:var(--card);border:1px solid var(--line)}
+.arrow{font-size:60px;color:var(--muted);align-self:center;font-weight:300}
+.chain{display:flex;flex-direction:column;gap:14px}
+.chain .step{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 24px;font-size:30px;line-height:1.35;position:relative}
+.chain .step.blue{border-left:8px solid var(--blue)} .chain .step.orange{border-left:8px solid var(--orange)} .chain .step.green{border-left:8px solid var(--green)}
+.chain .step.tight{padding:12px 22px;font-size:28px}
+.chain .step .lab{display:block;font-family:var(--mono);font-size:19px;letter-spacing:.1em;color:var(--muted);margin-bottom:4px}
+table{border-collapse:collapse;width:100%;font-size:30px;line-height:1.35}
+th,td{padding:16px 20px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:21px;letter-spacing:.1em;color:var(--muted);font-weight:500;text-transform:uppercase}
+td:first-child{font-weight:600;white-space:nowrap}
+.foot{position:absolute;left:104px;right:104px;bottom:40px;display:flex;justify-content:space-between;align-items:flex-end;gap:40px;font-family:var(--mono);font-size:20px;color:var(--muted);letter-spacing:.08em;z-index:1}
+.foot .src{opacity:.85;white-space:nowrap}
+.foot .cap{display:none} /* 沿用第 21 期：页脚小字不显示；要恢复删这一行 */
+.foot .cap{font-family:var(--font);font-size:28px;max-width:1420px;letter-spacing:0}
+/* stats */
+.stats{display:flex;gap:22px}
+.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 26px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat .v{font-size:50px;font-weight:600;line-height:1.15;letter-spacing:.01em}
+.stat .v small{font-size:28px;color:var(--muted);font-weight:400;margin-left:8px}
+.stat .k{font-family:var(--mono);font-size:20px;letter-spacing:.08em;color:var(--muted)}
+.stat.blue .v{color:var(--blue)} .stat.orange .v{color:var(--orange)}
+.stat.gain{border:2px solid var(--orange);background:var(--orange-soft)} .stat.gain .k{color:var(--orange)} .stat.gain .v{color:var(--ink)}
+.stat .v.m{font-size:34px;line-height:1.3}
+/* formulas */
+.formula{font-family:var(--serif);font-size:44px;line-height:1.5;letter-spacing:.01em}
+.formula i{font-style:italic}
+.formula sup,.formula sub{font-size:60%}
+.fbox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 30px;display:flex;flex-direction:column;gap:8px}
+.fbox .lab{font-family:var(--mono);font-size:20px;letter-spacing:.1em;color:var(--muted)}
+/* token strip */
+.toks{display:flex;gap:10px;align-items:stretch}
+.tk{border-radius:12px;padding:22px 20px;display:block;font-size:28px;line-height:1.3;min-width:0}
+.tk .lab{display:block;font-family:var(--mono);font-size:19px;letter-spacing:.08em;opacity:.8;margin-bottom:8px}
+.tk.vlm{background:var(--blue-soft);border:2px solid var(--blue);color:var(--blue)}
+.tk.q{background:var(--green-soft);border:2px solid var(--green);color:var(--green)}
+.tk.act{background:var(--orange-soft);border:2px solid var(--orange);color:var(--orange)}
+/* comparison table π0 vs π0.5 */
+table.cmp td:nth-child(2){color:var(--muted)}
+table.cmp td:nth-child(3){background:var(--blue-soft);color:var(--ink)}
+table.cmp th:nth-child(3){color:var(--blue)}
+.lh{font-family:var(--serif);font-style:italic;font-size:1.08em}
+/* token chips (FAST example) */
+.tokrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{display:inline-block;min-width:66px;padding:7px 8px;border-radius:8px;background:var(--card);border:2px solid var(--line);font-family:var(--mono);font-size:23px;text-align:center;color:var(--ink)}
+.chip.rep{color:#B9C3CF;border-style:dashed}
+.chip.new{color:var(--blue);border-color:var(--blue);background:var(--blue-soft)}
+.chip.big{color:var(--orange);border-color:var(--orange);background:var(--orange-soft)}
+.chip.z{color:#B9C3CF;min-width:46px}
+.chip.sm{font-size:21px;min-width:0;padding:6px 9px}
+.tokrow .more{font-family:var(--mono);font-size:24px;color:var(--muted);padding:0 6px}
+/* nav (top-left page control) */
+#nav-hot{position:fixed;left:0;top:0;width:220px;height:110px;z-index:20}
+#nav-btn{position:fixed;left:14px;top:14px;height:44px;padding:0 14px 0 10px;border-radius:10px;background:rgba(11,18,32,.82);color:#fff;font-size:18px;font-family:var(--mono);display:flex;align-items:center;gap:10px;cursor:pointer;opacity:.22;transition:opacity .25s;z-index:21;user-select:none}
+#nav-btn span.pg{font-size:18px;letter-spacing:.06em}
+#nav-btn .b{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14)}
+#nav-btn .b:hover{background:rgba(255,255,255,.3)}
+#nav-hot:hover ~ #nav-btn,#nav-btn:hover,#nav-btn.open{opacity:1}
+#nav-panel{position:fixed;left:14px;top:66px;width:440px;max-height:calc(100vh - 90px);overflow:auto;background:#fff;color:#0B1220;border:1px solid #D3DBE5;border-radius:12px;box-shadow:0 16px 48px rgba(11,18,32,.22);padding:8px;display:none;z-index:22;font-family:var(--font);font-size:14px}
+#nav-panel.open{display:block}
+#nav-panel .sec-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:#5B6B7F;padding:10px 10px 4px;text-transform:uppercase}
+#nav-panel .it{display:flex;gap:10px;align-items:baseline;padding:7px 10px;border-radius:8px;cursor:pointer;line-height:1.35}
+#nav-panel .it:hover{background:#EEF2F6}
+#nav-panel .it.cur{background:#E3EAFF;color:#2457F5}
+#nav-panel .it .k{font-family:var(--mono);font-size:12px;color:#5B6B7F;min-width:24px;text-align:right}
+#nav-panel .it.cur .k{color:#2457F5}
+#hud{position:fixed;left:18px;bottom:14px;font-family:var(--mono);font-size:13px;color:#7f8c9c;opacity:0;transition:opacity .6s;pointer-events:none;z-index:9}
+#hud.show{opacity:1}
+/* cover / end */
+.cover{padding:0}
+.cover .band{position:absolute;left:0;right:0;bottom:0;height:300px;background:#000}
+.cover .band img{width:100%;height:100%;object-fit:cover;opacity:.95}
+.cover .txt{position:absolute;left:104px;top:150px}
+.cover .txt .eb{font-family:var(--mono);font-size:24px;letter-spacing:.16em;color:var(--muted);margin-bottom:26px}
+.cover .txt h1{font-size:150px;line-height:1;margin:0 0 26px;letter-spacing:.02em;font-weight:600}
+.cover .txt p{font-size:44px;font-weight:400;color:var(--muted)}
+.cover .txt p b{color:var(--ink);font-weight:600}
+.cover .brand{position:absolute;right:104px;top:170px;font-family:var(--mono);font-size:26px;letter-spacing:.14em;color:var(--muted)}
+.end{align-items:center;justify-content:center;text-align:center}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- 1 -->
+<section class="slide cover" data-sec="封面" data-title="封面">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="txt">
+    <div class="eb">第 22 期 · VLA 入门（续）· π0.5</div>
+    <h1>VLA</h1>
+    <p><b>π0</b> (2024-10) → <b>π0.5</b> (2025-04) · 进没见过的家</p>
+  </div>
+  <div class="brand">可lip</div>
+  <div class="band"><img src="media/pi05_final_fig2.png" alt=""></div>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-sec="00 回顾" data-title="回顾 π0：数据 · 架构 · 配方">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>00</b>回顾</div><div>π0 · 2024-10 · 上期第 13–16 页</div></div>
+  <h1>回顾 π0<small>数据 · 架构 · 配方，本期按这三条对比 π0.5</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div class="stats" style="flex:1">
+      <div class="stat" style="gap:12px"><div class="frame fig" style="height:280px;padding:10px"><img src="media/pi0_data_chart.png" alt=""></div><div class="k">数据 · π0 Fig.4</div><div class="v m">9.03 亿时间步 · 7 种构型 · 68 类任务</div><div class="cap" style="font-size:25px">全部在实验室采集，9.1% 开源 OXE；只有动作数据</div></div>
+      <div class="stat" style="gap:12px"><div class="frame fig" style="height:280px;padding:10px"><img src="media/pi0_overview_hi.jpg" alt=""></div><div class="k">架构 · π0 Fig.3</div><div class="v m">PaliGemma 3B + action expert 300M</div><div class="cap" style="font-size:25px">flow matching 一次出 50 步；状态走 expert；只输出动作</div></div>
+      <div class="stat" style="gap:12px"><div class="frame fig" style="height:280px;padding:10px"><img src="media/pi0_teaser_hi.jpg" alt=""></div><div class="k">配方 · π0 Fig.1</div><div class="v m">预训练 700k 步 → 按任务后训练 5–100+ 小时</div><div class="cap" style="font-size:25px">全程 flow matching；评测环境与训练数据同分布</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat gain"><div class="k">π0.5 的目标</div><div class="v m">在训练没见过的家里，只给一句高层指令，完成 10–15 分钟的厨房 / 卧室清理</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0 2410.24164 · π0.5 2504.16054</div></div>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-sec="01 前置" data-title="π0.5 之前的两步 · 概览">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>前置 · 概览</div><div>PHYSICAL INTELLIGENCE · 2025-01 → 2025-04</div></div>
+  <h1>π0.5 之前的两步<small>离散 token 训练，高层 / 低层分工</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="col" style="flex:1.25;justify-content:center">
+      <div class="chain">
+        <div class="step tight"><span class="lab">2025-01 · π0-FAST · arXiv 2501.09747 · → 第 4–7 页</span>DCT + BPE 把 1 秒动作块压成约 30 个离散 token / 臂；自回归训练比 flow 版 π0 少 5× GPU 时数，语言跟随更好；一块要解码 30–60 个 token，4090 上约 750 ms</div>
+        <div class="step tight"><span class="lab">2025-02 · Hi Robot · arXiv 2502.19417 · → 第 8–10 页</span>两个 PaliGemma 3B：高层 VLM 把开放指令翻成原子指令，低层 π0 执行；指令准确率比零样本 GPT-4o 高 40 个百分点以上</div>
+        <div class="step tight blue"><span class="lab">2025-04 · π0.5（本期）· arXiv 2504.16054 · CoRL 2025 · → 第 11 页起</span>两件事合进一个模型：离散 token 预训练 + flow 后训练；同一套权重先出子任务、再出动作</div>
+        <div class="step tight"><span class="lab">2025-09 · openpi 发布 pi05_base</span>当前能直接拿到的最强开源 VLA 基座；另有 pi05_droid / pi05_libero</div>
+      </div>
+    </div>
+    <div class="col" style="width:560px;gap:20px;justify-content:center">
+      <div class="frame photo" style="height:400px"><img src="media/pi05_ll_sink.jpg" alt=""><div class="tag">π0.5 附录 · 语言跟随评测的初始场景</div></div>
+      <div class="stat"><div class="k">作者 35 人 · Physical Intelligence</div><div class="v" style="font-size:30px;line-height:1.35">Kevin Black · Danny Driess · Karl Pertsch<br>Chelsea Finn · Sergey Levine · Karol Hausman</div><div class="cap" style="font-size:24px">作者按字母序；π0 的 24 人扩到 35 人</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">FAST 笔记 · Hi Robot 笔记 · openpi README</div></div>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-sec="01 前置" data-title="π0-FAST · 团队与背景">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>前置 · π0-FAST · 团队</div><div>PHYSICAL INTELLIGENCE · UC BERKELEY · STANFORD · 2025-01 · ARXIV 2501.09747</div></div>
+  <h1>π0-FAST 团队与背景<small>把动作变回离散 token，让自回归 VLA 训得动</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="col" style="flex:1.25;justify-content:center">
+      <div class="chain">
+        <div class="step tight"><span class="lab">2024-10 · π0（上期）</span>flow matching 出动作：推理快；训练收敛慢，语言跟随弱</div>
+        <div class="step tight blue"><span class="lab">2025-01 · π0-FAST（本页）</span>DCT + BPE 压缩动作块；自回归训练少 5× GPU 时数；DROID 上第一个零样本部署的策略</div>
+        <div class="step tight"><span class="lab">同期开源 · FAST+ 通用 tokenizer</span>HuggingFace physical-intelligence/fast；openpi 有 pi0_fast_base / pi0_fast_droid 权重</div>
+        <div class="step tight orange"><span class="lab">2025-04 · π0.5（本期）</span>预训练全部用 FAST token，后训练再接 flow expert → 第 20 页</div>
+        <div class="step tight"><span class="lab">2025-05 · Knowledge Insulation · 2505.23705</span>骨干用 FAST token 监督、flow expert 停梯度，成为 π0.6 / π0.7 的标准配方</div>
+      </div>
+    </div>
+    <div class="col" style="width:560px;gap:20px;justify-content:center">
+      <div class="frame photo" style="height:380px"><img src="media/fast_convergence_photos.png" alt=""><div class="tag">FAST Fig.1 · 灵巧任务 + DROID 零样本泛化</div></div>
+      <div class="stat"><div class="k">作者 9 人 · 共同一作</div><div class="v" style="font-size:30px;line-height:1.35">Karl Pertsch · Kyle Stachowicz</div><div class="cap" style="font-size:24px">Pertsch 是上期 OpenVLA 的共同一作，Stanford → PI；Stachowicz 在 UC Berkeley。资深作者 Chelsea Finn · Sergey Levine</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">FAST 作者表 · openpi README · KI 2505.23705</div></div>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-sec="01 前置" data-title="π0-FAST · 要解决的问题">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>前置 · π0-FAST · 问题</div><div>FAST SEC.III · FIG.1 · 示例数值为自算</div></div>
+  <h1>π0-FAST 要解决的问题<small>token 按时间切，高频下相邻 token 几乎不变</small></h1>
+  <div class="body" style="flex-direction:column;gap:18px">
+    <div style="display:flex;gap:30px;height:555px">
+    <div class="col" style="flex:1;gap:18px">
+      <div class="stat" style="flex:none;height:315px;gap:8px;justify-content:center">
+        <div class="k">老分桶法 · 同一个关节 1 秒内从 0.10 平滑转到 0.30 · 每维切 256 个桶，桶宽 2/256 ≈ 0.0078</div>
+        <div class="cap" style="font-size:24px"><b>50 Hz</b> · 每步只变 0.004，约每两步才跨一个桶 → 50 个 token，一半是重复</div>
+        <div class="tokrow"><span class="chip new">140</span><span class="chip new">141</span><span class="chip rep">141</span><span class="chip new">142</span><span class="chip rep">142</span><span class="chip new">143</span><span class="chip rep">143</span><span class="chip new">144</span><span class="chip rep">144</span><span class="chip new">145</span><span class="chip rep">145</span><span class="chip new">146</span><span class="chip rep">146</span><span class="chip new">147</span><span class="more">… 共 50 个</span></div>
+        <div class="cap" style="font-size:24px;margin-top:6px"><b>5 Hz</b> · 每步变 0.05，跨 6 个桶 → 5 个 token，全都不同</div>
+        <div class="tokrow"><span class="chip new">140</span><span class="chip new">147</span><span class="chip new">153</span><span class="chip new">160</span><span class="chip new">166</span></div>
+      </div>
+      <div class="stat" style="flex:1;gap:8px;justify-content:center">
+      <div class="k">FAST 的看法 · 同一段轨迹的 DCT 系数 · 「从 0.10 到 0.30」只在 c1 里出现一次</div>
+      <div style="display:flex;gap:36px;align-items:center">
+        <svg viewBox="0 0 800 150" width="640" height="120" style="flex:none"><rect x="40" y="22" width="20" height="118" rx="3" fill="#FF6B1A"/><text x="50" y="14" text-anchor="middle" font-size="18" fill="#FF6B1A" font-family="Menlo,monospace">c0</text><rect x="70" y="74" width="20" height="66" rx="3" fill="#FF6B1A"/><text x="80" y="66" text-anchor="middle" font-size="18" fill="#FF6B1A" font-family="Menlo,monospace">c1</text><rect x="100" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="130" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="160" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="190" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="220" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="250" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="280" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="310" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="340" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="370" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="400" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="430" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="460" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="490" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="520" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="550" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="580" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="610" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="640" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><rect x="670" y="136" width="20" height="4" rx="3" fill="#B9C3CF"/><text x="706" y="136" font-size="22" fill="#5B6B7F" font-family="Menlo,monospace">… c49</text><line x1="30" y1="140" x2="760" y2="140" stroke="#D3DBE5" stroke-width="2"/></svg>
+        <div class="tokrow"><span class="more">乘 γ 取整 →</span><span class="chip big">k0</span><span class="chip big">k1</span><span class="chip z">0</span><span class="chip z">0</span><span class="chip z">0</span><span class="more">× 48 → BPE →</span><span class="chip new">2–3 个 token</span></div>
+      </div>
+    </div>
+    </div>
+      <div class="frame fig" style="width:330px;flex:none"><img src="media/fast_teaser_right.png" alt=""><div class="tag">FAST Fig.1 · 分数 vs 控制频率</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat orange"><div class="v" style="font-size:40px">学成「抄上一个」</div><div class="k">下一个 token 与上一个相同 → 损失 ≈ 0、梯度 ≈ 0；有信息的位置只剩偶尔 +1</div></div>
+      <div class="stat blue"><div class="v" style="font-size:40px">token 数与频率无关</div><div class="k">采样率提高只多出高频里的 0，低频系数不变 → ≈30 token / 秒 / 臂</div></div>
+      <div class="stat gain"><div class="k">一句话</div><div class="v m">按时间切，冗余变成重复的 token；按频率切，冗余在变换里被吸收，每个 token 都有信息</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">FAST · Sec.III 玩具实验 · Fig.1 右 · 关节示例与桶编号为自算</div></div>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-sec="01 前置" data-title="π0-FAST · 方法：DCT + BPE">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>前置 · π0-FAST · 方法</div><div>ACTION TOKENIZATION · DCT → 量化 → 展平 → BPE</div></div>
+  <h1>π0-FAST 方法<small>把 1 秒的动作块压成几十个 token</small></h1>
+  <div class="body" style="flex-direction:column;gap:18px">
+    <div class="frame fig" style="width:1712px;height:500px"><img src="media/fast_dct_method.png" alt=""><div class="tag">FAST Fig.4 · 五步：归一化 → 每维 DCT → 乘 γ 取整 → 低频优先展平 → BPE</div></div>
+    <div class="cap" style="font-size:25px">上一页的例子走一遍这五步：50 个几乎重复的时间域数值 → 两个大系数 + 48 个 0 → 两三个 token</div>
+    <div class="stats">
+      <div class="stat orange"><div class="v">700 → 53</div><div class="k">叠 T 恤 · 14 维 · 50 Hz · 1 秒块 · 13.2×</div></div>
+      <div class="stat"><div class="v" style="font-size:40px">≈30 token / 秒 / 臂</div><div class="k">与频率基本无关 · DROID 105 → 29 · 收桌 140 → 28</div></div>
+      <div class="stat"><div class="v">2 个超参</div><div class="k">γ = 10 · 词表 1024 · 全部可逆 · 只训 BPE 词表，几分钟</div></div>
+      <div class="stat blue"><div class="v">FAST+</div><div class="k">100 万条 1 秒块训的通用版 · 单 / 双臂 / 移动 · 5–50 Hz</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">FAST · Sec.III · Sec.IV · Alg.1 · Table I</div></div>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-sec="01 前置" data-title="π0-FAST · 结果与代价">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>前置 · π0-FAST · 结果</div><div>FIG.1 · FIG.6 · FIG.11 · RTX 4090 · 估读</div></div>
+  <h1>π0-FAST 结果与代价<small>训练快 5 倍、更听指令；推理慢 7 倍</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:30px;height:450px">
+      <div class="frame fig" style="width:600px;flex:none"><img src="media/fast_convergence_chart.png" alt=""><div class="tag">FAST Fig.1 · 评测分数 vs 训练步数</div></div>
+      <div class="frame fig" style="flex:1"><img src="media/fast_pi0_multi_task.png" alt=""><div class="tag">FAST Fig.11 · 通用模型 · π0-FAST vs flow 版 π0 · 五任务</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">≈0 → ≈85%</div><div class="k">收桌子 20 Hz · naive → FAST；叠 T 恤 ≈0 → ≈65%</div></div>
+      <div class="stat blue"><div class="v">5× 少</div><div class="k">GPU 时数 · π0-FAST 五任务平均 ≈ flow 版 π0</div></div>
+      <div class="stat"><div class="v">DROID 零样本</div><div class="k">三所大学 · 首个不微调直接部署的 DROID 策略</div></div>
+      <div class="stat gain"><div class="k">代价 · 推理 · 4090</div><div class="v m" style="font-size:29px">750 ms vs ≈100 ms：解码 30–60 个 token 全过 2B 骨干；flow 版只跑 300M expert 10 步</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">FAST · Fig.1 · Fig.6 · Fig.11 · Sec.VI-E · 柱状图无数值，为估读</div></div>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-sec="01 前置" data-title="Hi Robot · 团队与背景">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>前置 · Hi Robot · 团队</div><div>PI · STANFORD · BERKELEY · 2025-02 · ARXIV 2502.19417</div></div>
+  <h1>Hi Robot 团队与背景<small>两个 PaliGemma 3B：高层出原子指令，低层 π0 执行</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="col" style="flex:1.25;justify-content:center">
+      <div class="chain">
+        <div class="step tight"><span class="lab">2022-04 · SayCan（上期提过）</span>LLM 给技能打分选下一步；看不到图像</div>
+        <div class="step tight"><span class="lab">2024-03 · YAY Robot · Lucy Shi · Stanford</span>人在机器人做任务时实时用语言纠正；高层出指令、低层执行，高层是从零训的小模型</div>
+        <div class="step tight"><span class="lab">2024-10 · π0（上期）</span>低层</div>
+        <div class="step tight blue"><span class="lab">2025-02 · Hi Robot（本页）</span>高层换成 PaliGemma 3B VLM，低层换成 π0；用大 VLM 合成用户对话来训高层</div>
+        <div class="step tight orange"><span class="lab">2025-04 · π0.5（本期）</span>高层、低层合成同一个模型 → 第 18 页</div>
+      </div>
+    </div>
+    <div class="col" style="width:560px;gap:20px;justify-content:center">
+      <div class="frame fig" style="height:340px"><img src="media/hirobot_block_diagram_v2.png" alt=""><div class="tag">Fig.2 · 高层 VLM 出原子指令 + 回话 · 低层 π0 出动作</div></div>
+      <div class="stat"><div class="k">作者 15 人 · 一作</div><div class="v" style="font-size:30px;line-height:1.35">Lucy Xiaoyang Shi · Stanford · PI</div><div class="cap" style="font-size:24px">资深作者 Chelsea Finn · Sergey Levine；Karl Pertsch、Brian Ichter、Danny Driess 三篇都在</div></div>
+      <div class="stat"><div class="k">发表 · 开源</div><div class="v" style="font-size:30px;line-height:1.35">ICML 2025 · 未开源</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">Hi Robot 作者表 · YAY Robot 2403.12910</div></div>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-sec="01 前置" data-title="Hi Robot · 数据怎么来">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>前置 · Hi Robot · 方法</div><div>FIG.3 · APPENDIX A · 动作是真的，对话是反推的</div></div>
+  <h1>Hi Robot 的数据怎么来<small>动作没法伪造；会导致这个动作的那句话，可以让大模型反推</small></h1>
+  <div class="body" style="flex-direction:column;gap:16px">
+    <div style="display:flex;gap:30px;height:425px">
+      <div class="frame fig" style="width:440px;flex:none"><img src="media/hirobot_data_gen_v3.png" alt=""><div class="tag">Fig.3 · 四步</div></div>
+      <div class="col" style="flex:1;justify-content:center">
+        <div class="chain">
+          <div class="step tight" style="font-size:25px"><span class="lab">⓪ 采遥操作示范 · D_demo</span>人带着机器人做完整任务；每条只有一个粗标签「make a sandwich」，没有步骤标注，没有用户的话</div>
+          <div class="step tight" style="font-size:25px"><span class="lab">① 人工切段 · D_labeled</span>切成 1–3 秒的小段，每段一句原子指令「pick up one piece of lettuce」；小幅纠正动作用规则自动抽成「move the right arm to the left」</div>
+          <div class="step tight blue" style="font-size:25px"><span class="lab">② 大 VLM 反推对话 · D_syn</span>喂给它：画面 + 这段的原子指令 + 前面做过的步骤。问它：用户说了什么，机器人此刻才会做这个 → 输出用户的话 + 机器人的回话</div>
+          <div class="step tight orange" style="font-size:25px"><span class="lab">③ 训两个模型 · 各训各的</span>高层 PaliGemma 3B：画面 + 用户的话 → 回话 + 原子指令，数据 D_syn + D_labeled；低层 π0：原子指令 + 画面 → 动作，数据 D_labeled + D_demo</div>
+        </div>
+      </div>
+    </div>
+    <div class="stat" style="flex-direction:row;gap:30px;align-items:center;padding:14px 26px">
+      <div class="cap" style="font-size:23px;flex:1.25"><b>例</b>：画面在拿生菜，指令「pick up the lettuce」→ 用户「能给我加点生菜吗」，机器人「好的」；用世界知识：用户「我乳糖不耐」→ 机器人「好，我不放奶酪」</div>
+      <div class="tokrow" style="flex:1"><span class="more">用户的话</span><span class="chip new sm">否定任务</span><span class="chip new sm">现场纠正</span><span class="chip new sm">特定约束</span><span class="more">回话</span><span class="chip sm">确认</span><span class="chip sm">澄清</span><span class="chip sm">错误处理</span></div>
+    </div>
+    <div class="stats">
+      <div class="stat orange"><div class="v" style="font-size:40px">动作一点没变</div><div class="k">合成的只有语言这一侧 · 高层没见过动作，低层没见过用户的话</div></div>
+      <div class="stat"><div class="v" style="font-size:40px">每 1 s 重跑</div><div class="k">用户一开口立刻重跑 · Whisper 转文字 · 回话经 TTS 播出</div></div>
+      <div class="stat gain"><div class="k">为什么非要合成</div><div class="v m" style="font-size:30px">示范里没有对话，人工写太贵；去掉 D_syn 指令准确率掉 46 个百分点</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">Hi Robot · Sec.4.3 · Appendix A · Fig.3 · Fig.7</div></div>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-sec="01 前置" data-title="Hi Robot · 结果与局限">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>前置 · Hi Robot · 结果</div><div>FIG.5 · 3 任务 × 20 次 · 盲评 · 估读</div></div>
+  <h1>Hi Robot 结果与局限<small>微调的 3B 高层，好于零样本 GPT-4o</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div class="frame fig" style="width:1712px;height:450px"><img src="media/hirobot_baselines_v2.png" alt=""><div class="tag">Fig.5 · 指令准确率 IA · 任务进度 TP · 虚线是人类专家做高层</div></div>
+    <div class="stats">
+      <div class="stat blue"><div class="v">≈73% vs ≈27%</div><div class="k">指令准确率 · Hi Robot vs GPT-4o 做高层；flat π0 ≈33%</div></div>
+      <div class="stat"><div class="v">≈77 / 60 / 42%</div><div class="k">任务进度 · Hi Robot / GPT-4o / flat；人类专家 ≈85%</div></div>
+      <div class="stat"><div class="v">−46 / −19 pts</div><div class="k">指令准确率 · 去掉合成数据 / 同样数据训成 flat</div></div>
+      <div class="stat gain"><div class="k">局限 · 作者自述</div><div class="v m">高层没有记忆；高层和低层各训各的，高层不知道低层能不能做、做没做成 → π0.5 合成一个模型</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">Hi Robot · Fig.5 · Fig.7 · Fig.8 · Sec.6 · 柱状图无数值，为估读</div></div>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-sec="02 π0.5" data-title="π0.5 的目标：进没见过的家">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5</div><div>PHYSICAL INTELLIGENCE · 2025-04 · ARXIV 2504.16054</div></div>
+  <h1>π0.5 的目标<small>在训练没见过的家里，完成 10–15 分钟的清理任务</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="frame fig" style="width:1090px;height:640px;flex:none"><img src="media/pi05_pibnb-teaser-bedroom.png" alt=""><div class="tag">Fig.1 · 左：多模态数据 · 右：机器人动作数据 · 中：一个策略，直接部署到新家</div></div>
+    <div class="col" style="flex:1;justify-content:center;gap:18px">
+      <div class="stat"><div class="v">约 400 h</div><div class="k">移动操作机器人 · 家务 · 约 100 个家庭</div></div>
+      <div class="stat orange"><div class="v">97.6%</div><div class="k">预训练样本不是“移动机器人做家务”</div></div>
+      <div class="stat"><div class="v">10–15 min</div><div class="k">只给一句高层指令 · 整间厨房或卧室</div></div>
+      <div class="stat blue"><div class="v">全部新环境</div><div class="k">3 个真实家庭 + mock 厨房 / 卧室 · 训练都没见过</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.I · Fig.1</div></div>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-sec="02 π0.5" data-title="机器人平台">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 平台</div><div>MOBILE MANIPULATORS · 50 HZ · PD 跟踪</div></div>
+  <h1>机器人平台<small>两种移动双臂平台，18–19 维状态 / 动作</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="frame fig" style="width:1000px;height:640px;flex:none"><img src="media/pi05_robot_system_overview.png" alt=""><div class="tag">Fig.5 · 相机 ×4 · 双臂 · 升降 · 全向底盘</div></div>
+    <div class="col" style="flex:1;justify-content:center;gap:20px">
+      <table style="font-size:26px;line-height:1.3">
+        <tr><th>部件</th><th>数值形态</th></tr>
+        <tr><td>相机 ×4</td><td>前、后、左右腕 · RGB；<b class="blue">高层用 4 路</b>，<b class="orange">低层用腕 + 前 3 路</b></td></tr>
+        <tr><td>双臂</td><td>2 × 6 DoF + 2 个夹爪</td></tr>
+        <tr><td>底盘</td><td>全向 · 3 维速度（平移 2 + 旋转 1）</td></tr>
+        <tr><td>躯干升降</td><td>1–2 维</td></tr>
+        <tr><td>合计</td><td style="font-family:var(--mono)">18 / 19 维，两种平台各一</td></tr>
+        <tr><td>控制</td><td>50 Hz 目标位姿 + 底盘速度 → PD 控制器；无轨迹规划、无碰撞检测</td></tr>
+      </table>
+      <div class="cap" style="font-size:25px">π0 的移动平台 3 路相机，状态 / 动作补零到 18 维；π0.5 多一路后视相机，只给高层推理用</div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.IV-E · Fig.5</div></div>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-sec="02 π0.5 · 数据" data-title="数据 ① 五类来源">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 数据 ①</div><div>PRE-TRAINING MIXTURE · MM / ME / CE / HL / WD · POST + VI</div></div>
+  <h1>数据 · 五类来源<small>π0 只有一类动作数据；π0.5 五类，三类不来自目标机器人</small></h1>
+  <div class="body" style="flex-direction:column;gap:20px">
+    <div style="display:flex;gap:30px;height:540px">
+      <div class="frame fig" style="width:940px;flex:none"><img src="media/pi05_pretraining-finetuning-tasks.png" alt=""><div class="tag">Fig.4 · 预训练五类 · 后训练加 VI、去 CE</div></div>
+      <div class="col" style="flex:1;justify-content:center">
+        <table style="font-size:23px;line-height:1.25">
+          <tr><th style="padding:8px 12px">来源</th><th style="padding:8px 12px">内容</th><th style="padding:8px 12px">与目标的关系</th></tr>
+          <tr><td style="padding:9px 12px"><b class="orange">MM</b></td><td style="padding:9px 12px">移动机器人 · 家务 · 约 400 h · 约 100 家</td><td style="padding:9px 12px">目标机器人 · 目标任务 · <b>2.4%</b></td></tr>
+          <tr><td style="padding:9px 12px">ME</td><td style="padding:9px 12px">单 / 双臂固定机械臂 · 更多家庭</td><td style="padding:9px 12px">不同本体 · 同类环境</td></tr>
+          <tr><td style="padding:9px 12px">CE</td><td style="padding:9px 12px">实验室跨本体 · π0 数据扩展版 + OXE</td><td style="padding:9px 12px">不同环境 · 不同任务</td></tr>
+          <tr><td style="padding:9px 12px"><b class="blue">HL</b></td><td style="padding:9px 12px">人工标注：边界框 + 子任务文本</td><td style="padding:9px 12px">高层监督 · 输出是文本</td></tr>
+          <tr><td style="padding:9px 12px"><b class="blue">WD</b></td><td style="padding:9px 12px">网页图说 / VQA / 检测 · CapsFusion · COCO · Cambrian-7M · PixMo · VQAv2</td><td style="padding:9px 12px">语义知识 · 没有动作</td></tr>
+          <tr><td style="padding:9px 12px">VI</td><td style="padding:9px 12px">语言遥操作示范 · 后训练新增 → 第 22 页</td><td style="padding:9px 12px">高层示范 · 占 MM 高层样本 11%</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">5 + 1 类</div><div class="k">预训练五类 · 后训练加 VI、去 CE</div></div>
+      <div class="stat blue"><div class="v">同一序列</div><div class="k">动作、子任务、边界框、VQA 答案全是 token，一个模型一起训</div></div>
+      <div class="stat gain"><div class="k">优势</div><div class="v m">泛化靠迁移：目标机器人做家务的样本只占 2.4%，其余来自别的机器人和网页</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.IV-C · Sec.IV-D · Fig.4</div></div>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-sec="02 π0.5 · 数据" data-title="数据 ② 优势的证据">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 数据 ②</div><div>FIG.8 · FIG.10 · MOCK HOMES · 4 任务 × 10 次 / 策略 · 估读</div></div>
+  <h1>数据 · 优势的证据<small>地点数越多越好；别的机器人的数据比“见过测试环境”更重要</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:30px;height:470px">
+      <div class="frame fig" style="flex:1"><img src="media/pi05_env_scaling.png" alt=""><div class="tag">Fig.8 · 只改 MM 数据的地点数 3 → 104 · 右侧三根柱是对照</div></div>
+      <div class="frame fig" style="flex:1.05"><img src="media/pi05_performance_vs_ll_data.png" alt=""><div class="tag">Fig.10 · 去掉某一类数据</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v" style="font-size:42px">≈13% → ≈87%</div><div class="k">地点数 3 → 104 · 4 任务平均进度</div></div>
+      <div class="stat blue"><div class="v" style="font-size:42px">≈ 在测试家训过</div><div class="k">104 地点、没见过测试家 ≈ 直接用测试家数据训（≈82%）</div></div>
+      <div class="stat gain"><div class="k">优势 · 没有 co-training 就没有泛化</div><div class="v m" style="font-size:30px">只用 104 地点、无预训练 ≈5%；只用测试家、无预训练 ≈38%</div></div>
+      <div class="stat orange"><div class="v" style="font-size:42px">≈78% → ≈50–53%</div><div class="k">去掉 CE 或 ME，p&lt;0.001；去掉 WD 不显著（≈73%）</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.V-B · Sec.V-C · Fig.8 · Fig.10 · 柱状图无数值，为估读</div></div>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-sec="02 π0.5 · 数据" data-title="数据 ③ 网页数据管陌生物体">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 数据 ③</div><div>FIG.9 · FIG.11 · LANGUAGE FOLLOWING · 5 选 1 · 估读</div></div>
+  <h1>数据 · 网页数据管陌生物体<small>5 件物品选 1 件；目标放得比干扰物远，不听指令约 20%</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:30px;height:560px">
+      <div class="frame fig" style="width:1000px;flex:none"><img src="media/pi05_data_vs_generalization.png" alt=""><div class="tag">Fig.11 · 去掉某一类数据 · 分布内 / 分布外物体</div></div>
+      <div class="col" style="flex:1;gap:16px">
+        <div class="frame fig" style="height:300px"><img src="media/pi05_env_scaling_results0.png" alt=""><div class="tag">Fig.9 · 地点数 vs 语言跟随</div></div>
+        <div style="display:flex;gap:12px;flex:1;min-height:0">
+          <div class="frame photo" style="flex:1"><img src="media/pi05_ll_drawer.jpg" alt=""><div class="tag" style="font-size:16px">分布内 · 抽屉</div></div>
+          <div class="frame photo" style="flex:1"><img src="media/pi05_ll_sink.jpg" alt=""><div class="tag" style="font-size:16px">分布内 · 水槽</div></div>
+          <div class="frame photo" style="flex:1"><img src="media/pi05_rare_objects.jpg" alt=""><div class="tag orange" style="font-size:16px">分布外 · 漏斗 / 药瓶 / 护目镜</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat orange"><div class="v">≈93% → ≈72%</div><div class="k">分布外物体成功率 · 去掉网页数据 no WD；分布内物体不受影响</div></div>
+      <div class="stat"><div class="v">≈25% → ≈67%</div><div class="k">分布外物体跟随率 · 地点数 12 → 104</div></div>
+      <div class="stat gain"><div class="k">优势</div><div class="v m">网页图文补的是物体类别：训练没见过的类别，也能按指令拿对</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.V-B · Sec.V-C · Appendix C · Fig.9 · Fig.11 · Fig.14</div></div>
+</section>
+
+<!-- 16 -->
+<section class="slide" data-sec="02 π0.5 · 架构" data-title="架构 ① 主图">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 架构 ①</div><div>ARCHITECTURE · 尺寸与 π0 相同</div></div>
+  <h1>π0.5 架构<small>骨干和 expert 尺寸不变；输出多了文本，输入多了离散状态</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div class="frame fig" style="width:1712px;height:600px"><img src="media/pi05_Figure_3.png" alt=""><div class="tag">Fig.3 · 左：预训练，全部输出都是离散 token · 右：后训练与推理，加 action expert</div></div>
+    <div class="toks" style="height:138px">
+      <div class="tk vlm" style="flex:3.6;font-size:25px"><span class="lab">VLM 权重 · PaliGemma 3B · 输入</span>图像 3–4 张（每张 256 token）+ 指令 + <b class="green">离散化的 q<sub>t</sub></b>（文本 token）</div>
+      <div class="tk vlm" style="flex:3.2;font-size:25px"><span class="lab">VLM 权重 · 输出 · 自回归</span>文本：子任务 / 图说 / 边界框 · <b class="orange">FAST 动作 token</b></div>
+      <div class="tk act" style="flex:2.6;font-size:25px"><span class="lab">action expert 300M · 后训练时加入</span>带噪动作 50 token → 速度场 v<sub>θ</sub></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.IV-A · Appendix E · Fig.3</div></div>
+</section>
+
+<!-- 17 -->
+<section class="slide" data-sec="02 π0.5 · 架构" data-title="架构 ② 与 π0 逐项对比">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 架构 ②</div><div>π0 VS π0.5 · ATTENTION MASK</div></div>
+  <h1>架构 · 与 π0 逐项对比<small>两种动作表示互不可见，VLM 侧仍是标准 VLM</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="col" style="width:1040px;flex:none;justify-content:center;gap:20px">
+      <table class="cmp" style="font-size:24px;line-height:1.3">
+        <tr><th style="padding:8px 14px"></th><th style="padding:8px 14px">π0</th><th style="padding:8px 14px">π0.5</th></tr>
+        <tr><td style="padding:10px 14px">骨干</td><td style="padding:10px 14px">PaliGemma 3B</td><td style="padding:10px 14px">相同 · SigLIP 400M + Gemma 2.6B</td></tr>
+        <tr><td style="padding:10px 14px">action expert</td><td style="padding:10px 14px">300M · 从零，全程参与</td><td style="padding:10px 14px">相同尺寸 · 后训练时才加入</td></tr>
+        <tr><td style="padding:10px 14px">本体状态 q<sub>t</sub></td><td style="padding:10px 14px">线性投影 → expert</td><td style="padding:10px 14px">离散成文本 token → VLM</td></tr>
+        <tr><td style="padding:10px 14px">输出</td><td style="padding:10px 14px">只有连续动作</td><td style="padding:10px 14px">文本（子任务 / VQA / 框）+ FAST 动作 token + 连续动作</td></tr>
+        <tr><td style="padding:10px 14px">流时间 τ</td><td style="padding:10px 14px">拼进动作嵌入</td><td style="padding:10px 14px">单独 MLP → adaptive RMSNorm，注入 expert 每一层</td></tr>
+        <tr><td style="padding:10px 14px">注意力</td><td style="padding:10px 14px">图文 / q<sub>t</sub> / 动作 三块</td><td style="padding:10px 14px">前缀 · FAST 动作 · expert 动作；两种动作互不可见，VLM 不看 expert</td></tr>
+        <tr><td style="padding:10px 14px">相机</td><td style="padding:10px 14px">3 路</td><td style="padding:10px 14px">高层 4 路 · 低层 3 路</td></tr>
+      </table>
+      <div class="stat gain"><div class="k">优势</div><div class="v m">VLM 侧没有新模态、没有新 loss：网页数据、子任务文本、动作 token 用同一套权重、同一个交叉熵训；expert 只在后训练接上</div></div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center">
+      <div class="frame fig" style="height:640px"><img src="media/pi05_attention_mask.png" alt=""><div class="tag">Fig.17 · 注意力掩码 · 深色 = 可见</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.IV-A · Appendix E · Fig.17</div></div>
+</section>
+
+<!-- 18 -->
+<section class="slide" data-sec="02 π0.5 · 架构" data-title="架构 ③ 同一个模型先出子任务再出动作">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 架构 ③</div><div>HIERARCHICAL INFERENCE · 高层 → 低层</div></div>
+  <h1>同一个模型先出子任务，再出动作<small>高层文本，低层动作，一套权重</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="col" style="width:930px;flex:none;justify-content:center;gap:18px">
+      <div class="frame fig" style="height:540px"><img src="media/pi05_fig3_posttrain.png" alt=""><div class="tag">Fig.3 右半 · 推理：先采样子任务文本，再以它为条件去噪出动作</div></div>
+      <div class="fbox"><div class="lab">分解 · 动作只依赖子任务 <span class="lh">ℓ̂</span>，不看总任务 <span class="lh">ℓ</span></div><div class="formula" style="font-size:38px">π<sub>θ</sub>(<i>a</i><sub>t:t+H</sub>, ℓ̂ | <i>o</i><sub>t</sub>, ℓ) = <span class="orange">π<sub>θ</sub>(<i>a</i><sub>t:t+H</sub> | <i>o</i><sub>t</sub>, ℓ̂)</span> · <span class="blue">π<sub>θ</sub>(ℓ̂ | <i>o</i><sub>t</sub>, ℓ)</span></div></div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center;gap:16px">
+      <div class="chain">
+        <div class="step blue"><span class="lab">① 高层 · 4 路相机 + 总任务 ℓ</span>“clean the bedroom” → 自回归采样子任务 <span class="lh">ℓ̂</span> “pick up the pillow”</div>
+        <div class="step orange"><span class="lab">② 低层 · 3 路相机 + <span class="lh">ℓ̂</span></span>10 步去噪 → 50 步动作块，执行</div>
+        <div class="step"><span class="lab">③ 每个动作块重来</span>高层频率低于低层；同一个 transformer、同一套权重</div>
+      </div>
+      <table style="font-size:24px;line-height:1.3">
+        <tr><th style="padding:8px 14px">谁出子任务</th><th style="padding:8px 14px">模型数</th></tr>
+        <tr><td style="padding:9px 14px">π0-HL（上期）</td><td style="padding:9px 14px">高层另一个 VLM + π0，共 2 个</td></tr>
+        <tr><td style="padding:9px 14px">Hi Robot</td><td style="padding:9px 14px">两个 PaliGemma 3B，各自训练</td></tr>
+        <tr><td style="padding:9px 14px"><b class="blue">π0.5</b></td><td style="padding:9px 14px"><b>1 个</b>：子任务预测和动作是同一个模型的两种输出</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.IV-A · Sec.IV-E · Fig.3</div></div>
+</section>
+
+<!-- 19 -->
+<section class="slide" data-sec="02 π0.5 · 架构" data-title="架构 ④ 高层推理的证据">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 架构 ④</div><div>FIG.13 · 同一个低层，换不同的高层 · 估读</div></div>
+  <h1>架构 · 优势的证据<small>自己出子任务，好于人类专家和零样本 GPT-4</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="frame fig" style="width:800px;height:640px;flex:none"><img src="media/pi05_performance_vs_hl_data.png" alt=""><div class="tag">Fig.13 · 低层全部用 π0.5，只换高层</div></div>
+    <div class="col" style="flex:1;justify-content:center;gap:20px">
+      <table style="font-size:24px;line-height:1.3">
+        <tr><th style="padding:8px 14px">高层</th><th style="padding:8px 14px">含义</th><th style="padding:8px 14px;text-align:right">平均进度</th></tr>
+        <tr><td style="padding:9px 14px"><b class="blue">π0.5</b></td><td style="padding:9px 14px">模型自己出子任务</td><td style="padding:9px 14px;text-align:right;font-family:var(--mono)">≈78%</td></tr>
+        <tr><td style="padding:9px 14px">implicit HL</td><td style="padding:9px 14px">训练含 HL 数据，推理不出子任务</td><td style="padding:9px 14px;text-align:right;font-family:var(--mono)">≈70% · p=0.144</td></tr>
+        <tr><td style="padding:9px 14px">human HL</td><td style="padding:9px 14px">人类专家实时下子任务</td><td style="padding:9px 14px;text-align:right;font-family:var(--mono)">≈63% · p=0.016</td></tr>
+        <tr><td style="padding:9px 14px">no HL</td><td style="padding:9px 14px">训练也不含 HL 数据</td><td style="padding:9px 14px;text-align:right;font-family:var(--mono)">≈62%</td></tr>
+        <tr><td style="padding:9px 14px">no VI / no WD</td><td style="padding:9px 14px">去掉语言遥操作 / 网页数据</td><td style="padding:9px 14px;text-align:right;font-family:var(--mono)">≈60% / ≈60%</td></tr>
+        <tr><td style="padding:9px 14px"><b class="orange">GPT-4</b></td><td style="padding:9px 14px">零样本，给任务描述 + 常用标签表</td><td style="padding:9px 14px;text-align:right;font-family:var(--mono)">≈57% · p=0.002</td></tr>
+      </table>
+      <div class="stat gain"><div class="k">优势</div><div class="v m">高层用机器人数据训过才管用；不显式出子任务也有 ≈70%，收益大半来自把子任务预测数据放进训练</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.V-E · Fig.13 · 柱状图无数值，为估读</div></div>
+</section>
+
+<!-- 20 -->
+<section class="slide" data-sec="02 π0.5 · 训练" data-title="训练 ① 先离散、后 flow">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 训练 ①</div><div>PRE-TRAINING 280K · POST-TRAINING 80K</div></div>
+  <h1>训练 · 先离散、后 flow<small>预训练当普通 VLM 训，后训练再接 action expert</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="frame fig" style="width:660px;height:640px;flex:none"><img src="media/pi05_fig3_pretrain.png" alt=""><div class="tag">Fig.3 左半 · 预训练：四种输出都是 token</div></div>
+    <div class="col" style="flex:1;justify-content:center;gap:18px">
+      <table class="cmp" style="font-size:24px;line-height:1.3">
+        <tr><th style="padding:8px 14px"></th><th style="padding:8px 14px" class="blue">预训练</th><th style="padding:8px 14px">后训练</th></tr>
+        <tr><td style="padding:9px 14px">步数</td><td style="padding:9px 14px">280k</td><td style="padding:9px 14px">80k</td></tr>
+        <tr><td style="padding:9px 14px">动作表示</td><td style="padding:9px 14px">FAST 离散 token · α = 0</td><td style="padding:9px 14px">FAST token + flow expert · α = 10 · expert 随机初始化</td></tr>
+        <tr><td style="padding:9px 14px">损失</td><td style="padding:9px 14px">文本交叉熵（含动作 token）</td><td style="padding:9px 14px">交叉熵 + α × flow matching</td></tr>
+        <tr><td style="padding:9px 14px">数据</td><td style="padding:9px 14px">MM + ME + CE + HL + WD</td><td style="padding:9px 14px">MM + ME（成功、不超长）+ WD + HL（多环境）+ VI；去掉 CE</td></tr>
+        <tr><td style="padding:9px 14px">目的</td><td style="padding:9px 14px">广：吸收异构来源</td><td style="padding:9px 14px">专：家庭移动操作 + 实时推理</td></tr>
+      </table>
+      <div class="fbox"><div class="lab">式 (1) · 两项相加，α 决定 expert 参不参与</div><div class="formula" style="font-size:36px">𝔼[ <span class="blue">H(<i>x</i><sub>1:M</sub>, <i>f</i><sup>ℓ</sup><sub>θ</sub>(<i>o</i><sub>t</sub>, ℓ))</span> + α ‖ ω − <i>a</i><sub>t:t+H</sub> − <span class="orange"><i>f</i><sup>a</sup><sub>θ</sub>(<i>a</i><sup>τ,ω</sup><sub>t:t+H</sub>, <i>o</i><sub>t</sub>, ℓ)</span> ‖² ]</div></div>
+      <div class="cap" style="font-size:24px">π0：全程 flow，700k 步，再按单个任务后训练 5–100+ 小时；π0.5：后训练面向“家庭移动操作”这一整个领域</div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.IV-B · Sec.IV-C · Sec.IV-D · Eq.1</div></div>
+</section>
+
+<!-- 21 -->
+<section class="slide" data-sec="02 π0.5 · 训练" data-title="训练 ② 优势的证据">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 训练 ②</div><div>FIG.12 · FIG.16 · 同一批跨本体数据 · 可比步数 · 估读</div></div>
+  <h1>训练 · 优势的证据<small>与 π0、与“π0 + 混合配方”比</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:30px;height:450px">
+      <div class="frame fig" style="flex:1"><img src="media/pi05_performance_vs_ll_model.png" alt=""><div class="tag">Fig.12 · mock 家庭 4 任务</div></div>
+      <div class="frame fig" style="flex:1"><img src="media/pi05_language_vs_model.png" alt=""><div class="tag">Fig.16 · 语言跟随</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">≈92 · 55 · 42 · 18%</div><div class="k">dishes in sink · π0.5 · π0-FAST+Flow · π0 300k · π0 80k</div></div>
+      <div class="stat blue"><div class="v">≈77% vs ≈18%</div><div class="k">跟随率 · π0.5 vs π0 300k；π0-FAST+Flow ≈68%</div></div>
+      <div class="stat gain"><div class="k">优势 · 两段各拿一头</div><div class="v m">离散 token 预训练：训得快、听得懂指令；flow 后训练：10 步去噪、连续精细动作</div></div>
+      <div class="stat orange"><div class="v">π0 到 300k 步仍差</div><div class="k">π0-FAST+Flow 用同一混合配方但无 HL / WD，介于两者之间</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.V-D · Appendix C · Fig.12 · Fig.16 · 柱状图无数值，为估读</div></div>
+</section>
+
+<!-- 22 -->
+<section class="slide" data-sec="02 π0.5 · 训练" data-title="训练 ③ 语言遥操作">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 训练 ③</div><div>VERBAL INSTRUCTION · 后训练新增的监督</div></div>
+  <h1>后训练新增：语言遥操作<small>人只发子任务指令，动作由已训好的低层做</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="frame fig" style="width:330px;height:680px;flex:none;padding:30px 6px 6px"><img src="media/pi05_tasks_vi_col.png" alt=""><div class="tag">Fig.4 · VI 列</div></div>
+    <div class="col" style="flex:1;justify-content:center;gap:18px">
+      <div class="chain">
+        <div class="step tight"><span class="lab">① 低层策略在跑</span>已训好的低层策略控制机器人；人不碰遥操作手柄</div>
+        <div class="step tight blue"><span class="lab">② 专家看场景，实时下子任务</span>“Put cup in sink” → 机器人执行；做完再给下一条</div>
+        <div class="step tight"><span class="lab">③ 记录的是高层示范</span>(观测, 总任务) → 子任务 的配对；策略实际做的事可以重标（Policy: put plate in sink → Relabeled: put plate on rack）</div>
+        <div class="step tight orange"><span class="lab">④ 用量很小</span>只占 MM 高层样本约 11%；后训练时与 HL、WD 一起训</div>
+      </div>
+      <div class="stats">
+        <div class="stat orange"><div class="v">≈78% → ≈60%</div><div class="k">去掉 VI · p=0.009 · Fig.13</div></div>
+        <div class="stat gain"><div class="k">优势</div><div class="v m">高层示范不需要遥操作动作：人只动嘴，采得快、便宜，模型学到的是“下一步该做什么”</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.IV-D · Sec.V-E · Fig.4 · Fig.13</div></div>
+</section>
+
+<!-- 23 -->
+<section class="slide" data-sec="02 π0.5 · 实验" data-title="实验 ① 评测环境与打分">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 实验 ①</div><div>FIG.6 · APPENDIX B · 全部是训练没见过的环境</div></div>
+  <h1>实验 · 评测环境与打分<small>mock 房间做对照实验，真实家庭做最终评测</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div class="frame fig" style="width:1712px;height:540px"><img src="media/pi05_visualize_eval_envs.png" alt=""><div class="tag">Fig.6 · 左：mock 厨房 / 卧室 · 右：真实厨房 / 卧室</div></div>
+    <div class="stats">
+      <div class="stat"><div class="v">4 个任务</div><div class="k">dishes in sink 8 分 · items in drawer 4 分 · laundry basket 3 分 · make bed 5 分</div></div>
+      <div class="stat"><div class="v">10 次 / 任务</div><div class="k">40 次 / 策略 · 交替执行 · 双侧 t 检验</div></div>
+      <div class="stat blue"><div class="v">一句指令</div><div class="k">“place the dishes in the sink” · 2–5 分钟 · 子任务模型自己出</div></div>
+      <div class="stat"><div class="v">进度 %</div><div class="k">按 rubric 得分 / 满分 · 放进一半盘子 ≈ 50%</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.V · Appendix B · Fig.6</div></div>
+</section>
+
+<!-- 24 -->
+<section class="slide" data-sec="02 π0.5 · 实验" data-title="实验 ② 真实家庭">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 实验 ②</div><div>FIG.7 · 3 个真实家庭 · 两种机器人 · 估读</div></div>
+  <h1>实验 · 真实家庭<small>三个家各做厨房 + 卧室任务</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:30px;height:450px">
+      <div class="frame fig" style="width:960px;flex:none"><img src="media/pi05_final_real_home_eval_filmstrip.png" alt=""><div class="tag">Fig.7a · 蓝字是模型自己预测的子任务</div></div>
+      <div class="frame fig" style="flex:1"><img src="media/pi05_real_home_quantitative_eval_plot.png" alt=""><div class="tag">Fig.7b · 每任务 10 次的平均进度</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat blue"><div class="v">≈65–94%</div><div class="k">真实家庭各任务进度 · 与 mock 环境相当</div></div>
+      <div class="stat"><div class="v">2–5 min</div><div class="k">多阶段任务 · 只给高层指令</div></div>
+      <div class="stat gain"><div class="k">结论</div><div class="v m">端到端 VLA 第一次在训练没见过的真实家庭里完成多阶段操作</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.V-A · Fig.7 · 柱状图无数值，为估读</div></div>
+</section>
+
+<!-- 25 -->
+<section class="slide" data-sec="02 π0.5 · 小结" data-title="π0.5 小结">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>π0.5 · 小结</div><div>DATA · ARCHITECTURE · RECIPE</div></div>
+  <h1>π0.5 小结<small>三条各改了什么，各带来什么</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div class="stats" style="flex:1">
+      <div class="stat" style="gap:12px"><div class="frame fig" style="height:250px;padding:10px"><img src="media/pi05_env_scaling.png" alt=""></div><div class="k">数据 · 第 13–15 页 · Fig.8</div><div class="v m">一类 → 五类来源；目标机器人的家务数据只占 2.4%</div><div class="cap" style="font-size:25px"><b class="orange">优势</b>：104 个地点、没见过测试家 ≈ 在测试家训过；不做 co-training ≈5%；网页数据管陌生物体</div></div>
+      <div class="stat" style="gap:12px"><div class="frame fig" style="height:250px;padding:10px"><img src="media/pi05_fig3_posttrain.png" alt=""></div><div class="k">架构 · 第 16–19 页 · Fig.3</div><div class="v m">尺寸不变；输出加文本，状态改离散；同一个模型先出子任务再出动作</div><div class="cap" style="font-size:25px"><b class="orange">优势</b>：自己出子任务 ≈78%，高于人类专家 ≈63% 和零样本 GPT-4 ≈57%</div></div>
+      <div class="stat" style="gap:12px"><div class="frame fig" style="height:250px;padding:10px"><img src="media/pi05_performance_vs_ll_model.png" alt=""></div><div class="k">训练 · 第 20–22 页 · Fig.12</div><div class="v m">先 280k 步离散 token，再 80k 步接 flow expert；后训练新增语言遥操作</div><div class="cap" style="font-size:25px"><b class="orange">优势</b>：训得快、听得懂指令，又保住 10 步去噪的实时性；π0 训到 300k 步仍差</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">局限 · 论文自述 + 我读出来的</div><div class="v m">评测任务仍是训练里有的类别，泛化的是环境和物体；每步先解码子任务文本，延迟高于 π0；上下文短、没有记忆 → 下期 π0.6 的事</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0.5 · Sec.VI · 调研笔记 Sec.4</div></div>
+</section>
+
+<!-- 26 -->
+<section class="slide end" data-sec="03 收尾" data-title="收尾">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="body center" style="flex-direction:column;gap:50px">
+    <div class="stats" style="width:1500px">
+      <div class="stat"><div class="k">2024-10 · 上期</div><div class="v">π0</div><div class="cap" style="font-size:26px">一类动作数据 · flow matching · 50 步动作块 · 评测环境与训练同分布</div></div>
+      <div class="arrow">→</div>
+      <div class="stat orange"><div class="k">2025-04 · 本期</div><div class="v">π0.5</div><div class="cap" style="font-size:26px">五类数据 co-training · 先离散后 flow · 子任务 → 动作 · 进没见过的家</div></div>
+    </div>
+    <div class="big muted">下期：π0.6 · 强化学习 × VLA</div>
+    <div class="cap" style="font-family:var(--mono);font-size:24px;letter-spacing:.06em">上手：openpi · pi05_base 权重 + 训练代码</div>
+  </div>
+</section>
+
+</div>
+
+<div id="nav-hot"></div>
+<div id="nav-btn"><div class="b" id="nb-prev">‹</div><span class="pg" id="nb-pg">1 / 26</span><div class="b" id="nb-next">›</div><div class="b" id="nb-list">☰</div></div>
+<div id="nav-panel"></div>
+<div id="hud"></div>
+
+<script>
+(function(){
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const hud=document.getElementById('hud');
+  let cur=-1, showCounter=false;
+  // background grid
+  const grids=document.querySelectorAll('svg.grid');
+  const gridMarkup=(()=>{
+    const vx=960, vy=330; let s='';
+    for(let x=-1400;x<=3300;x+=190){ s+=`<line x1="${vx}" y1="${vy}" x2="${x}" y2="1080" stroke="#D3DBE5" stroke-width="1"/>`; }
+    let y=vy+40, step=8; while(y<1080){ s+=`<line x1="0" y1="${y}" x2="1920" y2="${y}" stroke="#D3DBE5" stroke-width="1"/>`; step*=1.32; y+=step; }
+    return `<g opacity="0.8"><rect x="0" y="0" width="1920" height="${vy+60}" fill="url(#fade)"/></g>`+s+`<rect x="0" y="0" width="1920" height="1080" fill="url(#fade)"/><defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EEF2F6" stop-opacity="1"/><stop offset="0.55" stop-color="#EEF2F6" stop-opacity="1"/><stop offset="1" stop-color="#EEF2F6" stop-opacity="0.35"/></linearGradient></defs>`;
+  })();
+  grids.forEach(g=>{ g.innerHTML=gridMarkup; });
+  function fit(){ const s=Math.min(innerWidth/1920, innerHeight/1080); stage.style.transform=`translate(-50%,-50%) scale(${s})`; }
+  function show(n){
+    n=Math.max(0,Math.min(slides.length-1,n)); if(n===cur) return;
+    slides.forEach((s,k)=>{ const on=k===n; s.classList.toggle('active',on); s.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(e){} v.play().catch(()=>{}); } else { v.pause(); } }); });
+    cur=n; history.replaceState(null,'','#'+(n+1)); updateHud();
+  }
+  const navBtn=document.getElementById('nav-btn'), panel=document.getElementById('nav-panel'), pg=document.getElementById('nb-pg');
+  (function buildNav(){
+    let html='', lastSec=null;
+    slides.forEach((sl,k)=>{
+      const sec=sl.dataset.sec||''; const h=sl.querySelector('h1');
+      let title=sl.dataset.title||(h?h.childNodes[0].textContent.trim():''); if(!title) title=sec;
+      if(sec!==lastSec){ html+=`<div class="sec-title">${sec||'—'}</div>`; lastSec=sec; }
+      html+=`<div class="it" data-k="${k}"><span class="k">${k+1}</span><span>${title}</span></div>`;
+    });
+    panel.innerHTML=html;
+  })();
+  function toggleNav(force){ const on=(force===undefined)?!panel.classList.contains('open'):force; panel.classList.toggle('open',on); navBtn.classList.toggle('open',on); }
+  document.getElementById('nb-list').addEventListener('click',e=>{ e.stopPropagation(); toggleNav(); });
+  document.getElementById('nb-prev').addEventListener('click',e=>{ e.stopPropagation(); prev(); });
+  document.getElementById('nb-next').addEventListener('click',e=>{ e.stopPropagation(); next(); });
+  navBtn.addEventListener('click',e=>{ e.stopPropagation(); });
+  panel.addEventListener('click',e=>{ e.stopPropagation(); const it=e.target.closest('.it'); if(!it) return; show(parseInt(it.dataset.k,10)); toggleNav(false); });
+  function updateHud(){ pg.textContent=`${cur+1} / ${slides.length}`; hud.textContent = showCounter ? `${cur+1} / ${slides.length}` : '← → 翻页 · F 全屏 · C 页码 · 左上角选页'; panel.querySelectorAll('.it').forEach((el,k)=>el.classList.toggle('cur',k===cur)); }
+  function next(){ show(cur+1); } function prev(){ show(cur-1); }
+  let buf='', bt=null;
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if(e.key==='Escape'){ toggleNav(false); }
+    else if(e.key==='g'||e.key==='G'){ toggleNav(); }
+    else if(e.key==='Home'){ show(0); } else if(e.key==='End'){ show(slides.length-1); }
+    else if(e.key==='f'||e.key==='F'){ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }
+    else if(e.key==='c'||e.key==='C'){ showCounter=!showCounter; hud.classList.toggle('show',showCounter); updateHud(); }
+    else if(/^[0-9]$/.test(e.key)){ buf=(buf+e.key).slice(-2); clearTimeout(bt); bt=setTimeout(()=>{ const k=parseInt(buf,10); if(k>=1&&k<=slides.length) show(k-1); buf=''; },500); }
+  });
+  addEventListener('click',e=>{ if(e.target.closest('a,#nav-panel,#nav-btn,#nav-hot')) return; if(panel.classList.contains('open')){ toggleNav(false); return; } const x=e.clientX/innerWidth; if(x<0.2) prev(); else next(); });
+  addEventListener('resize',fit); fit();
+  const h=parseInt((location.hash||'#1').slice(1),10); show(isNaN(h)?0:h-1);
+  if(/[?&]nav=1/.test(location.search)) toggleNav(true);
+  hud.classList.add('show'); setTimeout(()=>{ if(!showCounter) hud.classList.remove('show'); },4000);
+})();
+</script>
+</body>
+</html>

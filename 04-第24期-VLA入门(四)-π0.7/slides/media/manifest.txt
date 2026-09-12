@@ -1,0 +1,67 @@
+文件                                          来源（π0.7 = arXiv 2604.15483，图源 related_work/pi07-steerable-generalist/source/compressed_images_final/*.pdf，pdftoppm 220 dpi）
+pi07_fig1.png                                 Fig.1 总览（原图，未直接用；下面的 fig1_* 都从它裁）
+fig1_robot_data.png / fig1_nonrobot_data.png  Fig.1 左上「Robot Data」/ 右上「Non-Robot Data」两个面板（第 8 页）
+fig1_center.png / fig1_training_strip.png     Fig.1 中间的训练 / 推理流程、顶部胶片 + 三种上下文（备用，未用）
+fig1_photo_espresso.jpg                       Fig.1 左「Specialist-Level Dexterity」咖啡照片（封面）
+fig1_photo_laundry.jpg                        Fig.1 左下折衣照片（封面）
+fig1_photo_trash.jpg                          Fig.1 中下换垃圾袋照片（备用，未用）
+fig1_photo_airfryer.jpg                       Fig.1 中下气炸锅照片（封面）
+fig1_photo_ur5e_person.jpg                    Fig.1 右「Cross-Embodiment Transfer」上图（原第 3 页用，换成视频后备用）
+fig1_photo_ur5e_fold.jpg                      Fig.1 右下 UR5e 叠衣照片（封面）
+pi07_model_architecture.png                   Fig.2 架构总览（第 14 页，缩到 2600 宽）
+fig2_vla_top.png                              Fig.2 上半：π0.7 VLA（备用，未用）
+fig2_hl_wm_bottom.png                         Fig.2 下半：高层策略 + 世界模型（第 18 页）
+pi07_prompts_v4.png                           Fig.3 prompt 总览（原图，未直接用）
+fig3_food_block.png                           Fig.3 上块「put food on table」：观测 / 子目标图 / 子任务 / 元数据（第 9 页）
+fig3_shirt_block.png                          Fig.3 下块「fold the shirt」（第 16 页）
+pi07_pi07robots_v5.png                        Fig.4 四类机器人，图内标有自由度（第 12 页）
+pi07_full_film_strip.png                      Fig.5 两条胶片（原图，未直接用）
+fig5_trash_row.png / fig5_bagel_row.png / fig5_both_rows.png   Fig.5 裁掉上方空白的换垃圾袋行 / 烤百吉饼行 / 两行（备用，未用）
+pi07_distillation_results.png                 Fig.6 原图（未直接用）
+fig6_top_rl_specialist.png                    Fig.6 上行：vs π*0.6 RL specialist（第 20 页）
+fig6_bottom_sft_specialist.png                Fig.6 下行：vs π0.6 SFT specialist（原第 19 页，精简后备用）
+pi07_distillation_ablations.png               Fig.7 消融（第 21 页）
+pi07_history.png                              Fig.8 记忆任务（原第 21 页，精简后备用）
+pi07_instruction_following.png                Fig.9 未见厨房 / 卧室指令跟随（第 22 页，缩到 3200 宽）
+fig9_chart.png                                Fig.9 左侧柱状图（备用，未用）
+fig9_photo_wardrobe.jpg / fig9_photo_ketchup.jpg / fig9_photo_spaghetti.jpg   Fig.9 右侧照片，400 dpi 重渲后裁（备用）
+pi07_instruction_generalization.png           Fig.10 复杂指代（第 23 页）
+pi07_compositional_generalization.png         Fig.11 逆数据偏差（第 23 页）
+pi07_cross_embodiment.png                     Fig.12 原图（未直接用）
+fig12_left_rearrange.png                      Fig.12 左：四个重排任务（原第 25 页，精简后备用）
+fig12_right_folding.png                       Fig.12 右：毛巾 / 衬衫折叠 + 人类水平线（第 24 页）
+pi07_human_vs_policy.png                      Fig.13 源机器人 vs 目标机器人策略（原第 28 页，精简后备用，缩到 2600 宽）
+fig13_a_bag.png / fig13_b_shirt.png           Fig.13 (a) / (b) 两行（备用，未用）
+pi07_airfryer_film_strip.png                  Fig.14 原图（未直接用）
+fig14_airfryer_strip.png                      Fig.14 裁掉下方空白的五帧 coaching 胶片（原第 13 页用，2026-09-11 换成两段视频后备用）
+pi07_long_horizon_task_generalization.png     Fig.15 coaching 长程新任务（第 26 页）
+pi07_coaching.png                             Fig.16 coaching vs 自主（原第 32 页，精简后备用）
+pi07_task_generalization.png                  Fig.17 短程新任务（原第 29 页，精简后备用）
+pi07_generalization_and_conditioning_full.png Fig.18 数据规模 / 多样性（第 28 页，缩到 3000 宽）
+fig18_left_quality.png / fig18_right_diversity.png   Fig.18 左 / 右（备用，未用）
+pi07_attention_masks.png                      Appendix Fig.19 注意力掩码（备用，未用；25447×23100，很大）
+pi07_xemb_joint_vs_ee.png                     Appendix Fig.20 关节 vs 末端控制（备用，未用）
+pi07_operator_experience_hours.png            Appendix Fig.21 遥操作员经验（备用，未用）
+pi07_human_vs_pi07.png                        Appendix Fig.22 π0.7 (GC) vs 人类（备用，未用；第 24 页用数字代替）
+mem_video_encoderv5.png                       MEM (2603.03596) Fig.3 视频编码器示意图，源码 related_work/pi-mem-multiscale-embodied-memory/source/figures/（第 6 页，缩到 2200 宽）
+mem_figure1v10.png                            MEM Fig.1 两级记忆总览 + 任务照片（第 5 页）
+mem_system_overview.png                       MEM 系统总览（备用，未用）
+mem_history_ablation_bottom.png / mem_in_context_pct.png / mem_long_horizon_no_highlight.png   MEM Fig.8 记忆任务对比 / Fig.7 in-context 适应 / 长程任务胶片，200 dpi，用来核第 6 页的估读数（未上页面）
+pi06_arch_vla.png / pi06_teaser.png / pi06_filmstrip.png   π*0.6 的图，复制自第 23 期 ppt/media/（备用，未用）
+pi05_Figure_3.png                             π0.5 Fig.3，复制自第 22 期 ppt/media/（备用，未用）
+
+video/（PI 官网 https://pi.website/pi07 的公开演示视频，2026-09-11 从 https://website.pi-asset.com/pi07/ 下载，H.264 mp4，未改动）
+Pi07VFINAL.mp4                                77 MB · 4:02 · 1080p · 官方总片（第 2 页，带播放控件）
+coffee_compressed.mp4                         3.2 MB · 23 s · 做浓缩咖啡 5×（第 3 页）
+clean_desk_interactive_demo_compressed.mp4    7.5 MB · 1:43 · 人交互式下指令整理桌面（第 3 页）
+shirt_folding_processed_no_overlay_compressed.mp4   6.3 MB · 1:32 · UR5e 叠衬衫无叠加（第 3 页）
+detailed_coaching_air_fryer_compressed.mp4    1.6 MB · 26 s · 逐步 coaching 气炸锅（第 3、11 页）
+zeroshot_air_fryer_attempt_compressed.mp4     2.4 MB · 47 s · 零样本尝试气炸锅（第 15 页）
+diverselaundry_compressed.mp4                 59 MB · 7:58 · 多样衣物 5×（第 19 页）
+trash_compressed.mp4                          3.7 MB · 51 s · 换垃圾袋 5×（第 19 页）
+cut_zucchini_compressed.mp4                   15 MB · 1:14 · 切西葫芦 5×（第 19 页）
+insideout_compressed.mp4                      9.4 MB · 1:22 · T 恤翻面再叠 5×（第 19 页）
+ARX_shirt_fold_teleop_compressed.mp4          5.0 MB · 48 s · 源机器人人类遥操作叠 T 恤（第 25 页）
+ur5_shirt_folding_with_goal_overlay_labeled_compressed.mp4   7.0 MB · 1:35 · UR5e 叠衬衫 + 生成子目标图叠加（第 25 页）
+vis_HL_policy_GG_air_fryer.mp4                20 MB · 11 s · 1080p · 高层策略指令 + 子目标图可视化（第 27 页）
+coarse_coaching_air_fryer_compressed.mp4 / opendoor_compressed.mp4 / PBsandwich_compressed.mp4 / processed_pinwheel_donald_2.0xspeed.mp4 / screw_task_compressed.mp4   粗粒度 coaching / 开门驶入 / 花生酱三明治 / 转风车 / 拧螺丝（备用，未上页面）

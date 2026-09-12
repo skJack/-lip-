@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>VLA 入门 · RT-2 → OpenVLA → π0 · 第 21 期</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#EEF2F6; --card:#FFFFFF; --ink:#0B1220; --muted:#5B6B7F; --line:#D3DBE5;
+  --blue:#2457F5; --blue-soft:#E3EAFF; --orange:#FF6B1A; --orange-soft:#FFE9DB; --green:#1B9E77; --green-soft:#DDF3EC;
+  --font:"PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono","Menlo","JetBrains Mono",monospace;
+  --serif:"STIX Two Text","Times New Roman","Songti SC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(1);transform-origin:center;background:var(--bg)}
+.slide{position:absolute;inset:0;padding:84px 104px 72px;display:none;flex-direction:column}
+.slide.active{display:flex}
+.grid{position:absolute;inset:0;pointer-events:none;opacity:.55}
+.head{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:22px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;position:relative;z-index:1}
+.head .sec{display:flex;gap:18px;align-items:center}
+.head .sec b{color:var(--ink);font-weight:600}
+.head .sec i{width:10px;height:10px;border-radius:50%;background:var(--blue);display:inline-block}
+h1{font-size:60px;font-weight:600;line-height:1.2;margin-top:16px;letter-spacing:.01em;position:relative;z-index:1}
+h1 small{font-size:28px;color:var(--muted);font-weight:400;margin-left:20px}
+.body{flex:1;position:relative;margin-top:26px;display:flex;gap:36px;min-height:0;z-index:1}
+.col{display:flex;flex-direction:column;gap:18px;min-width:0}
+.center{align-items:center;justify-content:center}
+.frame{position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:0 8px 30px rgba(11,18,32,.06)}
+.frame img,.frame video{display:block;width:100%;height:100%;object-fit:contain;border-radius:6px;background:#fff}
+.frame.photo img{object-fit:cover}
+.frame.fig{padding:30px 10px 10px}
+.mask th{text-transform:none;white-space:nowrap;font-size:24px}
+.mask th:first-child{text-align:left;width:46%}
+.stat .v{font-size:46px}
+.stat .v small{display:block;margin-left:0;font-size:24px}
+.frame .tag{position:absolute;top:-16px;left:18px;background:var(--ink);color:#fff;font-family:var(--mono);font-size:19px;letter-spacing:.06em;padding:5px 12px;border-radius:6px;white-space:nowrap;z-index:2}
+.frame .tag.blue{background:var(--blue)} .frame .tag.orange{background:var(--orange)} .frame .tag.green{background:var(--green)}
+.cap{font-size:30px;color:var(--muted);line-height:1.45}
+.cap b{color:var(--ink);font-weight:600}
+.big{font-size:42px;line-height:1.45;font-weight:500}
+.blue{color:var(--blue)} .orange{color:var(--orange)} .green{color:var(--green)} .muted{color:var(--muted)}
+.list{list-style:none;font-size:34px;line-height:1.45}
+.list li{display:flex;gap:22px;align-items:flex-start;padding:16px 0;border-top:1px solid var(--line)}
+.list li:last-child{border-bottom:1px solid var(--line)}
+.list .n{font-family:var(--mono);font-size:24px;color:var(--muted);min-width:50px;padding-top:9px}
+.pill{display:inline-block;padding:8px 18px;border-radius:999px;font-size:26px;background:var(--card);border:1px solid var(--line)}
+.arrow{font-size:60px;color:var(--muted);align-self:center;font-weight:300}
+.chain{display:flex;flex-direction:column;gap:14px}
+.chain .step{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 24px;font-size:30px;line-height:1.35;position:relative}
+.chain .step.blue{border-left:8px solid var(--blue)} .chain .step.orange{border-left:8px solid var(--orange)} .chain .step.green{border-left:8px solid var(--green)}
+.chain .step.tight{padding:12px 22px;font-size:28px}
+.chain .step .lab{display:block;font-family:var(--mono);font-size:19px;letter-spacing:.1em;color:var(--muted);margin-bottom:4px}
+table{border-collapse:collapse;width:100%;font-size:30px;line-height:1.35}
+th,td{padding:16px 20px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:21px;letter-spacing:.1em;color:var(--muted);font-weight:500;text-transform:uppercase}
+td:first-child{font-weight:600;white-space:nowrap}
+.foot{position:absolute;left:104px;right:104px;bottom:40px;display:flex;justify-content:space-between;align-items:flex-end;gap:40px;font-family:var(--mono);font-size:20px;color:var(--muted);letter-spacing:.08em;z-index:1}
+.foot .src{opacity:.85;white-space:nowrap}
+.foot .cap{display:none} /* 2026-09-08 用户要求去掉页脚小字；要恢复删这一行 */
+.foot .cap{font-family:var(--font);font-size:28px;max-width:1420px;letter-spacing:0}
+/* stats */
+.stats{display:flex;gap:22px}
+.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 26px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat .v{font-size:50px;font-weight:600;line-height:1.15;letter-spacing:.01em}
+.stat .v small{font-size:28px;color:var(--muted);font-weight:400;margin-left:8px}
+.stat .k{font-family:var(--mono);font-size:20px;letter-spacing:.08em;color:var(--muted)}
+.stat.blue .v{color:var(--blue)} .stat.orange .v{color:var(--orange)}
+/* formulas */
+.formula{font-family:var(--serif);font-size:44px;line-height:1.5;letter-spacing:.01em}
+.formula i{font-style:italic}
+.formula sup,.formula sub{font-size:60%}
+.fbox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 30px;display:flex;flex-direction:column;gap:8px}
+.fbox .lab{font-family:var(--mono);font-size:20px;letter-spacing:.1em;color:var(--muted)}
+/* vector cells */
+.vec{display:flex;gap:6px;align-items:stretch}
+.vec .c{height:64px;flex:1;border-radius:8px;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:20px;color:var(--muted)}
+.vec .c.a{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+.vec .c.b{background:var(--blue-soft);border-color:var(--blue);color:var(--blue)}
+.vec .c.o{background:var(--orange-soft);border-color:var(--orange);color:var(--orange)}
+.vec .c.z{color:#B9C3CF}
+.vlab{display:flex;gap:6px;font-family:var(--mono);font-size:21px;color:var(--muted);letter-spacing:.04em}
+.vlab span{flex:1;text-align:center}
+/* photo pins */
+.pins{position:absolute;inset:0;pointer-events:none}
+.pin{position:absolute;background:var(--ink);color:#fff;padding:8px 16px;border-radius:8px;font-size:26px;line-height:1.2;white-space:nowrap;box-shadow:0 4px 14px rgba(11,18,32,.25)}
+.pin.blue{background:var(--blue)} .pin.orange{background:var(--orange)} .pin.green{background:var(--green)}
+.pin small{display:block;font-family:var(--mono);font-size:17px;opacity:.85;letter-spacing:.06em;margin-top:2px}
+/* token strip */
+.toks{display:flex;gap:10px;align-items:stretch}
+.tk{border-radius:12px;padding:22px 20px;display:block;font-size:28px;line-height:1.3;min-width:0}
+.tk .lab{display:block;font-family:var(--mono);font-size:19px;letter-spacing:.08em;opacity:.8;margin-bottom:8px}
+.tk.vlm{background:var(--blue-soft);border:2px solid var(--blue);color:var(--blue)}
+.tk.q{background:var(--green-soft);border:2px solid var(--green);color:var(--green)}
+.tk.act{background:var(--orange-soft);border:2px solid var(--orange);color:var(--orange)}
+.mask td,.mask th{text-align:center;padding:12px 16px;font-size:34px}
+.mask td:first-child{text-align:left;font-size:28px}
+.mask .y{color:var(--blue);font-family:var(--mono)} .mask .n{color:#B9C3CF;font-family:var(--mono)}
+/* denoise bars */
+.dn{display:flex;flex-direction:column;gap:10px}
+.dn .row{display:flex;align-items:center;gap:16px}
+.dn .t{font-family:var(--mono);font-size:22px;color:var(--muted);width:120px;text-align:right}
+.dn .cells{display:flex;gap:3px;flex:1}
+.dn .cells i{flex:1;height:34px;border-radius:4px;background:var(--orange);display:block}
+/* timeline */
+.tl{display:flex;gap:8px;align-items:flex-end}
+.tl .f{flex:1;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px;align-items:center}
+.tl .f img{width:100%;height:78px;object-fit:cover;border-radius:5px}
+.tl .f .n{font-family:var(--mono);font-size:18px;color:var(--muted)}
+.tl .f.hl{border-color:var(--orange);background:var(--orange-soft)}
+pre.tree{font-family:var(--mono);font-size:23px;line-height:1.55;overflow:hidden;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 28px;color:var(--ink)}
+pre.tree b{color:var(--blue);font-weight:600}
+pre.tree em{color:var(--muted);font-style:normal}
+/* nav (top-left page control) */
+#nav-hot{position:fixed;left:0;top:0;width:220px;height:110px;z-index:20}
+#nav-btn{position:fixed;left:14px;top:14px;height:44px;padding:0 14px 0 10px;border-radius:10px;background:rgba(11,18,32,.82);color:#fff;font-size:18px;font-family:var(--mono);display:flex;align-items:center;gap:10px;cursor:pointer;opacity:.22;transition:opacity .25s;z-index:21;user-select:none}
+#nav-btn span.pg{font-size:18px;letter-spacing:.06em}
+#nav-btn .b{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14)}
+#nav-btn .b:hover{background:rgba(255,255,255,.3)}
+#nav-hot:hover ~ #nav-btn,#nav-btn:hover,#nav-btn.open{opacity:1}
+#nav-panel{position:fixed;left:14px;top:66px;width:440px;max-height:calc(100vh - 90px);overflow:auto;background:#fff;color:#0B1220;border:1px solid #D3DBE5;border-radius:12px;box-shadow:0 16px 48px rgba(11,18,32,.22);padding:8px;display:none;z-index:22;font-family:var(--font);font-size:14px}
+#nav-panel.open{display:block}
+#nav-panel .sec-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:#5B6B7F;padding:10px 10px 4px;text-transform:uppercase}
+#nav-panel .it{display:flex;gap:10px;align-items:baseline;padding:7px 10px;border-radius:8px;cursor:pointer;line-height:1.35}
+#nav-panel .it:hover{background:#EEF2F6}
+#nav-panel .it.cur{background:#E3EAFF;color:#2457F5}
+#nav-panel .it .k{font-family:var(--mono);font-size:12px;color:#5B6B7F;min-width:24px;text-align:right}
+#nav-panel .it.cur .k{color:#2457F5}
+#hud{position:fixed;left:18px;bottom:14px;font-family:var(--mono);font-size:13px;color:#7f8c9c;opacity:0;transition:opacity .6s;pointer-events:none;z-index:9}
+#hud.show{opacity:1}
+/* cover / end */
+.cover{padding:0}
+.cover .band{position:absolute;left:0;right:0;bottom:0;height:300px;background:#000}
+.cover .band img{width:100%;height:100%;object-fit:cover;opacity:.95}
+.cover .txt{position:absolute;left:104px;top:150px}
+.cover .txt .eb{font-family:var(--mono);font-size:24px;letter-spacing:.16em;color:var(--muted);margin-bottom:26px}
+.cover .txt h1{font-size:150px;line-height:1;margin:0 0 26px;letter-spacing:.02em;font-weight:600}
+.cover .txt p{font-size:44px;font-weight:400;color:var(--muted)}
+.cover .txt p b{color:var(--ink);font-weight:600}
+.cover .brand{position:absolute;right:104px;top:170px;font-family:var(--mono);font-size:26px;letter-spacing:.14em;color:var(--muted)}
+.end{align-items:center;justify-content:center;text-align:center}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- 1 -->
+<section class="slide cover" data-sec="封面" data-title="封面">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="txt">
+    <div class="eb">第 21 期 · VLA 入门（上）</div>
+    <h1>VLA</h1>
+    <p><b>RT-2</b> (2023-07) → <b>OpenVLA</b> (2024-06) → <b>π0</b> (2024-10)</p>
+  </div>
+  <div class="brand">可lip</div>
+  <div class="band"><img src="media/pi0_laundry_filmstrip.jpg" alt=""></div>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-sec="00 基础" data-title="VLA 任务定义">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>00</b>基础</div><div>VISION · LANGUAGE · ACTION</div></div>
+  <h1>VLA 任务定义<small>输入观测，输出低层动作数值</small></h1>
+  <div class="body center" style="gap:26px">
+    <div class="col" style="width:560px;gap:14px">
+      <div class="chain">
+        <div class="step blue" style="padding:12px 18px"><span class="lab">输入 · 图像 (2–3 路相机)</span>
+          <div style="display:flex;gap:8px;margin-top:6px"><img src="media/cam_base.png" style="width:170px;height:106px;object-fit:cover;border-radius:6px"><img src="media/cam_lwrist.png" style="width:170px;height:106px;object-fit:cover;border-radius:6px"><img src="media/cam_rwrist.png" style="width:170px;height:106px;object-fit:cover;border-radius:6px"></div></div>
+        <div class="step blue"><span class="lab">输入 · 语言指令</span>“fold the shirt”</div>
+        <div class="step green"><span class="lab">输入 · 本体状态 q<sub>t</sub></span>关节角向量（编码器读数）</div>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="frame" style="width:300px;height:300px;display:flex;align-items:center;justify-content:center;font-size:52px;font-weight:600;border-radius:150px">VLA</div>
+    <div class="arrow">→</div>
+    <div class="col" style="width:600px;gap:14px">
+      <div class="chain">
+        <div class="step orange"><span class="lab">输出 · 动作 a<sub>t</sub></span>目标关节角 / 末端位姿增量 + 夹爪开合</div>
+        <div class="step"><span class="lab">执行</span>控制器驱动电机 → 场景变化 → 拍下一帧</div>
+      </div>
+      <div class="cap" style="font-size:26px">闭环：每一步重新拿观测、重新输出动作</div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap">动作不是“把杯子拿起来”，是一个<b>数值向量</b>：例如 14 个关节的目标角度 + 夹爪开合度</div><div class="src">π0 · Fig.3 相机画面</div></div>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-sec="00 基础" data-title="机械臂上有什么">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>00</b>基础</div><div>HARDWARE</div></div>
+  <h1>机械臂上有什么<small>UR5e，6 自由度</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="frame photo" style="width:640px;height:690px;flex:none">
+      <img src="media/robot_ur5e.png" alt="">
+      <div class="pins">
+        <div class="pin blue" style="left:300px;top:60px">关节 ×6<small>6-DoF · 每个关节一个电机 + 编码器</small></div>
+        <div class="pin green" style="left:24px;top:150px">腕部相机<small>eye-in-hand · 跟着手动</small></div>
+        <div class="pin orange" style="left:24px;top:330px">夹爪<small>gripper · 开合度 0–1</small></div>
+        <div class="pin" style="left:330px;top:560px">底座 · 控制器<small>接收目标关节角，驱动电机</small></div>
+      </div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center">
+      <table>
+        <tr><th>名词</th><th>含义</th><th>数值形态</th></tr>
+        <tr><td>自由度 DoF</td><td>能独立转动的关节数，单臂 6–7</td><td>6 个角度</td></tr>
+        <tr><td>夹爪 gripper</td><td>末端两指开合</td><td>1 个数，0–1 之间</td></tr>
+        <tr><td>本体状态</td><td>关节编码器实际读数</td><td>q<sub>t</sub>，关节角向量</td></tr>
+        <tr><td>动作</td><td>发给控制器的目标位置</td><td>a<sub>t</sub>，与 q<sub>t</sub> 同维</td></tr>
+        <tr><td>控制频率 Hz</td><td>每秒发多少条动作</td><td>50 Hz = 每 20 ms 一条</td></tr>
+        <tr><td>固定相机</td><td>装在底座或支架，看全景</td><td>RGB 224×224</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="foot"><div class="cap">相机只用 RGB，不用深度；图像给位置的大概，编码器给精确关节角，两者都要</div><div class="src">π0 · Fig.5 UR5e</div></div>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-sec="00 基础" data-title="每一步的输入与输出">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>00</b>基础</div><div>OBSERVATION → ACTION</div></div>
+  <h1>模型每一步拿到什么<small>π0 双臂平台，叠衣服</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:22px">
+      <div class="frame photo" style="flex:1;height:300px"><img src="media/cam_base.png" alt=""><div class="tag blue">固定相机 · 第三人称</div></div>
+      <div class="frame photo" style="flex:1;height:300px"><img src="media/cam_lwrist.png" alt=""><div class="tag blue">左腕相机</div></div>
+      <div class="frame photo" style="flex:1;height:300px"><img src="media/cam_rwrist.png" alt=""><div class="tag blue">右腕相机</div></div>
+    </div>
+    <div style="display:flex;gap:40px;align-items:flex-start">
+      <div class="col" style="flex:1;gap:10px">
+        <div class="cap" style="font-size:26px"><b class="green">本体状态 q<sub>t</sub></b> · 18 维（不同机器人补 0 对齐）</div>
+        <div class="vec">
+          <div class="c a">6</div><div class="c a">6</div><div class="c a">1</div><div class="c a">1</div><div class="c z">4</div>
+        </div>
+        <div class="vlab"><span>左臂关节</span><span>右臂关节</span><span>左夹爪</span><span>右夹爪</span><span>底盘 · 躯干</span></div>
+      </div>
+      <div class="col" style="flex:1;gap:10px">
+        <div class="cap" style="font-size:26px"><b class="orange">动作 a<sub>t</sub></b> · 同 18 维，下一时刻的目标关节角</div>
+        <div class="vec">
+          <div class="c o">6</div><div class="c o">6</div><div class="c o">1</div><div class="c o">1</div><div class="c z">4</div>
+        </div>
+        <div class="vlab"><span>左臂目标</span><span>右臂目标</span><span>左夹爪</span><span>右夹爪</span><span>底盘 · 躯干</span></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">50 Hz</div><div class="k">控制频率 · 每 20 ms 一条动作</div></div>
+      <div class="stat"><div class="v">RGB 224×224</div><div class="k">相机原图缩放到 SigLIP 输入尺寸</div></div>
+      <div class="stat"><div class="v">[−1, 1]</div><div class="k">状态与动作按分位数归一化（openpi）</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap">单臂机器人：2 路相机 + 7–8 维；RT-2 / OpenVLA 的动作是 <b>末端位姿增量 6 维 + 夹爪 1 维</b>，π0 是目标关节角</div><div class="src">π0 · Sec.V-A</div></div>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-sec="00 基础" data-title="训练数据的格式">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>00</b>基础</div><div>DATASET</div></div>
+  <h1>训练数据的格式<small>episode = 一次完整演示 = 一串时间对齐的帧</small></h1>
+  <div class="body" style="flex-direction:column;gap:20px">
+    <div class="tl">
+      <div class="f"><img src="media/cam_base.png" alt=""><div class="n">t = 0</div></div>
+      <div class="f"><img src="media/cam_base.png" alt=""><div class="n">t = 1</div></div>
+      <div class="f"><img src="media/cam_base.png" alt=""><div class="n">t = 2</div></div>
+      <div class="f" style="background:transparent;border:none"><div class="n" style="font-size:30px">…</div></div>
+      <div class="f hl"><img src="media/cam_base.png" alt=""><div class="n">t（观测）</div></div>
+      <div class="f hl" style="opacity:.75"><img src="media/cam_base.png" alt=""><div class="n">t+1 … t+49</div></div>
+      <div class="f" style="background:transparent;border:none"><div class="n" style="font-size:30px">…</div></div>
+      <div class="f"><img src="media/cam_base.png" alt=""><div class="n">t = 1499</div></div>
+    </div>
+    <div style="display:flex;gap:30px;flex:1;min-height:0">
+      <pre class="tree" style="flex:1"><b>每一帧的字段</b>
+observation.images     base / left_wrist / right_wrist
+                       <em>各 224×224×3</em>
+observation.state      q_t              <em>(14,)</em>
+action                 a_t              <em>(14,)</em>
+language_instruction   "fold the shirt" <em>整条 episode 同一句</em>
+
+<b>训练时取一个样本</b>
+obs   = episode[t]                <em>单帧，无历史</em>
+chunk = episode[t : t+50].action  <em>未来 50 步作监督</em></pre>
+      <pre class="tree" style="flex:1"><b>LeRobot 落盘格式</b>（openpi 微调用）
+my_dataset/
+├── data/chunk-000/
+│   └── episode_000000.parquet   <em>state · action · 时间戳</em>
+├── videos/chunk-000/
+│   ├── observation.images.base/…mp4    <em>图像走视频</em>
+│   └── observation.images.wrist/…mp4
+└── meta/
+    ├── info.json        <em>fps · 相机列表 · 字段 shape</em>
+    ├── episodes.jsonl   <em>每条长度与任务</em>
+    └── stats.json       <em>q01 / q99 归一化统计</em></pre>
+    </div>
+  </div>
+  <div class="foot"><div class="cap">50 Hz 下 30 秒 = 1500 帧。数据里<b>只有成功演示</b>：无 reward、无失败标签、无逐帧语言标注</div><div class="src">LeRobot · openpi examples</div></div>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-sec="01 RT-2" data-title="Google DeepMind 机器人组">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>RT-2 · 团队</div><div>GOOGLE DEEPMIND · ROBOTICS</div></div>
+  <h1>Google DeepMind 机器人组<small>RT-2 之前的三步</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="col" style="flex:1.25;justify-content:center">
+      <div class="chain">
+        <div class="step tight"><span class="lab">2022-04 · SayCan</span>LLM 给技能打分，低层仍是单独训练的策略</div>
+        <div class="step tight"><span class="lab">2022-12 · RT-1</span>35M 参数、从零训练的 transformer 策略；13 台机器人 · 17 个月 · 办公室厨房</div>
+        <div class="step tight"><span class="lab">2023-03 · PaLM-E</span>562B 具身多模态语言模型</div>
+        <div class="step tight blue"><span class="lab">2023-07 · RT-2</span>VLM 直接输出动作 token（本期）</div>
+        <div class="step tight"><span class="lab">2023-10 · Open X-Embodiment / RT-X</span>21 家机构 · 22 种机器人 · 60 个数据集 · 100 万+ 条轨迹</div>
+      </div>
+    </div>
+    <div class="col" style="width:560px;gap:20px;justify-content:center">
+      <div class="frame photo" style="height:300px"><img src="media/lab_rt2_robot.png" alt=""><div class="tag">RT-2 Fig.1 · 评测用的移动机械臂</div></div>
+      <div class="stat"><div class="k">作者 50 余人 · 按字母序</div><div class="v" style="font-size:30px;line-height:1.35">Sergey Levine · Chelsea Finn<br>Karol Hausman · Brian Ichter</div><div class="cap" style="font-size:24px">2024 年离开 Google，创办 Physical Intelligence</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">RT-2 作者表 · OXE 2310.08864</div></div>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-sec="01 RT-2" data-title="RT-2：动作当文本 token">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>01</b>RT-2</div><div>GOOGLE DEEPMIND · 2023-07 · arXiv 2307.15818</div></div>
+  <h1>RT-2：动作当文本 token<small>“VLA”一词的起点</small></h1>
+  <div class="body" style="flex-direction:column;gap:20px">
+    <div class="frame fig" style="width:1712px;height:520px"><img src="media/rt2_teaser_hi.jpg" alt=""><div class="tag">Fig.1 · VLM 直接输出动作 token</div></div>
+    <div class="stats">
+      <div class="stat"><div class="v">8 个整数</div><div class="k">1 步动作 = terminate + Δ位置 3 + Δ旋转 3 + 夹爪 · 每维 256 桶</div></div>
+      <div class="stat blue"><div class="v">62%<small>vs RT-1 32%</small></div><div class="k">没见过的物体 / 背景 / 环境 · 平均成功率</div></div>
+      <div class="stat orange"><div class="v">1–3 Hz</div><div class="k">PaLI-X 55B · 每步只出 1 个动作 · 闭源</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap">不加新参数：把 <b>网页图文数据 + 机器人数据</b> 混在同一批次里微调 VLM（co-fine-tuning）；已见过的任务与 RT-1 持平</div><div class="src">RT-2 · Fig.1 · Appendix Table 4</div></div>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-sec="02 OpenVLA" data-title="OpenVLA 团队">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>OpenVLA · 团队</div><div>STANFORD · UC BERKELEY · TRI · GOOGLE DEEPMIND · MIT · PI</div></div>
+  <h1>OpenVLA 团队<small>三块现成的积木</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="col" style="flex:1.25;justify-content:center">
+      <div class="chain">
+        <div class="step tight"><span class="lab">骨干 · Prismatic VLMs · Stanford · 2024-02</span>开源 VLM 训练库；SigLIP + DINOv2 + Llama 2 的组合来自它</div>
+        <div class="step tight"><span class="lab">数据 · Open X-Embodiment · 2023-10</span>21 家机构 · 22 种机器人 · 60 个数据集；取单臂子集 970k 条</div>
+        <div class="step tight"><span class="lab">配比 · Octo · UC Berkeley · 2024-05</span>数据混合权重直接沿用</div>
+        <div class="step tight blue"><span class="lab">2024-06 · OpenVLA（本期）</span>2025-02 · OpenVLA-OFT，同一作者，LIBERO 97%+</div>
+      </div>
+    </div>
+    <div class="col" style="width:560px;gap:20px;justify-content:center">
+      <div class="frame photo" style="height:390px"><img src="media/lab_openvla_widowx.png" alt=""><div class="tag">OpenVLA Fig.3 · WidowX · BridgeData V2 评测平台</div></div>
+      <div class="stat"><div class="k">共同一作 · Stanford</div><div class="v" style="font-size:30px;line-height:1.35">Moo Jin Kim · Karl Pertsch · Siddharth Karamcheti</div><div class="cap" style="font-size:24px">资深作者：Chelsea Finn · Percy Liang · Dorsa Sadigh · Sergey Levine · Russ Tedrake</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">OpenVLA 作者表 · Prismatic 2402.07865 · Octo 2405.12213</div></div>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-sec="02 OpenVLA" data-title="OpenVLA：开源 7B 微调">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>02</b>OpenVLA</div><div>STANFORD · BERKELEY · TRI · 2024-06 · arXiv 2406.09246</div></div>
+  <h1>OpenVLA：开源 7B，同一范式<small>SigLIP + DINOv2 → Llama 2 7B</small></h1>
+  <div class="body" style="flex-direction:column;gap:20px">
+    <div class="frame fig" style="width:1712px;height:500px"><img src="media/openvla_model_hi.png" alt=""><div class="tag">Fig.2 · 图像 + 指令 → 自回归 7 个动作 token</div></div>
+    <div class="stats">
+      <div class="stat"><div class="v">970k 条</div><div class="k">Open X-Embodiment 真机轨迹 · 27 个数据集</div></div>
+      <div class="stat"><div class="v">64×A100 · 14 天</div><div class="k">训练算力 · 约 21,500 A100 小时</div></div>
+      <div class="stat blue"><div class="v">70.6%<small>vs RT-2-X 50.6%</small></div><div class="k">BridgeData V2 · 7B 超过闭源 55B</div></div>
+      <div class="stat"><div class="v">LoRA 1 卡</div><div class="k">A100 10–15 h 可微调 · int4 量化 7 GB</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap">动作 7 维（末端位姿增量 + 夹爪）× 256 桶，占用 Llama 词表最后 256 个 token；loss 只算动作 token 的交叉熵</div><div class="src">OpenVLA · Fig.2 · Table 4</div></div>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-sec="03 限制" data-title="OpenVLA 的限制">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>03</b>限制</div><div>FROM π0 · SEC.I / II · OPENVLA · SEC.6</div></div>
+  <h1>自回归离散动作的限制<small>π0 论文对 RT-2 / OpenVLA 的分析</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="col" style="width:760px;justify-content:center">
+      <ul class="list">
+        <li><span class="n">01</span><span><b>每次推理只出 1 步动作</b><br><span class="muted" style="font-size:27px">不支持 action chunk；凑 50 步要串行解码 50 × 7 = 350 个 token</span></span></li>
+        <li><span class="n">02</span><span><b>控制频率约 6 Hz（RTX 4090）</b><br><span class="muted" style="font-size:27px">OpenVLA 作者自述：跑不了 ALOHA 这类 50 Hz 系统</span></span></li>
+        <li><span class="n">03</span><span><b>256 桶离散化，精度有上限</b><br><span class="muted" style="font-size:27px">连续动作被量化；轨迹抖动，精细任务弱</span></span></li>
+        <li><span class="n">04</span><span><b>单张图、无本体状态、无历史</b><br><span class="muted" style="font-size:27px">没有腕部相机输入</span></span></li>
+      </ul>
+    </div>
+    <div class="col" style="flex:1;justify-content:center">
+      <div class="frame fig" style="height:600px"><img src="media/openvla_speed_hi.png" alt=""><div class="tag">OpenVLA Fig.6 · 每秒动作数 · 各 GPU</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap">π0 原文：OpenVLA “does not support action chunking or high-frequency control”；叠衣服这类任务需要 50 Hz</div><div class="src">π0 · Sec.VI-A · OpenVLA · Sec.6</div></div>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-sec="04 π0" data-title="Physical Intelligence">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>π0 · 团队</div><div>PHYSICAL INTELLIGENCE · SAN FRANCISCO</div></div>
+  <h1>Physical Intelligence<small>2024-03 成立 · 创始人来自 RT-2 团队</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="col" style="flex:1.25;justify-content:center">
+      <div class="chain">
+        <div class="step tight"><span class="lab">2024-03 · 成立 · 种子轮 7000 万美元</span>Karol Hausman · Sergey Levine · Chelsea Finn · Brian Ichter · Lachy Groom</div>
+        <div class="step tight blue"><span class="lab">2024-10 · π0（本期）</span>2024-11 · A 轮 4 亿美元，估值 24 亿</div>
+        <div class="step tight"><span class="lab">2025-01 · π0-FAST</span>2025-02 · 开源 openpi：π0 / π0-FAST 权重与训练代码</div>
+        <div class="step tight orange"><span class="lab">2025-04 · π0.5 · 2025-11 · π0.6（下期）</span>2025-11 · B 轮 6 亿美元，估值 56 亿</div>
+        <div class="step tight orange"><span class="lab">2026-04 · π0.7（下期）</span>5B，多模态上下文条件，零样本跨本体</div>
+      </div>
+    </div>
+    <div class="col" style="width:560px;gap:20px;justify-content:center">
+      <div class="frame photo" style="height:440px"><img src="media/lab_pi_fibocom.png" alt=""><div class="tag">π0 Fig.5 · Mobile Fibocom 双臂移动平台</div></div>
+      <div class="stat"><div class="k">自采数据</div><div class="v" style="font-size:30px;line-height:1.35">1 万+ 小时 · 7 种构型 · 68 类任务</div><div class="cap" style="font-size:24px">论文署名：公司 + 24 位作者</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0 作者表 · 融资：The Robot Report / Bloomberg（媒体报道）</div></div>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-sec="04 π0" data-title="π0 的出发点：三个瓶颈、三个做法">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>π0</div><div>PHYSICAL INTELLIGENCE · 2024-10 · ARXIV 2410.24164</div></div>
+  <h1>π0 的出发点<small>三个瓶颈，对应三个做法</small></h1>
+  <div class="body" style="flex-direction:column;gap:20px">
+    <div class="frame photo" style="width:1712px;height:210px"><img src="media/pi0_laundry_filmstrip.jpg" alt=""><div class="tag">Fig.2 · 目标任务：从烘干机取衣 → 运到桌边 → 逐件叠好，数分钟</div></div>
+    <div class="stats" style="flex:1">
+      <div class="stat" style="justify-content:center;gap:12px"><div class="k">瓶颈 1 · 规模</div><div class="v" style="font-size:34px;line-height:1.3">大规模预训练的收益，小规模看不到</div><div class="cap" style="font-size:26px"><b>做法</b>：自采 1 万+ 小时 · 7 种构型 · 68 类任务，加 OXE 开源数据</div><div class="k">→ 第 13–14 页</div></div>
+      <div class="stat" style="justify-content:center;gap:12px"><div class="k">瓶颈 2 · 架构</div><div class="v" style="font-size:34px;line-height:1.3">既吃异构数据，又表示高频、多峰的连续动作</div><div class="cap" style="font-size:26px"><b>做法</b>：PaliGemma 3B + 300M action expert，flow matching 一次出 50 步动作块</div><div class="k">→ 第 15 页</div></div>
+      <div class="stat" style="justify-content:center;gap:12px"><div class="k">瓶颈 3 · 配方</div><div class="v" style="font-size:34px;line-height:1.3">预训练学广，后训练学精</div><div class="cap" style="font-size:26px"><b>做法</b>：700k 步混合预训练 → 任务专属 5–100+ 小时后训练</div><div class="k">→ 第 16 页</div></div>
+    </div>
+    <div class="cap" style="font-size:24px;font-family:var(--mono);letter-spacing:.06em">分析 · 多峰 / flow matching / 注意力掩码 / KV cache → 第 17–20 页 &nbsp;·&nbsp; 实验 → 第 21–22 页</div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0 · Sec.I</div></div>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-sec="04 π0" data-title="数据 · 规模与构成">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>π0 · 数据 ①</div><div>PRE-TRAINING MIXTURE</div></div>
+  <h1>数据 · 规模与构成<small>一个训练样本 = 一个时间步 (o<sub>t</sub>, A<sub>t</sub>)</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div class="frame fig" style="width:1712px;height:470px"><img src="media/pi0_data_chart.png" alt=""><div class="tag">Fig.4 · 左：各平台数据量（时间步）· 右：在混合里的权重</div></div>
+    <div class="stats">
+      <div class="stat"><div class="v">9.03 亿</div><div class="k">自采时间步 · 单臂 1.06 亿 + 双臂 7.97 亿</div></div>
+      <div class="stat"><div class="v">1 万+ 小时</div><div class="k">遥操作演示 · 50 Hz</div></div>
+      <div class="stat"><div class="v">7 种构型</div><div class="k">单臂 · 双臂 · 移动双臂</div></div>
+      <div class="stat"><div class="v">68 类任务</div><div class="k">每类含几十种物体与行为</div></div>
+      <div class="stat blue"><div class="v">9.1%</div><div class="k">开源 OXE · Bridge v2 · DROID · 2–10 Hz</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0 · Sec.V-A · Fig.4</div></div>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-sec="04 π0" data-title="数据 · 采集、任务与配比">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>π0 · 数据 ②</div><div>COLLECTION · TASKS · WEIGHTING · CROSS-EMBODIMENT</div></div>
+  <h1>数据 · 采集、任务与配比<small>人类遥操作演示，只保留成功的</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="col" style="flex:1.15;justify-content:center">
+      <div class="chain">
+        <div class="step tight"><span class="lab">采集 · 人类遥操作</span>操作员带着机器人做；录下画面 + 关节角 + 人的命令。action = 人的命令，state = 机器人反馈</div>
+        <div class="step tight"><span class="lab">任务定义 · 大类</span>一个任务 = “bussing”这种含几十种碟子、杯子、垃圾的大类；68 类是这个意义上的 68 类</div>
+        <div class="step tight orange"><span class="lab">配比 · 抑制过采样</span>每个 任务 × 机器人 组合按 <span class="formula" style="font-size:32px"><i>n</i><sup>0.43</sup></span> 加权，<i>n</i> 为样本数；叠衣服这类采得多的被压下去</div>
+        <div class="step tight blue"><span class="lab">跨本体对齐</span>状态 / 动作补零到 18 维；不足 3 路相机的机器人把空槽 mask 掉</div>
+      </div>
+    </div>
+    <div class="col" style="width:800px;gap:16px;justify-content:center">
+      <div class="frame fig" style="height:370px"><img src="media/pi0_robots_hi.png" alt=""><div class="tag">Fig.5 · 7 种构型，一个模型联合训练</div></div>
+      <table style="font-size:22px;line-height:1.25">
+        <tr><th style="font-size:18px;padding:6px 12px">构型</th><th style="font-size:18px;padding:6px 12px">相机</th><th style="font-size:18px;padding:6px 12px">状态维 / 动作维</th></tr>
+        <tr><td style="padding:6px 12px">UR5e</td><td style="padding:6px 12px">2</td><td style="padding:6px 12px;font-family:var(--mono)">7 / 7</td></tr>
+        <tr><td style="padding:6px 12px">双臂 UR5e · Trossen · ARX / AgileX</td><td style="padding:6px 12px">3</td><td style="padding:6px 12px;font-family:var(--mono)">14 / 14</td></tr>
+        <tr><td style="padding:6px 12px">Franka</td><td style="padding:6px 12px">2</td><td style="padding:6px 12px;font-family:var(--mono)">8 / 8</td></tr>
+        <tr><td style="padding:6px 12px">移动 Trossen / ARX（非全向底盘）</td><td style="padding:6px 12px">3</td><td style="padding:6px 12px;font-family:var(--mono)">14 / 16</td></tr>
+        <tr><td style="padding:6px 12px">移动 Fibocom（全向底盘）</td><td style="padding:6px 12px">3</td><td style="padding:6px 12px;font-family:var(--mono)">14 / 17</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0 · Sec.V-A · Sec.V-C · Fig.5</div></div>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-sec="04 π0" data-title="π0 架构主图">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>π0</div><div>ARCHITECTURE</div></div>
+  <h1>π0 架构<small>PaliGemma 3B + action expert 300M = 3.3B</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div class="frame fig" style="width:1712px;height:500px"><img src="media/pi0_overview_hi.jpg" alt=""><div class="tag">Fig.3 · Overview</div></div>
+    <div class="toks" style="height:150px">
+      <div class="tk vlm" style="flex:5;font-size:26px"><span class="lab">VLM 权重 · PaliGemma · 预训练初始化</span>3 张图 → SigLIP，每张 256 token ＋ 指令 token</div>
+      <div class="tk q" style="flex:1.3;font-size:26px"><span class="lab">action expert</span>q<sub>t</sub> → 1 token</div>
+      <div class="tk act" style="flex:3.4;font-size:26px"><span class="lab">action expert · 从零初始化</span>带噪动作 a<sup>τ</sup> · 50 token → 速度场 v<sub>θ</sub></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap">一个 transformer、两套权重：图文走 VLM 权重，状态和动作走 action expert 权重，只在 self-attention 里交互</div><div class="src">π0 · Fig.3 · Appendix B</div></div>
+</section>
+
+<!-- 16 -->
+<section class="slide" data-sec="04 π0" data-title="训练配方 · 预训练 → 后训练">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>π0 · 配方</div><div>PRE-TRAINING → POST-TRAINING</div></div>
+  <h1>训练配方<small>预训练学广，后训练学精</small></h1>
+  <div class="body" style="gap:36px">
+    <div class="frame fig" style="width:960px;height:610px;flex:none"><img src="media/pi0_teaser_hi.jpg" alt=""><div class="tag">Fig.1 · 数据 → 预训练基座 → 三种用法</div></div>
+    <div class="col" style="flex:1;justify-content:center;gap:22px">
+      <table style="font-size:26px;line-height:1.3">
+        <tr><th></th><th>预训练</th><th>后训练</th></tr>
+        <tr><td>数据</td><td>全部混合：自采 + OXE，杂、覆盖广</td><td>任务专属高质量数据，5 – 100+ 小时</td></tr>
+        <tr><td>步数</td><td>700k（对照版 160k）</td><td>微调，步数未给出</td></tr>
+        <tr><td>目标</td><td>覆盖各种情形，学会从错误恢复</td><td>一致、流畅地完成目标任务</td></tr>
+        <tr><td>产物</td><td>基座，可直接提示</td><td>任务模型</td></tr>
+      </table>
+      <div class="chain">
+        <div class="step tight"><span class="lab">用法 ① · 直接提示 out-of-box</span>预训练基座 + 一句指令 → 第 21 页</div>
+        <div class="step tight"><span class="lab">用法 ② · 微调到新任务</span>1 – 10 小时数据 → 第 22 页</div>
+        <div class="step tight blue"><span class="lab">用法 ③ · 高层 VLM 出子命令（π0-HL）</span>“bus the table” → “pick up the napkin”，约 2 秒一条，思路同 SayCan</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0 · Sec.V · Fig.1</div></div>
+</section>
+
+<!-- 17 -->
+<section class="slide" data-sec="04 π0" data-title="动作分布是多峰的">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>π0 · 特点 1</div><div>MULTIMODALITY</div></div>
+  <h1>动作分布是多峰的<small>L2 回归的最优解是条件均值</small></h1>
+  <div class="body" style="gap:44px;align-items:center">
+    <div class="frame" style="width:980px;height:600px;padding:0;overflow:hidden">
+      <svg viewBox="0 0 980 600" width="980" height="600" font-family="PingFang SC,Helvetica Neue,Arial" >
+        <rect width="980" height="600" fill="#fff"/>
+        <!-- start -->
+        <circle cx="110" cy="300" r="26" fill="#0B1220"/>
+        <text x="110" y="360" text-anchor="middle" font-size="24" fill="#5B6B7F">当前位置</text>
+        <!-- obstacle -->
+        <rect x="430" y="215" width="150" height="170" rx="18" fill="#D3DBE5" stroke="#B9C3CF" stroke-width="3"/>
+        <text x="505" y="308" text-anchor="middle" font-size="26" fill="#0B1220" font-weight="600">碗</text>
+        <!-- goal -->
+        <circle cx="880" cy="300" r="26" fill="none" stroke="#0B1220" stroke-width="5"/>
+        <text x="880" y="360" text-anchor="middle" font-size="24" fill="#5B6B7F">盘子</text>
+        <!-- path A -->
+        <path d="M136,300 C 300,60 700,60 858,286" fill="none" stroke="#2457F5" stroke-width="9" stroke-linecap="round"/>
+        <text x="495" y="112" text-anchor="middle" font-size="28" fill="#2457F5" font-weight="600">演示 A · 上方绕过（50%）</text>
+        <!-- path B -->
+        <path d="M136,300 C 300,540 700,540 858,314" fill="none" stroke="#2457F5" stroke-width="9" stroke-linecap="round" opacity=".75"/>
+        <text x="495" y="520" text-anchor="middle" font-size="28" fill="#2457F5" font-weight="600">演示 B · 下方绕过（50%）</text>
+        <!-- mean -->
+        <path d="M136,300 L 854,300" fill="none" stroke="#FF6B1A" stroke-width="9" stroke-dasharray="22 16" stroke-linecap="round"/>
+        <text x="300" y="282" text-anchor="middle" font-size="28" fill="#FF6B1A" font-weight="600">A、B 的平均</text>
+        <text x="700" y="282" text-anchor="middle" font-size="28" fill="#FF6B1A" font-weight="600">穿过碗</text>
+      </svg>
+    </div>
+    <div class="col" style="flex:1;gap:26px">
+      <div class="fbox"><div class="lab">L2 回归学到的东西</div><div class="formula">argmin<sub><i>f</i></sub> 𝔼‖<i>a</i> − <i>f</i>(<i>o</i>)‖² &nbsp;⟹&nbsp; <i>f</i>*(<i>o</i>) = 𝔼[<i>a</i> | <i>o</i>]</div></div>
+      <div class="cap" style="font-size:28px">同一观测下有多个正确动作：抓手柄 / 抓杯身，先叠左袖 / 先叠右袖。<b>平均值可能落在概率为零的地方。</b></div>
+      <div class="cap" style="font-size:28px">多峰性来自人类演示本身：多个遥操作员、同一人两次也不同。数据越大越杂，越明显。</div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap">需要能表示<b>整条 50 步轨迹的联合分布</b> p(a<sub>0</sub>…a<sub>49</sub> | o) 的输出头 → 扩散 / flow matching</div><div class="src">π0 · Sec.IV</div></div>
+</section>
+
+<!-- 18 -->
+<section class="slide" data-sec="04 π0" data-title="Flow matching 训练与推理">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>π0 · 特点 2</div><div>FLOW MATCHING</div></div>
+  <h1>Flow matching<small>回归的是速度场，不是动作本身</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="col" style="width:820px;gap:18px;justify-content:center">
+      <div class="fbox"><div class="lab">训练 · 给真实动作块加噪</div>
+        <div class="formula"><i>A</i><sup>τ</sup> = τ·<i>A</i> + (1 − τ)·ε，&nbsp; ε ~ 𝒩(0, I)</div>
+        <div class="formula"><i>L</i> = 𝔼‖ <i>v</i><sub>θ</sub>(<i>A</i><sup>τ</sup>, <i>o</i><sub>t</sub>) − (<i>A</i> − ε) ‖²</div></div>
+      <div class="fbox"><div class="lab">推理 · 从噪声积分回动作，Euler 10 步</div>
+        <div class="formula"><i>A</i><sup>0</sup> ~ 𝒩(0, I)，&nbsp; <i>A</i><sup>τ+δ</sup> = <i>A</i><sup>τ</sup> + δ·<i>v</i><sub>θ</sub>(<i>A</i><sup>τ</sup>, <i>o</i><sub>t</sub>)，&nbsp; δ = 0.1</div></div>
+      <div class="cap" style="font-size:26px">路径是直线，所以 10 步够（DDPM 通常 50–1000 步）。训练目标仍是 L2，稳定；输出分布可以任意多峰。</div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center;gap:20px">
+      <div class="cap" style="font-size:26px">被去噪的对象是整块矩阵 <b><i>A</i> ∈ ℝ<sup>50×18</sup></b>：50 步同时变清晰，共享同一个 τ</div>
+      <div class="dn" id="dn"></div>
+      <div class="vlab" style="justify-content:space-between"><span style="text-align:left">a<sub>0</sub></span><span style="text-align:right">a<sub>49</sub></span></div>
+      <div class="stats">
+        <div class="stat orange"><div class="v">10 次前向</div><div class="k">出整块 50 步 · 成本 10×，不是 50×</div></div>
+        <div class="stat"><div class="v">Beta 采样</div><div class="k">训练时 τ 偏向高噪声端 · s = 0.999</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap">两种“步”：机器人时间步 t（50 个，每步 20 ms）与去噪步 τ（10 个，无量纲）</div><div class="src">π0 · Sec.IV · Appendix B</div></div>
+</section>
+
+<!-- 19 -->
+<section class="slide" data-sec="04 π0" data-title="两套权重与注意力掩码">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>π0 · 特点 3</div><div>BLOCKWISE CAUSAL MASK</div></div>
+  <h1>三个块、两种注意力<small>块内双向，块间只向前看</small></h1>
+  <div class="body" style="flex-direction:column;gap:26px">
+    <div class="toks" style="height:140px">
+      <div class="tk vlm" style="flex:5"><span class="lab">块 1 · 图像 + 语言 · ≈ 800 token · VLM 权重</span>PaliGemma 预训练见过的模态</div>
+      <div class="tk q" style="flex:1.1"><span class="lab">块 2 · q<sub>t</sub> · 1 token</span>本体状态</div>
+      <div class="tk act" style="flex:3"><span class="lab">块 3 · 带噪动作 · 50 token · action expert</span>每个积分步都在变</div>
+    </div>
+    <div style="display:flex;gap:40px;flex:1;min-height:0">
+      <div class="frame" style="width:760px;padding:18px 26px;align-self:flex-start">
+        <table class="mask">
+          <tr><th>query ↓ · key →</th><th>图文</th><th>q<sub>t</sub></th><th>动作</th></tr>
+          <tr><td>块 1 · 图文</td><td class="y">✓</td><td class="n">✗</td><td class="n">✗</td></tr>
+          <tr><td>块 2 · q<sub>t</sub></td><td class="y">✓</td><td class="y">✓</td><td class="n">✗</td></tr>
+          <tr><td>块 3 · 动作 a<sup>τ</sup></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        </table>
+      </div>
+      <div class="col" style="flex:1;gap:16px;justify-content:center">
+        <div class="chain">
+          <div class="step orange"><span class="lab">动作 ↔ 动作 · 双向</span>50 个 token 互相看到 → 整条轨迹自洽（联合分布，不是 50 个各自的边缘分布）</div>
+          <div class="step blue"><span class="lab">动作 → 图文 + q<sub>t</sub> · 单向</span>conditioning：p(<i>A</i> | <i>o</i>) 里的 <i>o</i></div>
+          <div class="step green"><span class="lab">图文 ✗ 动作 · q<sub>t</sub> ✗ 动作</span>前两块的表示不随 <i>A</i><sup>τ</sup> 变化 → K、V 可以缓存</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap">VLM 输入不看新模态：减少与预训练的分布偏移；q<sub>t</sub> 单独成块：它在 10 个积分步之间不变</div><div class="src">π0 · Appendix B · Attention mask</div></div>
+</section>
+
+<!-- 20 -->
+<section class="slide" data-sec="04 π0" data-title="KV cache 与推理时延">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>π0 · 特点 4</div><div>KV CACHE · RTX 4090</div></div>
+  <h1>KV cache 与推理时延<small>前缀算一次，动作 token 算十次</small></h1>
+  <div class="body" style="gap:40px">
+    <div class="col" style="flex:1.2;justify-content:center;gap:14px">
+      <div class="chain">
+        <div class="step"><span class="lab">① 图像编码</span>SigLIP × 3 张图</div>
+        <div class="step blue"><span class="lab">② 前缀前向 · 只做 1 次</span>图文 ≈ 800 token + q<sub>t</sub> → 存下每层的 K、V</div>
+        <div class="step orange"><span class="lab">③ 积分 10 步 · 每步只算 50 个动作 token</span>动作 token 的 query 读缓存的 K、V + 自己的 K、V；前缀一次乘法都不做</div>
+        <div class="step"><span class="lab">④ 输出</span><i>A</i><sup>1</sup> 反归一化 → 去掉补零维 → 发给控制器</div>
+      </div>
+    </div>
+    <div class="col" style="flex:1;justify-content:center;gap:22px">
+      <table>
+        <tr><th>模型部分</th><th style="text-align:right">耗时</th></tr>
+        <tr><td>图像编码</td><td style="text-align:right;font-family:var(--mono)">14 ms</td></tr>
+        <tr><td>观测（前缀）前向</td><td style="text-align:right;font-family:var(--mono)">32 ms</td></tr>
+        <tr><td>动作前向 × 10 步</td><td style="text-align:right;font-family:var(--mono)">27 ms</td></tr>
+        <tr><td><b>合计（机载）</b></td><td style="text-align:right;font-family:var(--mono)"><b>73 ms</b></td></tr>
+        <tr><td>网络延迟（离板）</td><td style="text-align:right;font-family:var(--mono)">+13 ms → 86 ms</td></tr>
+      </table>
+      <div class="stats">
+        <div class="stat"><div class="v">0.5 s</div><div class="k">50 Hz 机器人 · 执行前 25 步后重推理</div></div>
+        <div class="stat"><div class="v">0.8 s</div><div class="k">20 Hz 机器人 · 执行 16 步后重推理</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap">块内开环执行，不做 temporal ensembling（试过，变差）；chunk 之间从零重算，模型无记忆</div><div class="src">π0 · Table I · Appendix D</div></div>
+</section>
+
+<!-- 21 -->
+<section class="slide" data-sec="04 π0" data-title="实验 · 直接提示与语言跟随">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>π0 · 实验 ①</div><div>OUT-OF-BOX · LANGUAGE FOLLOWING · 真机 · 每任务 10 次 · RUBRIC 部分分</div></div>
+  <h1>实验 · 直接提示与语言跟随<small>预训练基座，不微调</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:30px;flex:1;min-height:0">
+      <div class="frame fig" style="flex:1;height:520px"><img src="media/pi0_pretrain_tasks_hi.png" alt=""><div class="tag">Fig.7 · 直接提示 · 5 个任务</div></div>
+      <div class="frame fig" style="flex:1.1;height:520px"><img src="media/pi0_language_tasks.png" alt=""><div class="tag">Fig.9 · 语言跟随：-flat 只给总任务 · -Human 人给子命令 · -HL 高层 VLM 给子命令</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat blue"><div class="v">5 / 5 任务领先</div><div class="k">含只训 160k 步的 compute-parity 版本</div></div>
+      <div class="stat orange"><div class="v">≈ 0</div><div class="k">同一批数据训的 OpenVLA · Octo（柱状图无数值）</div></div>
+      <div class="stat"><div class="v">子命令有效</div><div class="k">π0 得到人或 VLM 的子命令就涨；无 VLM 初始化的 π0-small 不涨</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0 · Fig.7 · Fig.9</div></div>
+</section>
+
+<!-- 22 -->
+<section class="slide" data-sec="04 π0" data-title="实验 · 后训练">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="head"><div class="sec"><i></i><b>04</b>π0 · 实验 ②</div><div>FINE-TUNING · 预训练 VS 从零</div></div>
+  <h1>实验 · 后训练<small>预训练过的 π0 与同架构从零训练</small></h1>
+  <div class="body" style="flex-direction:column;gap:22px">
+    <div style="display:flex;gap:30px;flex:1;min-height:0">
+      <div class="frame fig" style="flex:1.25;height:520px"><img src="media/pi0_finetune_sweep.png" alt=""><div class="tag">Fig.11 · 5 个新任务 · 1 / 5 / 10 小时微调数据 · 实线预训练，虚线从零</div></div>
+      <div class="frame fig" style="flex:0.9;height:520px"><img src="media/pi0_complex_finetune.png" alt=""><div class="tag">Fig.13 · 复杂多阶段任务</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">1 / 5 / 10 h</div><div class="k">微调数据量 · 1 小时已明显好于 baseline</div></div>
+      <div class="stat blue"><div class="v">预训练 &gt; 从零</div><div class="k">常见，个别任务差距约 2×</div></div>
+      <div class="stat"><div class="v">&gt; 50% 满分</div><div class="k">完整配方在所有复杂任务上 · Fig.13</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="cap"></div><div class="src">π0 · Fig.11 · Fig.13</div></div>
+</section>
+
+<!-- 23 -->
+<section class="slide end" data-sec="05 收尾" data-title="收尾">
+  <svg class="grid" viewBox="0 0 1920 1080" preserveAspectRatio="none"></svg>
+  <div class="body center" style="flex-direction:column;gap:50px">
+    <div class="stats" style="width:1600px">
+      <div class="stat"><div class="k">2023-07</div><div class="v">RT-2</div><div class="cap" style="font-size:26px">动作当文本 token · 语义泛化</div></div>
+      <div class="arrow">→</div>
+      <div class="stat"><div class="k">2024-06</div><div class="v">OpenVLA</div><div class="cap" style="font-size:26px">开源 7B · LoRA 微调</div></div>
+      <div class="arrow">→</div>
+      <div class="stat orange"><div class="k">2024-10</div><div class="v">π0</div><div class="cap" style="font-size:26px">flow matching · 50 步动作块 · 50 Hz</div></div>
+    </div>
+    <div class="big muted">下期：π0.5 → π0.6 → π0.7</div>
+  </div>
+</section>
+
+</div>
+
+<div id="nav-hot"></div>
+<div id="nav-btn"><div class="b" id="nb-prev">‹</div><span class="pg" id="nb-pg">1 / 23</span><div class="b" id="nb-next">›</div><div class="b" id="nb-list">☰</div></div>
+<div id="nav-panel"></div>
+<div id="hud"></div>
+
+<script>
+(function(){
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const hud=document.getElementById('hud');
+  let cur=-1, showCounter=false;
+  // background grid
+  const grids=document.querySelectorAll('svg.grid');
+  const gridMarkup=(()=>{
+    const vx=960, vy=330; let s='';
+    for(let x=-1400;x<=3300;x+=190){ s+=`<line x1="${vx}" y1="${vy}" x2="${x}" y2="1080" stroke="#D3DBE5" stroke-width="1"/>`; }
+    let y=vy+40, step=8; while(y<1080){ s+=`<line x1="0" y1="${y}" x2="1920" y2="${y}" stroke="#D3DBE5" stroke-width="1"/>`; step*=1.32; y+=step; }
+    return `<g opacity="0.8"><rect x="0" y="0" width="1920" height="${vy+60}" fill="url(#fade)"/></g>`+s+`<rect x="0" y="0" width="1920" height="1080" fill="url(#fade)"/><defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EEF2F6" stop-opacity="1"/><stop offset="0.55" stop-color="#EEF2F6" stop-opacity="1"/><stop offset="1" stop-color="#EEF2F6" stop-opacity="0.35"/></linearGradient></defs>`;
+  })();
+  grids.forEach(g=>{ g.innerHTML=gridMarkup; });
+  // denoise bars (slide 12)
+  const dn=document.getElementById('dn');
+  if(dn){ const taus=[0,0.1,0.2,0.3,0.5,0.7,0.9,1.0]; let h='';
+    taus.forEach(t=>{ let cells=''; for(let i=0;i<50;i++){ const noise=(1-t)*(0.25+0.75*Math.abs(Math.sin(i*12.9898+t*78.233)*43758.5453%1)); const op=(0.15+0.85*t*(0.6+0.4*Math.sin(i/6))).toFixed(2); cells+=`<i style="opacity:${op};transform:scaleY(${(1-noise*0.9).toFixed(2)})"></i>`; }
+      h+=`<div class="row"><div class="t">τ = ${t.toFixed(1)}</div><div class="cells">${cells}</div></div>`; });
+    dn.innerHTML=h; }
+  function fit(){ const s=Math.min(innerWidth/1920, innerHeight/1080); stage.style.transform=`translate(-50%,-50%) scale(${s})`; }
+  function show(n){
+    n=Math.max(0,Math.min(slides.length-1,n)); if(n===cur) return;
+    slides.forEach((s,k)=>{ const on=k===n; s.classList.toggle('active',on); s.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(e){} v.play().catch(()=>{}); } else { v.pause(); } }); });
+    cur=n; history.replaceState(null,'','#'+(n+1)); updateHud();
+  }
+  const navBtn=document.getElementById('nav-btn'), panel=document.getElementById('nav-panel'), pg=document.getElementById('nb-pg');
+  (function buildNav(){
+    let html='', lastSec=null;
+    slides.forEach((sl,k)=>{
+      const sec=sl.dataset.sec||''; const h=sl.querySelector('h1');
+      let title=sl.dataset.title||(h?h.childNodes[0].textContent.trim():''); if(!title) title=sec;
+      if(sec!==lastSec){ html+=`<div class="sec-title">${sec||'—'}</div>`; lastSec=sec; }
+      html+=`<div class="it" data-k="${k}"><span class="k">${k+1}</span><span>${title}</span></div>`;
+    });
+    panel.innerHTML=html;
+  })();
+  function toggleNav(force){ const on=(force===undefined)?!panel.classList.contains('open'):force; panel.classList.toggle('open',on); navBtn.classList.toggle('open',on); }
+  document.getElementById('nb-list').addEventListener('click',e=>{ e.stopPropagation(); toggleNav(); });
+  document.getElementById('nb-prev').addEventListener('click',e=>{ e.stopPropagation(); prev(); });
+  document.getElementById('nb-next').addEventListener('click',e=>{ e.stopPropagation(); next(); });
+  navBtn.addEventListener('click',e=>{ e.stopPropagation(); });
+  panel.addEventListener('click',e=>{ e.stopPropagation(); const it=e.target.closest('.it'); if(!it) return; show(parseInt(it.dataset.k,10)); toggleNav(false); });
+  function updateHud(){ pg.textContent=`${cur+1} / ${slides.length}`; hud.textContent = showCounter ? `${cur+1} / ${slides.length}` : '← → 翻页 · F 全屏 · C 页码 · 左上角选页'; panel.querySelectorAll('.it').forEach((el,k)=>el.classList.toggle('cur',k===cur)); }
+  function next(){ show(cur+1); } function prev(){ show(cur-1); }
+  let buf='', bt=null;
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if(e.key==='Escape'){ toggleNav(false); }
+    else if(e.key==='g'||e.key==='G'){ toggleNav(); }
+    else if(e.key==='Home'){ show(0); } else if(e.key==='End'){ show(slides.length-1); }
+    else if(e.key==='f'||e.key==='F'){ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }
+    else if(e.key==='c'||e.key==='C'){ showCounter=!showCounter; hud.classList.toggle('show',showCounter); updateHud(); }
+    else if(/^[0-9]$/.test(e.key)){ buf=(buf+e.key).slice(-2); clearTimeout(bt); bt=setTimeout(()=>{ const k=parseInt(buf,10); if(k>=1&&k<=slides.length) show(k-1); buf=''; },500); }
+  });
+  addEventListener('click',e=>{ if(e.target.closest('a,#nav-panel,#nav-btn,#nav-hot')) return; if(panel.classList.contains('open')){ toggleNav(false); return; } const x=e.clientX/innerWidth; if(x<0.2) prev(); else next(); });
+  addEventListener('resize',fit); fit();
+  const h=parseInt((location.hash||'#1').slice(1),10); show(isNaN(h)?0:h-1);
+  if(/[?&]nav=1/.test(location.search)) toggleNav(true);
+  hud.classList.add('show'); setTimeout(()=>{ if(!showCounter) hud.classList.remove('show'); },4000);
+})();
+</script>
+</body>
+</html>
