@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>世界模型 01 · 梦的开始</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#F5F5F7; --ink:#1D1D1F; --muted:#6E6E73; --faint:#A1A1A6; --line:#D2D2D7; --card:#FFFFFF;
+  --accent:#0071E3;
+  --font:"PingFang SC","SF Pro Display","SF Pro SC","Hiragino Sans GB","Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono","Menlo","JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(1);transform-origin:center;background:var(--bg)}
+.slide{position:absolute;inset:0;padding:92px 128px 84px;display:none;flex-direction:column}
+.slide.active{display:flex}
+.kicker{font-size:22px;font-weight:500;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.kicker b{color:var(--ink);font-weight:600;margin-right:14px}
+h1{font-size:70px;font-weight:600;letter-spacing:-.012em;line-height:1.15;margin-top:20px}
+h1 .thin{font-weight:400;color:var(--muted)}
+h1 .acc{color:var(--accent)}
+.sub{font-size:30px;color:var(--muted);margin-top:14px;font-weight:400;line-height:1.4}
+.fig{flex:1;min-height:0;position:relative;margin-top:40px}
+.fig img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.fig.card{background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.fig.card img{padding:30px}
+.fig video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.fig.video{background:#000;border-radius:26px;overflow:hidden}
+.fig.video.white{background:#fff;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.fig.video.white video{background:#fff}
+.fig2{flex:1;min-height:0;display:flex;gap:30px;margin-top:40px}
+.fig2 .fig{margin:0}
+.vcol{flex:1;display:flex;flex-direction:column;min-height:0}
+.vcol .ph{flex:1;min-height:0}
+.vcap{margin-top:18px;font-size:27px;color:var(--muted);text-align:center;line-height:1.4}
+.vcap b{color:var(--ink);font-weight:600}
+.ph{position:relative;border-radius:22px;overflow:hidden;background:#000}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ph video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ph.fit video,.ph.fit img{object-fit:contain}
+.ph.white{background:#fff;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.ph .cap{position:absolute;left:0;right:0;bottom:0;padding:26px 24px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:28px;font-weight:600;line-height:1.3}
+.diagbox{flex:1;min-height:0;position:relative;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.diagbox svg{position:absolute;inset:0;width:100%;height:100%}
+.note{margin-top:30px;font-size:30px;color:var(--muted);text-align:center;line-height:1.45}
+.note b{color:var(--ink);font-weight:600}
+/* big numbers */
+.stats{display:flex;gap:80px;justify-content:center;align-items:flex-start}
+.stat{text-align:center;min-width:300px}
+.stat .v{font-size:110px;font-weight:600;letter-spacing:-.025em;line-height:1}
+.stat .v small{font-size:44px;font-weight:500;color:var(--muted);margin-left:6px}
+.stat .k{font-size:25px;color:var(--muted);margin-top:18px;line-height:1.4}
+.stat.accent .v{color:var(--accent)}
+/* steps (slide 5) */
+.mid{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:96px}
+.steps{display:flex;align-items:stretch;gap:0}
+.step{flex:1;background:var(--card);border-radius:30px;padding:48px 30px;box-shadow:0 14px 48px rgba(0,0,0,.06);text-align:center;display:flex;flex-direction:column;justify-content:center;min-height:300px}
+.step .n{font-family:var(--mono);font-size:22px;color:var(--accent);letter-spacing:.1em}
+.step .t{font-size:42px;font-weight:600;margin-top:16px;line-height:1.25;letter-spacing:-.01em}
+.step .s{font-size:26px;color:var(--muted);margin-top:14px;line-height:1.4}
+.step.dim{background:transparent;box-shadow:none;border:2px solid var(--line)}
+.arrow{width:54px;flex:none;display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--faint)}
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:32px;text-align:center}
+.tbl th{font-size:24px;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;padding:0 0 18px;border-bottom:2px solid var(--line)}
+.tbl td{padding:22px 0;border-bottom:1px solid var(--line);font-family:var(--mono)}
+.tbl td:first-child{font-family:var(--mono);color:var(--muted)}
+.tbl tr.hi td{color:var(--accent);font-weight:600}
+.tbl tr.bad td:nth-child(3){color:#D0342C}
+.tblwrap{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:40px 56px}
+.tblwrap .tt{font-size:24px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;font-weight:500;margin-bottom:26px;text-align:center}
+/* timeline */
+.timeline{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 10px}
+.tl-row{position:relative;display:flex;justify-content:space-between;padding-top:56px}
+.tl-row:before{content:"";position:absolute;left:7%;right:7%;top:0;height:2px;background:var(--line)}
+.tl{flex:1;text-align:center;position:relative}
+.tl .dot{position:absolute;left:50%;top:-66px;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:var(--line)}
+.tl.key .dot{background:var(--accent);box-shadow:0 0 0 10px rgba(0,113,227,.15)}
+.tl .d{font-family:var(--mono);font-size:20px;color:var(--muted);letter-spacing:.06em}
+.tl .n{font-size:42px;font-weight:600;margin-top:10px;letter-spacing:-.01em;line-height:1.15}
+.tl.key .n{color:var(--accent)}
+.tl .w{font-size:22px;color:var(--muted);margin-top:12px;line-height:1.4;padding:0 12px}
+/* two columns of text */
+.two{display:flex;gap:80px;flex:1;margin-top:48px;align-items:flex-start}
+.two .col{flex:1}
+.h2{font-size:22px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;font-weight:500}
+.li{font-size:31px;line-height:1.45;padding:20px 0;border-top:1px solid var(--line)}
+.li:last-child{border-bottom:1px solid var(--line)}
+.li b{font-weight:600}
+/* small photo pair */
+.pair{flex:0 0 300px;display:flex;flex-direction:column;gap:24px;min-height:0}
+.pair .ph{flex:1;background:#fff}
+/* cover / end */
+.cover{padding:0}
+.cover .t{position:absolute;left:128px;top:150px}
+.cover .kicker{font-size:24px}
+.cover h1{font-size:230px;letter-spacing:-.035em;line-height:.95;margin-top:26px}
+.cover .p{font-size:42px;color:var(--muted);margin-top:26px;font-weight:400}
+.cover .p b{color:var(--ink);font-weight:600}
+.cover .brand{position:absolute;right:128px;top:158px;font-size:26px;letter-spacing:.14em;color:var(--muted)}
+.cover .photos{position:absolute;left:0;right:0;bottom:0;height:330px;display:flex;gap:6px;background:#000}
+.cover .photos img{flex:1;min-width:0;height:100%;object-fit:cover;display:block}
+.end{justify-content:center}
+.end .timeline{flex:0 0 auto;margin-bottom:70px}
+.end .big{font-size:44px;text-align:center;color:var(--muted);margin-top:30px;line-height:1.5}
+.end .big b{color:var(--ink);font-weight:600}
+/* nav (top-left page control) */
+#nav-hot{position:fixed;left:0;top:0;width:220px;height:110px;z-index:20}
+#nav-btn{position:fixed;left:14px;top:14px;height:44px;padding:0 14px 0 10px;border-radius:10px;background:rgba(29,29,31,.82);color:#fff;font-size:18px;font-family:var(--mono);display:flex;align-items:center;gap:10px;cursor:pointer;opacity:.22;transition:opacity .25s;z-index:21;user-select:none}
+#nav-btn span.pg{font-size:18px;letter-spacing:.06em}
+#nav-btn .b{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14)}
+#nav-btn .b:hover{background:rgba(255,255,255,.3)}
+#nav-hot:hover ~ #nav-btn,#nav-btn:hover,#nav-btn.open{opacity:1}
+#nav-panel{position:fixed;left:14px;top:66px;width:440px;max-height:calc(100vh - 90px);overflow:auto;background:#fff;color:#1D1D1F;border:1px solid #D2D2D7;border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.18);padding:8px;display:none;z-index:22;font-family:var(--font);font-size:14px}
+#nav-panel.open{display:block}
+#nav-panel .sec-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:#6E6E73;padding:10px 10px 4px;text-transform:uppercase}
+#nav-panel .it{display:flex;gap:10px;align-items:baseline;padding:7px 10px;border-radius:8px;cursor:pointer;line-height:1.35}
+#nav-panel .it:hover{background:#F5F5F7}
+#nav-panel .it.cur{background:#E8F0FE;color:#0071E3}
+#nav-panel .it .k{font-family:var(--mono);font-size:12px;color:#6E6E73;min-width:24px;text-align:right}
+#nav-panel .it.cur .k{color:#0071E3}
+#hud{position:fixed;left:18px;bottom:14px;font-family:var(--mono);font-size:13px;color:#8e8e93;opacity:0;transition:opacity .6s;pointer-events:none;z-index:9}
+#hud.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- 1 -->
+<section class="slide cover" data-sec="封面" data-title="封面">
+  <div class="t">
+    <div class="kicker">世界模型 · 第 1 期 · 2018 → 2023</div>
+    <h1>梦的开始</h1>
+    <div class="p">World Models → PlaNet → Dreamer → <b>DayDreamer</b>：在模型的梦里训练策略</div>
+  </div>
+  <div class="brand">可lip</div>
+  <div class="photos">
+    <img src="media/wm_carracing_v_and_m.jpg" alt="">
+    <img src="media/wm_doom_lazy_small.jpg" alt="">
+    <img src="media/planet_domain_cheetah.png" alt="">
+    <img src="media/dv3_task_minecraft.jpg" alt="">
+    <img src="media/dd_task_a1.jpg" alt="">
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-sec="00 这条线" data-title="六篇论文，五年">
+  <div class="kicker"><b>00</b>这条线</div>
+  <h1>六篇论文，五年</h1>
+  <div class="sub">重点讲第一篇和上真机的那一篇，中间几篇讲改进的思路</div>
+  <div class="timeline"><div class="tl-row">
+    <div class="tl key"><div class="dot"></div><div class="d">2018-03</div><div class="n">World Models</div><div class="w">VAE + RNN + 867 参数控制器<br>第一次在梦里训策略</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2018-11</div><div class="n">PlaNet</div><div class="w">RSSM<br>在 latent 里规划</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2019-12</div><div class="n">Dreamer v1</div><div class="w">在想象里训 actor-critic</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2020-10</div><div class="n">Dreamer v2</div><div class="w">离散 latent<br>Atari 达人类水平</div></div>
+    <div class="tl key"><div class="dot"></div><div class="d">2022-06</div><div class="n">DayDreamer</div><div class="w">同一套算法<br>上 4 台真机</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2023-01</div><div class="n">Dreamer v3</div><div class="w">一套超参<br>150+ 任务</div></div>
+  </div></div>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-sec="01 World Models" data-title="世界模型这个词">
+  <div class="kicker"><b>01</b>World Models · 2018-03 · Ha &amp; Schmidhuber</div>
+  <h1>世界模型：<span class="thin">给定动作，预测接下来会看到什么</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/wm_comic.jpg" alt=""></div>
+    <div class="fig card"><img src="media/wm_1990.jpg" alt=""></div>
+  </div>
+  <div class="note">左：论文第一张图，Scott McCloud《理解漫画》　·　右：Schmidhuber 1990 年的 RNN 控制器 + RNN 世界模型</div>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-sec="01 World Models" data-title="三个模块 V · M · C">
+  <div class="kicker"><b>01</b>World Models · 结构</div>
+  <h1>三个模块：<span class="thin">V 看，M 记和预测，C 决定</span></h1>
+  <div class="fig card"><img src="media/wm_world_model_schematic-1.png" alt=""></div>
+  <div class="note"><b>V</b>：VAE，一帧 64×64 压成 32 个数 z　·　<b>M</b>：MDN-RNN，用 (z, a, h) 预测下一个 z 的分布　·　<b>C</b>：线性层，输入 [z, h]，输出动作</div>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-sec="01 World Models" data-title="训练流程：大的用梯度，小的用进化">
+  <div class="kicker"><b>01</b>World Models · 训练</div>
+  <h1>世界模型不看分数，<span class="thin">只有 C 看分数</span></h1>
+  <div class="mid">
+  <div class="steps">
+    <div class="step dim"><div class="n">STEP 1</div><div class="t">随机乱开<br>10,000 局</div><div class="s">录下画面和动作</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">STEP 2</div><div class="t">训 V</div><div class="s">画面 → z → 重建画面</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">STEP 3</div><div class="t">训 M</div><div class="s">(z, a, h) → 下一个 z</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">STEP 4 · 5</div><div class="t">CMA-ES 进化 C</div><div class="s">只看每局总分，不用梯度</div></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="v">4.35<small>M</small></div><div class="k">V · VAE 参数量</div></div>
+    <div class="stat"><div class="v">0.42<small>M</small></div><div class="k">M · MDN-RNN 参数量</div></div>
+    <div class="stat accent"><div class="v">867</div><div class="k">C · 线性层参数量</div></div>
+  </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-sec="01 World Models" data-title="CarRacing：只给 z vs 给 z 和 h">
+  <div class="kicker"><b>01</b>World Models · 实验 · CarRacing</div>
+  <h1>只给 z：632 分　<span class="thin">给 z 和 h：</span><span class="acc">906 分</span></h1>
+  <div class="fig2">
+    <div class="vcol"><div class="ph fit"><video src="media/video/wm_carracing_z_only.mp4" muted loop playsinline preload="auto"></video></div><div class="vcap">C 只看 z_t　·　<b>632 ± 251</b>　·　左右摇摆，急弯冲出</div></div>
+    <div class="vcol"><div class="ph fit"><video src="media/video/wm_carracing_z_and_h.mp4" muted loop playsinline preload="auto"></video></div><div class="vcap">C 看 [z_t, h_t]　·　<b>906 ± 21</b>　·　第一个「解决」这个环境的方法</div></div>
+  </div>
+  <div class="note">C 的参数量不变，只是输入多了 h　·　DQN 343 · A3C 652 · 排行榜 838</div>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-sec="01 World Models" data-title="VizDoom：在梦里训练">
+  <div class="kicker"><b>01</b>World Models · 实验 · VizDoom Take Cover</div>
+  <h1>把 C 放进 M 生成的梦里训练，<span class="thin">再搬回真实游戏</span></h1>
+  <div class="fig2">
+    <div class="vcol"><div class="ph fit"><video src="media/video/wm_doom_real_vae.mp4" muted loop playsinline preload="auto"></video></div><div class="vcap">真实画面（左）· V 重建出的画面（右）</div></div>
+    <div class="vcol"><div class="ph fit"><video src="media/video/wm_doom_real_deploy.mp4" muted loop playsinline preload="auto"></video></div><div class="vcap">梦里训好的 C，放回真实游戏　·　100 局平均 <b>1092</b> 步，排行榜 820</div></div>
+  </div>
+  <div class="note">梦里不需要 V 和游戏引擎：M 采样下一个 z 和「是否死亡」，直接喂给 C</div>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-sec="01 World Models" data-title="C 会钻 M 的漏洞">
+  <div class="kicker"><b>01</b>World Models · 作弊与温度 τ</div>
+  <h1>C 会钻 M 的漏洞：<span class="thin">梦里满分，真实里崩</span></h1>
+  <div class="fig2">
+    <div class="vcol"><div class="ph fit"><video src="media/video/wm_doom_adversarial.mp4" muted loop playsinline preload="auto"></video></div><div class="vcap">梦里的怪物永远不发火球，火球刚成形就消失</div></div>
+    <div class="tblwrap">
+      <div class="tt">采样温度 τ · 梦里分数 vs 真实分数</div>
+      <table class="tbl">
+        <tr><th>τ</th><th>梦里</th><th>真实</th></tr>
+        <tr class="bad"><td>0.10</td><td>2086</td><td>193</td></tr>
+        <tr><td>1.00</td><td>1145</td><td>868</td></tr>
+        <tr class="hi"><td>1.15</td><td>918</td><td>1092</td></tr>
+        <tr><td>1.30</td><td>732</td><td>753</td></tr>
+        <tr><td>随机策略</td><td>—</td><td>210</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="note">τ 越高梦越随机、越难钻，太高梦就失真　·　论文第 5 节提出「采集 → 训 M → 梦里训 C → 再采集」的循环，没有做</div>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-sec="02 PlaNet" data-title="RSSM：h + s">
+  <div class="kicker"><b>02</b>PlaNet · 2018-11 · Hafner 等</div>
+  <h1>RSSM：<span class="thin">确定性的 h 记历史，随机的 s 表达多种未来</span></h1>
+  <div class="fig card"><img src="media/planet_fig2_rssm.png" alt=""></div>
+  <div class="note">encoder、dynamics、reward 头一起训　·　不训策略，每步在 latent 里用 CEM 规划　·　1,000 局 ≈ D4PG 100,000 局</div>
+</section>
+
+<!-- 9b -->
+<section class="slide" data-sec="02 PlaNet" data-title="三种设计的对比">
+  <div class="kicker"><b>02</b>PlaNet · 模型设计消融 · Cheetah Run</div>
+  <h1>纯 GRU 几乎不学，<span class="thin">纯随机 SSM 学得慢</span></h1>
+  <div class="fig card"><img src="media/planet_cheetah_rssm_curve.png" alt=""></div>
+  <div class="note">GRU 只能输出一个未来，规划器会钻它的错　·　SSM 里信息跨多步要反复穿过采样，记不住　·　h 和 s 并用最好</div>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-sec="03 Dreamer" data-title="Dreamer v1：在想象里训 actor-critic">
+  <div class="kicker"><b>03</b>Dreamer v1 · 2019-12</div>
+  <h1>在想象里训 actor-critic，<span class="thin">不再每步规划</span></h1>
+  <div class="fig card"><img src="media/dv1_imagination-1.png" alt=""></div>
+  <div class="note">从真实状态出发想象 15 步，不渲染像素　·　critic 补 15 步之外的回报　·　actor 的梯度沿动力学反传　·　DMC 20 任务 <b>823</b> vs D4PG 786（20 倍数据）</div>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-sec="03 Dreamer" data-title="Dreamer 的循环">
+  <div class="kicker"><b>03</b>Dreamer · 训练循环</div>
+  <h1>策略钻到哪里，<span class="thin">下一轮真实数据就修哪里</span></h1>
+  <div class="diagbox"><svg viewBox="0 0 1660 640" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0071E3"/></marker></defs>
+<g font-family="PingFang SC, Helvetica Neue, sans-serif">
+  <!-- nodes -->
+  <g><rect x="80" y="90" width="420" height="170" rx="28" fill="#F5F5F7"/><text x="290" y="160" text-anchor="middle" font-size="38" font-weight="600" fill="#1D1D1F">真实环境</text><text x="290" y="212" text-anchor="middle" font-size="26" fill="#6E6E73">当前 actor 采 1 局</text></g>
+  <g><rect x="1160" y="90" width="420" height="170" rx="28" fill="#F5F5F7"/><text x="1370" y="160" text-anchor="middle" font-size="38" font-weight="600" fill="#1D1D1F">Replay buffer</text><text x="1370" y="212" text-anchor="middle" font-size="26" fill="#6E6E73">真实序列 (画面, 动作, 分数)</text></g>
+  <g><rect x="1160" y="400" width="420" height="170" rx="28" fill="#E8F0FE"/><text x="1370" y="470" text-anchor="middle" font-size="38" font-weight="600" fill="#0071E3">训世界模型</text><text x="1370" y="522" text-anchor="middle" font-size="26" fill="#6E6E73">重建 + reward + KL</text></g>
+  <g><rect x="80" y="400" width="420" height="170" rx="28" fill="#E8F0FE"/><text x="290" y="470" text-anchor="middle" font-size="38" font-weight="600" fill="#0071E3">想象 15 步</text><text x="290" y="522" text-anchor="middle" font-size="26" fill="#6E6E73">只在梦里更新 actor 和 critic</text></g>
+  <!-- arrows -->
+  <g fill="none" stroke="#0071E3" stroke-width="5" marker-end="url(#ar)">
+    <line x1="510" y1="175" x2="1148" y2="175"/>
+    <line x1="1370" y1="270" x2="1370" y2="388"/>
+    <line x1="1150" y1="485" x2="512" y2="485"/>
+    <line x1="290" y1="390" x2="290" y2="272"/>
+  </g>
+  <g font-size="26" fill="#6E6E73" text-anchor="middle">
+    <text x="830" y="150">存进去</text>
+    <text x="1450" y="340">抽 50 条 × 50 步</text>
+    <text x="830" y="460">从每个真实状态出发</text>
+    <text x="180" y="340" text-anchor="start">新 actor 回环境</text>
+  </g>
+  <text x="830" y="335" text-anchor="middle" font-size="30" font-weight="600" fill="#1D1D1F">每 100 次梯度更新，采 1 局新数据</text>
+</g>
+</svg></div>
+  <div class="note">World Models：数据只采一次，V → M → C 串行走完　·　Dreamer：三块一起循环着训，钻漏洞的那一局本身就是模型最缺的数据</div>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-sec="04 Dreamer v2" data-title="Dreamer v2：离散 latent">
+  <div class="kicker"><b>04</b>Dreamer v2 · 2020-10</div>
+  <h1>latent 从高斯改成 <span class="thin">32 个 categorical × 32 类</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/dv2_model-1.png" alt=""></div>
+    <div class="fig card"><img src="media/dv2_first-1.png" alt=""></div>
+  </div>
+  <div class="note">+ KL balancing　·　Atari 55 游戏、200M 帧，第一次超过 Rainbow / IQN</div>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-sec="05 Dreamer v3" data-title="Dreamer v3：一套超参">
+  <div class="kicker"><b>05</b>Dreamer v3 · 2023-01</div>
+  <h1>一套超参，<span class="thin">8 个领域 150+ 任务</span></h1>
+  <div class="fig card"><img src="media/dv3_bars-1.png" alt=""></div>
+  <div class="note">symlog · twohot · free bits · 回报归一化　·　不用人类数据，从零在 Minecraft 挖到钻石　·　12M → 400M 单调提升</div>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-sec="06 DayDreamer" data-title="DayDreamer：4 台真机">
+  <div class="kicker"><b>06</b>DayDreamer · 2022-06 · Wu, Escontrela, Hafner · UC Berkeley</div>
+  <h1>Dreamer v2 原样搬上 4 台真机</h1>
+  <div class="fig video white"><video src="media/video/dd_robots.mp4" muted loop playsinline preload="auto"></video></div>
+  <div class="note">不用仿真器、不用示教、不用预训练　·　四个任务同一套超参</div>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-sec="06 DayDreamer" data-title="两个进程">
+  <div class="kicker"><b>06</b>DayDreamer · 流程</div>
+  <h1>learner 和 actor 两个进程，<span class="thin">靠 replay 和 checkpoint 通信</span></h1>
+  <div class="fig card"><img src="media/dd_setup-1.png" alt=""></div>
+  <div class="note"><b>actor 进程</b>：读传感器 → 出动作 → 写 replay，20 Hz　·　<b>learner 进程</b>：训世界模型 + actor-critic，每 20 秒存一版新 actor</div>
+</section>
+
+<!-- 16 -->
+<section class="slide" data-sec="06 DayDreamer" data-title="模型：编码器融合多模态">
+  <div class="kicker"><b>06</b>DayDreamer · 模型</div>
+  <h1>编码器融合多模态；<span class="thin">想象在 latent 里并行 16K 条</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/dd_wmtrain-1.png" alt=""></div>
+    <div class="fig card"><img src="media/dd_pitrain-1.png" alt=""></div>
+  </div>
+  <div class="note">enc：关节角、图像、深度 → 离散 z　·　RSSM 不看输入预测未来的 z　·　reward 头让梦里能算分　·　actor / critic 只在梦里训，不解码</div>
+</section>
+
+<!-- 17 -->
+<section class="slide" data-sec="06 DayDreamer" data-title="A1：1 小时学会走">
+  <div class="kicker"><b>06</b>DayDreamer · A1 四足</div>
+  <h1>从仰面躺着到走路，<span class="thin">真机</span> <span class="acc">1 小时</span></h1>
+  <div class="fig video"><video src="media/video/dd_a1_learn_1h.mp4" muted playsinline preload="auto" controls></video></div>
+  <div class="note">5 分钟翻身 · 20 分钟站起 · 1 小时腾跃步态　·　12 个电机 20 Hz，输入只有关节角和 IMU，没有相机</div>
+</section>
+
+<!-- 18 -->
+<section class="slide" data-sec="06 DayDreamer" data-title="推倒后 10 分钟适应 · 对照 SAC">
+  <div class="kicker"><b>06</b>DayDreamer · A1 四足</div>
+  <h1>推倒后 10 分钟适应；<span class="thin">SAC 只学会翻身</span></h1>
+  <div class="fig2">
+    <div class="vcol"><div class="ph"><video src="media/video/dd_a1_push.mp4" muted loop playsinline preload="auto"></video></div><div class="vcap">训完 1 小时后用杆子推，再学 10 分钟</div></div>
+    <div class="fig card"><img src="media/dd_a1-1.png" alt=""></div>
+  </div>
+  <div class="note">reward 是手写的五项级联：先直立，再站姿，最后前进速度　·　单次运行</div>
+</section>
+
+<!-- 19 -->
+<section class="slide" data-sec="06 DayDreamer" data-title="机械臂：稀疏奖励抓放">
+  <div class="kicker"><b>06</b>DayDreamer · 机械臂</div>
+  <h1>稀疏奖励抓放：<span class="thin">UR5 8 小时、XArm 10 小时，接近人</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/dd_ur5-1.png" alt=""></div>
+    <div class="fig card"><img src="media/dd_xarm-1.png" alt=""></div>
+  </div>
+  <div class="note">抓住 +1 · 同箱松开 −1 · 放对箱 +10　·　Rainbow / PPO 只学会抓起就丢回　·　Sphero 导航 2 小时，和 DrQ-v2 打平</div>
+</section>
+
+<!-- 20 -->
+<section class="slide" data-sec="06 DayDreamer" data-title="日出：性能归零，几小时后恢复">
+  <div class="kicker"><b>06</b>DayDreamer · 在线适应</div>
+  <h1>日出光照突变，性能归零；<span class="thin">不改算法，几小时后恢复</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/dd_adapt_xarm.png" alt=""></div>
+    <div class="pair">
+      <div class="ph white"><img src="media/dd_adapt_night_x8.png" alt=""><div class="cap">夜间 · 64×64</div></div>
+      <div class="ph white"><img src="media/dd_adapt_sunrise_x8.png" alt=""><div class="cap">日出 · 64×64</div></div>
+    </div>
+  </div>
+  <div class="note">世界模型不是训完就固定，环境变了它跟着变</div>
+</section>
+
+<!-- 21 -->
+<section class="slide" data-sec="07 小结" data-title="代价">
+  <div class="kicker"><b>07</b>小结</div>
+  <h1>代价</h1>
+  <div class="two">
+    <div class="col">
+      <div class="h2">作者自己说的</div>
+      <div class="li">长时间真机训练造成<b>硬件磨损</b>，需要人工干预或维修</div>
+      <div class="li">每个任务<b>单次运行</b>，没有多 seed</div>
+      <div class="li">更难的任务可能要把真机学习和仿真结合</div>
+    </div>
+    <div class="col">
+      <div class="h2">我读出来的</div>
+      <div class="li"><b>reward、安全规则、动作空间约束全是手写的</b>：Z 轴只在持物时可动、到对箱上方自动松爪、绳子系住物体</div>
+      <div class="li">每个任务从零学，世界模型<b>不跨任务、不跨机器人</b>，没有语言接口</div>
+      <div class="li">优势集中在<b>稀疏奖励</b>的长程任务；稠密奖励的 Sphero 和 model-free 打平</div>
+    </div>
+  </div>
+</section>
+
+<!-- 22 -->
+<section class="slide end" data-sec="07 收尾" data-title="收尾">
+  <div class="timeline"><div class="tl-row">
+    <div class="tl key"><div class="dot"></div><div class="d">2018-03</div><div class="n">World Models</div><div class="w">在 latent 里预测<br>在梦里训 C</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2018-11</div><div class="n">PlaNet</div><div class="w">RSSM：h + s<br>reward 头，联合训练</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2019-12</div><div class="n">Dreamer v1</div><div class="w">想象 15 步 + critic<br>边采边训的循环</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2020-10</div><div class="n">Dreamer v2</div><div class="w">离散 latent</div></div>
+    <div class="tl key"><div class="dot"></div><div class="d">2022-06</div><div class="n">DayDreamer</div><div class="w">真机 1 小时学会走</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2023-01</div><div class="n">Dreamer v3</div><div class="w">一套超参</div></div>
+  </div></div>
+  <div class="big">五年没变的骨架：<b>在 latent 里预测</b>　·　<b>h 记历史 + z 随机</b>　·　<b>动作是模型的输入</b>　·　<b>在梦里训策略，部署只跑策略</b></div>
+  <div class="big" style="margin-top:36px;font-size:36px">下期：世界模型 · 第 2 期</div>
+</section>
+
+</div>
+
+<div id="nav-hot"></div>
+<div id="nav-btn"><div class="b" id="nb-prev">‹</div><span class="pg" id="nb-pg">1 / 23</span><div class="b" id="nb-next">›</div><div class="b" id="nb-list">☰</div></div>
+<div id="nav-panel"></div>
+<div id="hud"></div>
+
+<script>
+(function(){
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const hud=document.getElementById('hud');
+  let cur=-1, showCounter=false;
+  function fit(){ const s=Math.min(innerWidth/1920, innerHeight/1080); stage.style.transform=`translate(-50%,-50%) scale(${s})`; if(cur>=0) fitFigs(slides[cur]); }
+  // 让白色图卡贴合图片比例：宽图不留大片空白，剩余空间上下均分
+  function fitFigs(sl){
+    sl.querySelectorAll(':scope > .fig.card, :scope > .fig.video').forEach(f=>{
+      const img=f.querySelector('img,video'); if(!img) return;
+      const nw=img.naturalWidth||img.videoWidth, nh=img.naturalHeight||img.videoHeight; if(!nw||!nh) return;
+      f.style.flex=''; f.style.width=''; f.style.height=''; f.style.margin='';
+      const W=f.clientWidth, H=f.clientHeight; if(!W||!H) return;
+      const pad=f.classList.contains('card')?60:0, ar=nw/nh;
+      let w=W, h=(W-pad)/ar+pad; if(h>H){ h=H; w=(H-pad)*ar+pad; }
+      f.style.flex='0 0 auto'; f.style.width=Math.round(w)+'px'; f.style.height=Math.round(h)+'px'; f.style.margin='auto';
+    });
+    // 两图并排（.fig2）：每张卡各自贴合图片比例，行内居中
+    sl.querySelectorAll(':scope > .fig2').forEach(row=>{
+      const cards=[...row.querySelectorAll(':scope > .fig.card')]; if(!cards.length) return;
+      cards.forEach(f=>{ f.style.flex=''; f.style.width=''; f.style.height=''; f.style.alignSelf=''; });
+      row.style.justifyContent='';
+      const H=row.clientHeight; if(!H) return;
+      const sizes=cards.map(f=>{ const img=f.querySelector('img'); if(!img||!img.naturalWidth) return null;
+        const W=f.clientWidth, pad=60, ar=img.naturalWidth/img.naturalHeight; let w=W, h=(W-pad)/ar+pad; if(h>H){ h=H; w=(H-pad)*ar+pad; } return [w,h]; });
+      if(sizes.some(x=>!x)) return;
+      cards.forEach((f,i)=>{ f.style.flex='0 0 auto'; f.style.width=Math.round(sizes[i][0])+'px'; f.style.height=Math.round(sizes[i][1])+'px'; f.style.alignSelf='center'; });
+      row.style.justifyContent='center';
+    });
+  }
+  document.querySelectorAll('.slide > .fig.card img, .slide > .fig2 > .fig.card img').forEach(img=>img.addEventListener('load',()=>{ const sl=img.closest('.slide'); if(sl.classList.contains('active')) fitFigs(sl); }));
+  document.querySelectorAll('.slide > .fig.video video').forEach(v=>v.addEventListener('loadedmetadata',()=>{ const sl=v.closest('.slide'); if(sl.classList.contains('active')) fitFigs(sl); }));
+  function show(n){
+    n=Math.max(0,Math.min(slides.length-1,n)); if(n===cur) return;
+    slides.forEach((s,k)=>{ const on=k===n; s.classList.toggle('active',on); s.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(e){} v.play().catch(()=>{}); } else { v.pause(); } }); });
+    cur=n; history.replaceState(null,'','#'+(n+1)); updateHud(); fitFigs(slides[n]);
+  }
+  const navBtn=document.getElementById('nav-btn'), panel=document.getElementById('nav-panel'), pg=document.getElementById('nb-pg');
+  (function buildNav(){
+    let html='', lastSec=null;
+    slides.forEach((sl,k)=>{
+      const sec=sl.dataset.sec||''; const h=sl.querySelector('h1');
+      let title=sl.dataset.title||(h?h.textContent.trim():''); if(!title) title=sec;
+      if(sec!==lastSec){ html+=`<div class="sec-title">${sec||'—'}</div>`; lastSec=sec; }
+      html+=`<div class="it" data-k="${k}"><span class="k">${k+1}</span><span>${title}</span></div>`;
+    });
+    panel.innerHTML=html;
+  })();
+  function toggleNav(force){ const on=(force===undefined)?!panel.classList.contains('open'):force; panel.classList.toggle('open',on); navBtn.classList.toggle('open',on); }
+  document.getElementById('nb-list').addEventListener('click',e=>{ e.stopPropagation(); toggleNav(); });
+  document.getElementById('nb-prev').addEventListener('click',e=>{ e.stopPropagation(); prev(); });
+  document.getElementById('nb-next').addEventListener('click',e=>{ e.stopPropagation(); next(); });
+  navBtn.addEventListener('click',e=>{ e.stopPropagation(); });
+  panel.addEventListener('click',e=>{ e.stopPropagation(); const it=e.target.closest('.it'); if(!it) return; show(parseInt(it.dataset.k,10)); toggleNav(false); });
+  function updateHud(){ pg.textContent=`${cur+1} / ${slides.length}`; hud.textContent = showCounter ? `${cur+1} / ${slides.length}` : '← → 翻页 · F 全屏 · C 页码 · 左上角选页'; panel.querySelectorAll('.it').forEach((el,k)=>el.classList.toggle('cur',k===cur)); }
+  function next(){ show(cur+1); } function prev(){ show(cur-1); }
+  let buf='', bt=null;
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if(e.key==='Escape'){ toggleNav(false); }
+    else if(e.key==='g'||e.key==='G'){ toggleNav(); }
+    else if(e.key==='Home'){ show(0); } else if(e.key==='End'){ show(slides.length-1); }
+    else if(e.key==='f'||e.key==='F'){ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }
+    else if(e.key==='c'||e.key==='C'){ showCounter=!showCounter; hud.classList.toggle('show',showCounter); updateHud(); }
+    else if(/^[0-9]$/.test(e.key)){ buf=(buf+e.key).slice(-2); clearTimeout(bt); bt=setTimeout(()=>{ const k=parseInt(buf,10); if(k>=1&&k<=slides.length) show(k-1); buf=''; },500); }
+  });
+  addEventListener('click',e=>{ if(e.target.closest('a,video[controls],#nav-panel,#nav-btn,#nav-hot')) return; if(panel.classList.contains('open')){ toggleNav(false); return; } const x=e.clientX/innerWidth; if(x<0.2) prev(); else next(); });
+  addEventListener('resize',fit); fit();
+  const h=parseInt((location.hash||'#1').slice(1),10); show(isNaN(h)?0:h-1);
+  if(/[?&]nav=1/.test(location.search)) toggleNav(true);
+  hud.classList.add('show'); setTimeout(()=>{ if(!showCounter) hud.classList.remove('show'); },4000);
+})();
+</script>
+</body>
+</html>
