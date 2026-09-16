@@ -55,4 +55,4 @@ Setting：CarRacing-v0（Box2D 俯视赛车，赛道每局随机生成，3 维�
   - CMA-ES 进化线性 controller——Dreamer 改用梯度训练的 MLP actor-critic，controller 不再受"几千参数"限制。
   - 无 reward 预测头——PlaNet / Dreamer 都加 reward（DreamerV3 再加 continue）头；本文只有 Doom 版的 done 头。
   - 温度 τ 这个旋钮——后续靠短 horizon 想象（DreamerV3 是 15 步）、随机 latent 和 KL 正则来限制 policy 钻漏洞，不再显式调采样温度。
-  - 像素重建本身——muzero-value-equivalent-planning 改为只要求 value / reward 等价；tdmpc2-scalable-latent-mpc、dino-wm、vjepa2、lecun-2022-path-towards-ami（JEPA）改为不重建像素，正是回应本文 Section 7 "VAE 编码任务无关细节"的局限。
+  - 像素重建本身——muzero-value-equivalent-planning 改为只要求 value / reward 等价；tdmpc2-scalable-latent-mpc、dino-wm、vjepa2、LeCun-2022-立场文（JEPA）改为不重建像素，正是回应本文 Section 7 "VAE 编码任务无关细节"的局限。

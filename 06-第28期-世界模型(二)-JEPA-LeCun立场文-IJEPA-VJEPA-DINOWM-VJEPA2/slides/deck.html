@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>世界模型 02 · JEPA</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#F5F5F7; --ink:#1D1D1F; --muted:#6E6E73; --faint:#A1A1A6; --line:#D2D2D7; --card:#FFFFFF;
+  --accent:#0071E3;
+  --font:"PingFang SC","SF Pro Display","SF Pro SC","Hiragino Sans GB","Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono","Menlo","JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(1);transform-origin:center;background:var(--bg)}
+.slide{position:absolute;inset:0;padding:92px 128px 84px;display:none;flex-direction:column}
+.slide.active{display:flex}
+.kicker{font-size:22px;font-weight:500;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.kicker b{color:var(--ink);font-weight:600;margin-right:14px}
+h1{font-size:70px;font-weight:600;letter-spacing:-.012em;line-height:1.15;margin-top:20px}
+h1 .thin{font-weight:400;color:var(--muted)}
+h1 .acc{color:var(--accent)}
+.sub{font-size:30px;color:var(--muted);margin-top:14px;font-weight:400;line-height:1.4}
+.fig{flex:1;min-height:0;position:relative;margin-top:40px}
+.fig img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.fig.card{background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.fig.card img{padding:30px}
+.fig video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.fig.video{background:#000;border-radius:26px;overflow:hidden}
+.fig2{flex:1;min-height:0;display:flex;gap:30px;margin-top:40px}
+.fig2 .fig{margin:0}
+.vcol{flex:1;display:flex;flex-direction:column;min-height:0}
+.vcol .ph{flex:1;min-height:0}
+.vcap{margin-top:18px;font-size:27px;color:var(--muted);text-align:center;line-height:1.4}
+.vcap b{color:var(--ink);font-weight:600}
+.ph{position:relative;border-radius:22px;overflow:hidden;background:#000}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ph.fit img{object-fit:contain}
+.ph.white{background:#fff;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.ph.white.fit img{padding:26px}
+.diagbox{flex:1;min-height:0;position:relative;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.diagbox svg{position:absolute;inset:0;width:100%;height:100%}
+.note{margin-top:30px;font-size:30px;color:var(--muted);text-align:center;line-height:1.45}
+.note b{color:var(--ink);font-weight:600}
+/* code card */
+.code{flex:1;min-height:0;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:38px 52px;margin-top:40px;font-family:var(--mono);font-size:25px;line-height:1.56;white-space:pre;overflow:hidden;color:var(--ink);tab-size:4}
+.code .c{color:var(--faint)}
+.code .hl{color:var(--accent);font-weight:600}
+.row{flex:1;min-height:0;display:flex;gap:30px;margin-top:40px}
+.row .code{margin-top:0;flex:1.5;font-size:24px}
+.row .diagbox{flex:1}
+/* big numbers */
+.stats{display:flex;gap:80px;justify-content:center;align-items:flex-start}
+.stat{text-align:center;min-width:300px}
+.stat .v{font-size:110px;font-weight:600;letter-spacing:-.025em;line-height:1}
+.stat .v small{font-size:44px;font-weight:500;color:var(--muted);margin-left:6px}
+.stat .k{font-size:25px;color:var(--muted);margin-top:18px;line-height:1.4}
+.stat.accent .v{color:var(--accent)}
+.mid{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:96px}
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:32px;text-align:center}
+.tbl th{font-size:24px;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;padding:0 0 18px;border-bottom:2px solid var(--line)}
+.tbl td{padding:22px 0;border-bottom:1px solid var(--line);font-family:var(--mono)}
+.tbl td:first-child{font-family:var(--mono);color:var(--muted)}
+.tbl tr.hi td{color:var(--accent);font-weight:600}
+.tbl tr.bad td{color:#D0342C}
+.tbl.small{font-size:28px}
+.tbl.small td{padding:18px 0}
+.tbl.left{text-align:left}
+.tbl.left th{text-align:left;padding-left:16px}
+.tbl.left td{font-family:var(--font);font-size:27px;padding:16px 16px;line-height:1.35}
+.tbl.left td:first-child{color:var(--ink);font-family:var(--font);font-weight:500}
+.tbl.left td.ok{color:var(--accent);font-weight:600;font-family:var(--font)}
+.tbl.left td.no{color:#D0342C;font-weight:600;font-family:var(--font)}
+.tbl.left td.part{color:var(--muted);font-weight:600;font-family:var(--font)}
+.tbl.left td:nth-child(2){white-space:nowrap;color:var(--muted)}
+.tbl.left.compact td{font-size:25px;padding:13px 14px}
+.tblwrap{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:40px 56px;margin-top:40px}
+.fig2 .tblwrap{margin-top:0}
+.tblwrap .tt{font-size:24px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;font-weight:500;margin-bottom:26px;text-align:center}
+/* timeline */
+.timeline{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 10px}
+.tl-row{position:relative;display:flex;justify-content:space-between;padding-top:56px}
+.tl-row:before{content:"";position:absolute;left:7%;right:7%;top:0;height:2px;background:var(--line)}
+.tl{flex:1;text-align:center;position:relative}
+.tl .dot{position:absolute;left:50%;top:-66px;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:var(--line)}
+.tl.key .dot{background:var(--accent);box-shadow:0 0 0 10px rgba(0,113,227,.15)}
+.tl .d{font-family:var(--mono);font-size:20px;color:var(--muted);letter-spacing:.06em}
+.tl .n{font-size:40px;font-weight:600;margin-top:10px;letter-spacing:-.01em;line-height:1.15}
+.tl.key .n{color:var(--accent)}
+.tl.dim .n{color:var(--faint)}
+.tl .w{font-size:22px;color:var(--muted);margin-top:12px;line-height:1.4;padding:0 12px}
+/* two columns of text */
+.two{display:flex;gap:80px;flex:1;margin-top:48px;align-items:flex-start}
+.two .col{flex:1}
+.h2{font-size:22px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;font-weight:500}
+.li{font-size:30px;line-height:1.45;padding:20px 0;border-top:1px solid var(--line)}
+.li:last-child{border-bottom:1px solid var(--line)}
+.li b{font-weight:600}
+/* name page (big acronym) */
+.name{justify-content:center;align-items:center;text-align:center}
+.name .big{font-size:300px;font-weight:600;letter-spacing:-.04em;line-height:1;color:var(--ink)}
+.name .full{font-size:64px;font-weight:500;color:var(--ink);margin-top:36px;letter-spacing:-.01em}
+.name .full b{color:var(--accent);font-weight:600}
+.name .cn{font-size:40px;color:var(--muted);margin-top:22px;font-weight:400}
+/* stage-2 animation page */
+.row.anim .diagbox{flex:1.75}
+.stepcol{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;min-height:0}
+.step-item{display:flex;gap:16px;align-items:flex-start;padding:14px 18px;border-radius:18px;opacity:.38;transition:opacity .4s,background .4s}
+.step-item.cur{opacity:1;background:var(--card);box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.step-item .sn{flex:none;width:36px;height:36px;border-radius:50%;background:var(--line);color:#fff;font-size:20px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.step-item.cur .sn{background:var(--accent)}
+.step-item .st{font-size:23px;line-height:1.4;color:var(--muted)}
+.step-item .st b{display:block;color:var(--ink);font-weight:600;font-size:25px;margin-bottom:2px}
+.step-item.cur .st{color:var(--ink)}
+.stephint{font-family:var(--mono);font-size:18px;color:var(--faint);letter-spacing:.08em;text-align:right;padding-right:18px}
+svg[data-anim] [data-a]{opacity:.1;transition:opacity .5s}
+svg[data-anim] [data-a].on{opacity:1}
+/* cover / end */
+.cover{padding:0}
+.cover .t{position:absolute;left:128px;top:150px}
+.cover .kicker{font-size:24px}
+.cover h1{font-size:230px;letter-spacing:-.035em;line-height:.95;margin-top:26px}
+.cover .p{font-size:42px;color:var(--muted);margin-top:26px;font-weight:400;max-width:1500px;line-height:1.35}
+.cover .p b{color:var(--ink);font-weight:600}
+.cover .brand{position:absolute;right:128px;top:158px;font-size:26px;letter-spacing:.14em;color:var(--muted)}
+.cover .photos{position:absolute;left:0;right:0;bottom:0;height:330px;display:flex;gap:6px;background:#000}
+.cover .photos img{flex:1;min-width:0;height:100%;object-fit:cover;display:block}
+.end{justify-content:center}
+.end .timeline{flex:0 0 auto;margin-bottom:70px}
+.end .big{font-size:44px;text-align:center;color:var(--muted);margin-top:30px;line-height:1.5}
+.end .big b{color:var(--ink);font-weight:600}
+/* nav (top-left page control) */
+#nav-hot{position:fixed;left:0;top:0;width:220px;height:110px;z-index:20}
+#nav-btn{position:fixed;left:14px;top:14px;height:44px;padding:0 14px 0 10px;border-radius:10px;background:rgba(29,29,31,.82);color:#fff;font-size:18px;font-family:var(--mono);display:flex;align-items:center;gap:10px;cursor:pointer;opacity:.22;transition:opacity .25s;z-index:21;user-select:none}
+#nav-btn span.pg{font-size:18px;letter-spacing:.06em}
+#nav-btn .b{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14)}
+#nav-btn .b:hover{background:rgba(255,255,255,.3)}
+#nav-hot:hover ~ #nav-btn,#nav-btn:hover,#nav-btn.open{opacity:1}
+#nav-panel{position:fixed;left:14px;top:66px;width:440px;max-height:calc(100vh - 90px);overflow:auto;background:#fff;color:#1D1D1F;border:1px solid #D2D2D7;border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.18);padding:8px;display:none;z-index:22;font-family:var(--font);font-size:14px}
+#nav-panel.open{display:block}
+#nav-panel .sec-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:#6E6E73;padding:10px 10px 4px;text-transform:uppercase}
+#nav-panel .it{display:flex;gap:10px;align-items:baseline;padding:7px 10px;border-radius:8px;cursor:pointer;line-height:1.35}
+#nav-panel .it:hover{background:#F5F5F7}
+#nav-panel .it.cur{background:#E8F0FE;color:#0071E3}
+#nav-panel .it .k{font-family:var(--mono);font-size:12px;color:#6E6E73;min-width:24px;text-align:right}
+#nav-panel .it.cur .k{color:#0071E3}
+#hud{position:fixed;left:18px;bottom:14px;font-family:var(--mono);font-size:13px;color:#8e8e93;opacity:0;transition:opacity .6s;pointer-events:none;z-index:9}
+#hud.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- 1 -->
+<section class="slide cover" data-sec="封面" data-title="封面">
+  <div class="t">
+    <div class="kicker">世界模型 · 第 2 期 · 2022 → 2025</div>
+    <h1>JEPA</h1>
+    <div class="p">LeCun 立场文 → I-JEPA → V-JEPA → DINO-WM → <b>V-JEPA 2-AC</b>：在表征空间预测，不生成像素</div>
+  </div>
+  <div class="brand">可lip</div>
+  <div class="photos">
+    <img src="media/cover_ijepa_context.png" alt="">
+    <img src="media/v1_samples.png" alt="">
+    <img src="media/cover_dw_pusht.png" alt="">
+    <img src="media/v2_lab_photo.jpg" alt="">
+    <img src="media/v2_wm_grid_correction.png" alt="">
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-sec="00 这条线" data-title="五篇论文，三年">
+  <div class="kicker"><b>00</b>这条线</div>
+  <h1>五篇论文，三年</h1>
+  <div class="sub">重点讲第一篇的思想和最后一篇的做法，中间三篇讲它们各自证明了什么</div>
+  <div class="timeline"><div class="tl-row">
+    <div class="tl key"><div class="dot"></div><div class="d">2022-06</div><div class="n">LeCun 立场文</div><div class="w">六模块架构 + JEPA<br>62 页，没有实验</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2023-01</div><div class="n">I-JEPA</div><div class="w">图像<br>预测表征，不预测像素</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2024-02</div><div class="n">V-JEPA</div><div class="w">视频<br>挖掉 90% 的时空块</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2024-11</div><div class="n">DINO-WM</div><div class="w">冻结特征 + 小预测器<br>仿真里规划</div></div>
+    <div class="tl key"><div class="dot"></div><div class="d">2025-06</div><div class="n">V-JEPA 2-AC</div><div class="w">100 万小时视频预训练<br>真机零样本抓放</div></div>
+    <div class="tl dim"><div class="dot"></div><div class="d">2026-03</div><div class="n">LeWorldModel</div><div class="w">从像素端到端训<br>以后再讲</div></div>
+  </div></div>
+</section>
+
+<!-- 3 -->
+<section class="slide name" data-sec="01 LeCun 2022" data-title="JEPA 全称">
+  <div class="big">JEPA</div>
+  <div class="full"><b>J</b>oint-<b>E</b>mbedding <b>P</b>redictive <b>A</b>rchitecture</div>
+  <div class="cn">联合嵌入 · 预测 · 架构　·　LeCun 2022 立场文 §4</div>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-sec="01 LeCun 2022" data-title="生成式 vs JEPA">
+  <div class="kicker"><b>01</b>LeCun 2022 · JEPA · 表征 ≈ 摘要</div>
+  <h1>生成式画下一帧，<span class="thin">JEPA 只预测下一帧的摘要</span></h1>
+  <div class="diagbox"><svg viewBox="-36 -6 1736 616" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid meet">
+<defs>
+  <marker id="arG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8E8E93"/></marker>
+  <marker id="arR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#D0342C"/></marker>
+  <clipPath id="cA0"><rect x="210" y="60" width="130" height="130" rx="16"/></clipPath>
+  <clipPath id="cA1"><rect x="350" y="60" width="130" height="130" rx="16"/></clipPath>
+  <clipPath id="cA2"><rect x="490" y="60" width="130" height="130" rx="16"/></clipPath>
+  <clipPath id="cAh"><rect x="970" y="60" width="130" height="130" rx="16"/></clipPath>
+  <clipPath id="cAy"><rect x="1534" y="60" width="130" height="130" rx="16"/></clipPath>
+  <clipPath id="cB0"><rect x="210" y="360" width="130" height="130" rx="16"/></clipPath>
+  <clipPath id="cB1"><rect x="350" y="360" width="130" height="130" rx="16"/></clipPath>
+  <clipPath id="cB2"><rect x="490" y="360" width="130" height="130" rx="16"/></clipPath>
+  <clipPath id="cBy"><rect x="1534" y="360" width="130" height="130" rx="16"/></clipPath>
+</defs>
+<g font-family="PingFang SC, Helvetica Neue, sans-serif">
+
+  <!-- ===== Row A: generative (center y = 125) ===== -->
+  <text x="0" y="118" font-size="40" font-weight="600" fill="#1D1D1F">生成式</text>
+  <text x="0" y="156" font-size="24" fill="#6E6E73">在像素里比</text>
+  <image href="media/jepa_x0.png" x="210" y="60" width="130" height="130" clip-path="url(#cA0)"/>
+  <image href="media/jepa_x1.png" x="350" y="60" width="130" height="130" clip-path="url(#cA1)"/>
+  <image href="media/jepa_x2.png" x="490" y="60" width="130" height="130" clip-path="url(#cA2)"/>
+  <text x="415" y="222" text-anchor="middle" font-size="22" fill="#6E6E73">x · 过去几帧</text>
+  <line x1="628" y1="125" x2="654" y2="125" stroke="#8E8E93" stroke-width="3" marker-end="url(#arG)"/>
+  <rect x="660" y="93" width="110" height="64" rx="16" fill="#F5F5F7"/><text x="715" y="134" text-anchor="middle" font-size="25" font-weight="600" fill="#1D1D1F">Enc</text>
+  <line x1="776" y1="125" x2="804" y2="125" stroke="#8E8E93" stroke-width="3" marker-end="url(#arG)"/>
+  <rect x="810" y="93" width="110" height="64" rx="16" fill="#F5F5F7"/><text x="865" y="134" text-anchor="middle" font-size="25" font-weight="600" fill="#1D1D1F">Dec</text>
+  <line x1="926" y1="125" x2="964" y2="125" stroke="#8E8E93" stroke-width="3" marker-end="url(#arG)"/>
+  <image href="media/jepa_yhat.png" x="970" y="60" width="130" height="130" clip-path="url(#cAh)"/>
+  <text x="1035" y="222" text-anchor="middle" font-size="22" fill="#6E6E73">ŷ · 画出来的下一帧</text>
+  <text x="1035" y="250" text-anchor="middle" font-size="20" fill="#A1A1A6">多种未来平均成糊图</text>
+  <line x1="1106" y1="125" x2="1136" y2="125" stroke="#D0342C" stroke-width="3" marker-end="url(#arR)"/>
+  <rect x="1142" y="93" width="150" height="64" rx="16" fill="#FDECEC" stroke="#D0342C" stroke-width="2"/><text x="1217" y="134" text-anchor="middle" font-size="24" font-weight="600" fill="#D0342C">逐像素比</text>
+  <line x1="1528" y1="125" x2="1298" y2="125" stroke="#D0342C" stroke-width="3" marker-end="url(#arR)"/>
+  <image href="media/jepa_y.png" x="1534" y="60" width="130" height="130" clip-path="url(#cAy)"/>
+  <text x="1599" y="222" text-anchor="middle" font-size="22" fill="#6E6E73">y · 真实下一帧</text>
+  <text x="1413" y="108" text-anchor="middle" font-size="20" fill="#6E6E73">每个像素都要画</text>
+  <text x="1413" y="162" text-anchor="middle" font-size="20" fill="#6E6E73">树叶、涟漪画不出来</text>
+
+  <!-- divider -->
+  <line x1="210" y1="290" x2="1664" y2="290" stroke="#D2D2D7" stroke-width="2"/>
+
+  <!-- ===== Row B: JEPA (center y = 425) ===== -->
+  <text x="0" y="418" font-size="40" font-weight="600" fill="#0071E3">JEPA</text>
+  <text x="0" y="456" font-size="24" fill="#6E6E73">在摘要里比</text>
+  <image href="media/jepa_x0.png" x="210" y="360" width="130" height="130" clip-path="url(#cB0)"/>
+  <image href="media/jepa_x1.png" x="350" y="360" width="130" height="130" clip-path="url(#cB1)"/>
+  <image href="media/jepa_x2.png" x="490" y="360" width="130" height="130" clip-path="url(#cB2)"/>
+  <line x1="628" y1="425" x2="654" y2="425" stroke="#8E8E93" stroke-width="3" marker-end="url(#arG)"/>
+  <rect x="660" y="393" width="110" height="64" rx="16" fill="#F5F5F7"/><text x="715" y="434" text-anchor="middle" font-size="25" font-weight="600" fill="#1D1D1F">Enc_x</text>
+  <line x1="776" y1="425" x2="804" y2="425" stroke="#8E8E93" stroke-width="3" marker-end="url(#arG)"/>
+  <!-- s_x card -->
+  <rect x="810" y="348" width="120" height="154" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+  <text x="870" y="380" text-anchor="middle" font-size="23" font-weight="600" fill="#1D1D1F">s_x</text>
+  <text x="870" y="414" text-anchor="middle" font-size="20" fill="#1D1D1F">臂在哪</text>
+  <text x="870" y="444" text-anchor="middle" font-size="20" fill="#1D1D1F">夹爪开合</text>
+  <text x="870" y="474" text-anchor="middle" font-size="20" fill="#1D1D1F">杯子在哪</text>
+  <line x1="936" y1="425" x2="964" y2="425" stroke="#8E8E93" stroke-width="3" marker-end="url(#arG)"/>
+  <!-- predictor + z -->
+  <rect x="970" y="393" width="120" height="64" rx="16" fill="#E8F0FE"/><text x="1030" y="434" text-anchor="middle" font-size="25" font-weight="600" fill="#0071E3">Pred</text>
+  <circle cx="1030" cy="330" r="22" fill="#FFFFFF" stroke="#D0342C" stroke-width="3"/><text x="1030" y="338" text-anchor="middle" font-size="22" font-weight="600" fill="#D0342C">z</text>
+  <line x1="1030" y1="354" x2="1030" y2="387" stroke="#D0342C" stroke-width="3" marker-end="url(#arR)"/>
+  <text x="1064" y="337" font-size="20" fill="#D0342C">④ 左转还是右转，越小越好</text>
+  <line x1="1096" y1="425" x2="1136" y2="425" stroke="#D0342C" stroke-width="3" marker-end="url(#arR)"/>
+  <text x="1116" y="412" text-anchor="middle" font-size="19" fill="#0071E3">s̃_y</text>
+  <rect x="1142" y="393" width="150" height="64" rx="16" fill="#FDECEC" stroke="#D0342C" stroke-width="2"/><text x="1217" y="434" text-anchor="middle" font-size="24" font-weight="600" fill="#D0342C">比摘要</text>
+  <line x1="1336" y1="425" x2="1298" y2="425" stroke="#D0342C" stroke-width="3" marker-end="url(#arR)"/>
+  <!-- s_y card with dropped details -->
+  <rect x="1340" y="348" width="120" height="154" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+  <text x="1400" y="380" text-anchor="middle" font-size="23" font-weight="600" fill="#1D1D1F">s_y</text>
+  <text x="1400" y="414" text-anchor="middle" font-size="20" fill="#1D1D1F">臂在哪</text>
+  <text x="1400" y="444" text-anchor="middle" font-size="20" fill="#1D1D1F">夹爪开合</text>
+  <text x="1400" y="474" text-anchor="middle" font-size="20" fill="#1D1D1F">杯子在哪</text>
+  <text x="1400" y="498" text-anchor="middle" font-size="17" fill="#A1A1A6">背景 反光 树叶</text>
+  <line x1="1346" y1="493" x2="1454" y2="493" stroke="#D0342C" stroke-width="2"/>
+  <line x1="1528" y1="425" x2="1466" y2="425" stroke="#8E8E93" stroke-width="3" marker-end="url(#arG)"/>
+  <text x="1497" y="412" text-anchor="middle" font-size="19" fill="#6E6E73">Enc_y</text>
+  <image href="media/jepa_y.png" x="1534" y="360" width="130" height="130" clip-path="url(#cBy)"/>
+  <!-- callouts -->
+  <text x="870" y="540" text-anchor="middle" font-size="20" font-weight="600" fill="#0071E3">① 摘要不能空</text>
+  <text x="1217" y="540" text-anchor="middle" font-size="20" font-weight="600" fill="#0071E3">③ 能预测</text>
+  <text x="1400" y="540" text-anchor="middle" font-size="20" font-weight="600" fill="#0071E3">② 摘要不能空</text>
+  <text x="1599" y="540" text-anchor="middle" font-size="20" fill="#6E6E73">画不出来的不写</text>
+  <text x="415" y="540" text-anchor="middle" font-size="20" fill="#6E6E73">同一段过去</text>
+</g>
+</svg></div>
+  <div class="note">把动作交给预测器，s[t+1] = Pred(s[t], a[t])，在摘要里往前滚、做规划，就是世界模型　·　①②④ 防坍缩</div>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-sec="02 I-JEPA" data-title="I-JEPA：看一块，预测另外几块的摘要">
+  <div class="kicker"><b>02</b>I-JEPA · 2023-01 · Assran 等 · Meta · CVPR 2023</div>
+  <h1>I-JEPA：<span class="thin">看图的一块，预测另外四块的摘要</span></h1>
+  <div class="diagbox"><svg viewBox="-36 -6 1736 616" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid meet">
+<defs>
+  <marker id="ij-arG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8E8E93"/></marker>
+  <marker id="ij-arR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#D0342C"/></marker>
+  <clipPath id="ciX"><rect x="200" y="40" width="220" height="220" rx="18"/></clipPath>
+  <clipPath id="ciY"><rect x="200" y="330" width="220" height="220" rx="18"/></clipPath>
+</defs>
+<g font-family="PingFang SC, Helvetica Neue, sans-serif">
+  <text x="0" y="140" font-size="32" font-weight="600" fill="#1D1D1F">x · 上下文</text>
+  <text x="0" y="176" font-size="21" fill="#6E6E73">只看露出来的一块</text>
+  <image href="media/cover_ijepa_context.png" x="200" y="40" width="220" height="220" clip-path="url(#ciX)"/>
+  <text x="310" y="292" text-anchor="middle" font-size="20" fill="#6E6E73">1 块上下文，占 85–100%</text>
+  <line x1="430" y1="150" x2="464" y2="150" stroke="#8E8E93" stroke-width="3" marker-end="url(#ij-arG)"/>
+  <rect x="470" y="118" width="130" height="64" rx="16" fill="#F5F5F7"/><text x="535" y="159" text-anchor="middle" font-size="25" font-weight="600" fill="#1D1D1F">Enc_x</text>
+  <line x1="606" y1="150" x2="644" y2="150" stroke="#8E8E93" stroke-width="3" marker-end="url(#ij-arG)"/>
+  <rect x="650" y="80" width="130" height="150" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+  <text x="715" y="112" text-anchor="middle" font-size="23" font-weight="600" fill="#1D1D1F">s_x</text>
+  <text x="715" y="146" text-anchor="middle" font-size="20" fill="#1D1D1F">狗头朝上</text>
+  <text x="715" y="176" text-anchor="middle" font-size="20" fill="#1D1D1F">橙色项圈</text>
+  <text x="715" y="206" text-anchor="middle" font-size="20" fill="#1D1D1F">蓝天</text>
+  <text x="715" y="262" text-anchor="middle" font-size="20" font-weight="600" fill="#0071E3">① 摘要不能空</text>
+  <line x1="786" y1="150" x2="824" y2="150" stroke="#8E8E93" stroke-width="3" marker-end="url(#ij-arG)"/>
+  <rect x="830" y="118" width="130" height="64" rx="16" fill="#E8F0FE"/><text x="895" y="159" text-anchor="middle" font-size="25" font-weight="600" fill="#0071E3">Pred</text>
+  <circle cx="895" cy="52" r="22" fill="#FFFFFF" stroke="#D0342C" stroke-width="3"/><text x="895" y="60" text-anchor="middle" font-size="22" font-weight="600" fill="#D0342C">z</text>
+  <line x1="895" y1="76" x2="895" y2="112" stroke="#D0342C" stroke-width="3" marker-end="url(#ij-arR)"/>
+  <text x="930" y="59" font-size="20" fill="#D0342C">④ z 只有位置：猜哪一块，不带内容</text>
+  <line x1="966" y1="150" x2="1004" y2="150" stroke="#8E8E93" stroke-width="3" marker-end="url(#ij-arG)"/>
+  <rect x="1012" y="96" width="50" height="50" rx="6" fill="#2563EB" opacity="0.85"/>
+  <rect x="1070" y="96" width="50" height="50" rx="6" fill="#DC2626" opacity="0.85"/>
+  <rect x="1012" y="154" width="50" height="50" rx="6" fill="#EAB308" opacity="0.85"/>
+  <rect x="1070" y="154" width="50" height="50" rx="6" fill="#16A34A" opacity="0.85"/>
+  <text x="1066" y="232" text-anchor="middle" font-size="20" fill="#0071E3">s̃_y · 4 块的摘要</text>
+  <line x1="1128" y1="150" x2="1166" y2="150" stroke="#D0342C" stroke-width="3" marker-end="url(#ij-arR)"/>
+  <rect x="1172" y="118" width="150" height="64" rx="16" fill="#FDECEC" stroke="#D0342C" stroke-width="2"/><text x="1247" y="159" text-anchor="middle" font-size="24" font-weight="600" fill="#D0342C">比 · L2</text>
+  <text x="1247" y="222" text-anchor="middle" font-size="20" font-weight="600" fill="#0071E3">③ 能预测</text>
+  <text x="0" y="430" font-size="32" font-weight="600" fill="#1D1D1F">y · 整张图</text>
+  <text x="0" y="466" font-size="21" fill="#6E6E73">老师看全图</text>
+  <image href="media/cover_ijepa_original.png" x="200" y="330" width="220" height="220" clip-path="url(#ciY)"/>
+  <rect x="284" y="387" width="81" height="108" fill="none" stroke="#2563EB" stroke-width="4"/>
+  <rect x="311" y="386" width="81" height="109" fill="none" stroke="#DC2626" stroke-width="4"/>
+  <rect x="229" y="414" width="136" height="108" fill="none" stroke="#EAB308" stroke-width="4"/>
+  <rect x="284" y="414" width="109" height="109" fill="none" stroke="#16A34A" stroke-width="4"/>
+  <text x="310" y="582" text-anchor="middle" font-size="20" fill="#6E6E73">4 块目标，各占 15–20%</text>
+  <line x1="430" y1="440" x2="464" y2="440" stroke="#8E8E93" stroke-width="3" marker-end="url(#ij-arG)"/>
+  <rect x="470" y="408" width="130" height="64" rx="16" fill="#F5F5F7"/><text x="535" y="449" text-anchor="middle" font-size="25" font-weight="600" fill="#1D1D1F">Enc_y</text>
+  <text x="535" y="504" text-anchor="middle" font-size="20" fill="#6E6E73">Enc_x 的 EMA 副本</text>
+  <text x="535" y="532" text-anchor="middle" font-size="20" font-weight="600" fill="#D0342C">不回传梯度</text>
+  <line x1="606" y1="440" x2="644" y2="440" stroke="#8E8E93" stroke-width="3" marker-end="url(#ij-arG)"/>
+  <rect x="652" y="386" width="50" height="50" rx="6" fill="#2563EB" opacity="0.85"/>
+  <rect x="710" y="386" width="50" height="50" rx="6" fill="#DC2626" opacity="0.85"/>
+  <rect x="652" y="444" width="50" height="50" rx="6" fill="#EAB308" opacity="0.85"/>
+  <rect x="710" y="444" width="50" height="50" rx="6" fill="#16A34A" opacity="0.85"/>
+  <text x="760" y="532" text-anchor="middle" font-size="20" fill="#1D1D1F">s_y · 抠出同样 4 块</text>
+  <text x="760" y="568" text-anchor="middle" font-size="20" font-weight="600" fill="#0071E3">② 摘要不能空</text>
+  <polyline points="770,440 1400,440 1400,150 1330,150" fill="none" stroke="#D0342C" stroke-width="3" marker-end="url(#ij-arR)"/>
+  <text x="1090" y="424" text-anchor="middle" font-size="20" fill="#6E6E73">先看完整图再抠块：摘要是「狗背」，不是「毛纹理」</text>
+  <text x="1000" y="484" font-size="20" fill="#6E6E73">不作弊 = 老师不接梯度，学生改不了答案</text>
+</g>
+</svg></div>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-sec="02 I-JEPA" data-title="目标是几块大区域">
+  <div class="kicker"><b>02</b>I-JEPA · 挖法 · 预测器可视化</div>
+  <h1>目标是几块大区域，<span class="thin">预测的是语义不是纹理</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/ijepa_mask-samples-4.png" alt=""></div>
+    <div class="fig card"><img src="media/ijepa_visualization_predictor_2.png" alt=""></div>
+  </div>
+  <div class="note">multi-block <b>54.2</b> · 单个大块 20.2 · 随机散点 17.6（1% 标签）　·　目标换成像素：66.9 → 40.7　·　右：预测器输出解码成图，姿态对，位置和细节不定</div>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-sec="03 V-JEPA" data-title="V-JEPA：视频版">
+  <div class="kicker"><b>03</b>V-JEPA · 2024-02 · Bardes 等 · Meta</div>
+  <h1>V-JEPA：<span class="thin">挖掉的块在时间上贯穿整段，其余照旧</span></h1>
+  <div class="diagbox"><svg viewBox="-36 -6 1736 616" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid meet">
+<defs>
+  <marker id="vj-arG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8E8E93"/></marker>
+  <marker id="vj-arR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#D0342C"/></marker>
+  <clipPath id="cv0"><rect x="250" y="75" width="140" height="140" rx="14"/></clipPath>
+  <clipPath id="cv1"><rect x="400" y="75" width="140" height="140" rx="14"/></clipPath>
+  <clipPath id="cv2"><rect x="550" y="75" width="140" height="140" rx="14"/></clipPath>
+  <clipPath id="cw0"><rect x="250" y="365" width="140" height="140" rx="14"/></clipPath>
+  <clipPath id="cw1"><rect x="400" y="365" width="140" height="140" rx="14"/></clipPath>
+  <clipPath id="cw2"><rect x="550" y="365" width="140" height="140" rx="14"/></clipPath>
+</defs>
+<g font-family="PingFang SC, Helvetica Neue, sans-serif">
+  <text x="0" y="140" font-size="30" font-weight="600" fill="#1D1D1F">x · 露 10%</text>
+  <text x="0" y="176" font-size="21" fill="#6E6E73">每帧挖同一块</text>
+  <image href="media/vjepa_xm0.png" x="250" y="75" width="140" height="140" clip-path="url(#cv0)"/>
+  <image href="media/vjepa_xm1.png" x="400" y="75" width="140" height="140" clip-path="url(#cv1)"/>
+  <image href="media/vjepa_xm2.png" x="550" y="75" width="140" height="140" clip-path="url(#cv2)"/>
+  <text x="470" y="248" text-anchor="middle" font-size="20" fill="#6E6E73">16 帧 · 挖掉约 90%</text>
+  <line x1="696" y1="145" x2="730" y2="145" stroke="#8E8E93" stroke-width="3" marker-end="url(#vj-arG)"/>
+  <rect x="736" y="113" width="130" height="64" rx="16" fill="#F5F5F7"/><text x="801" y="154" text-anchor="middle" font-size="25" font-weight="600" fill="#1D1D1F">Enc_x</text>
+  <line x1="872" y1="145" x2="906" y2="145" stroke="#8E8E93" stroke-width="3" marker-end="url(#vj-arG)"/>
+  <rect x="912" y="75" width="130" height="150" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+  <text x="977" y="107" text-anchor="middle" font-size="23" font-weight="600" fill="#1D1D1F">s_x</text>
+  <text x="977" y="141" text-anchor="middle" font-size="20" fill="#1D1D1F">臂在哪</text>
+  <text x="977" y="171" text-anchor="middle" font-size="20" fill="#1D1D1F">往哪动</text>
+  <text x="977" y="201" text-anchor="middle" font-size="20" fill="#1D1D1F">桌子 杯子</text>
+  <text x="977" y="258" text-anchor="middle" font-size="20" font-weight="600" fill="#0071E3">① 摘要不能空</text>
+  <line x1="1048" y1="145" x2="1082" y2="145" stroke="#8E8E93" stroke-width="3" marker-end="url(#vj-arG)"/>
+  <rect x="1088" y="113" width="130" height="64" rx="16" fill="#E8F0FE"/><text x="1153" y="154" text-anchor="middle" font-size="25" font-weight="600" fill="#0071E3">Pred</text>
+  <circle cx="1153" cy="47" r="22" fill="#FFFFFF" stroke="#D0342C" stroke-width="3"/><text x="1153" y="55" text-anchor="middle" font-size="22" font-weight="600" fill="#D0342C">z</text>
+  <line x1="1153" y1="71" x2="1153" y2="107" stroke="#D0342C" stroke-width="3" marker-end="url(#vj-arR)"/>
+  <text x="1188" y="54" font-size="20" fill="#D0342C">④ z 只有时空位置</text>
+  <line x1="1224" y1="145" x2="1258" y2="145" stroke="#8E8E93" stroke-width="3" marker-end="url(#vj-arG)"/>
+  <rect x="1266" y="118" width="24" height="24" rx="5" fill="#2563EB" opacity="0.85"/>
+  <rect x="1296" y="118" width="24" height="24" rx="5" fill="#2563EB" opacity="0.85"/>
+  <rect x="1326" y="118" width="24" height="24" rx="5" fill="#2563EB" opacity="0.85"/>
+  <rect x="1266" y="148" width="24" height="24" rx="5" fill="#DC2626" opacity="0.85"/>
+  <rect x="1296" y="148" width="24" height="24" rx="5" fill="#DC2626" opacity="0.85"/>
+  <rect x="1326" y="148" width="24" height="24" rx="5" fill="#DC2626" opacity="0.85"/>
+  <text x="1311" y="212" text-anchor="middle" font-size="20" fill="#0071E3">s̃_y · 被挖块的摘要</text>
+  <line x1="1358" y1="145" x2="1392" y2="145" stroke="#D0342C" stroke-width="3" marker-end="url(#vj-arR)"/>
+  <rect x="1398" y="113" width="150" height="64" rx="16" fill="#FDECEC" stroke="#D0342C" stroke-width="2"/><text x="1473" y="154" text-anchor="middle" font-size="24" font-weight="600" fill="#D0342C">比 · L1</text>
+  <text x="1473" y="217" text-anchor="middle" font-size="20" font-weight="600" fill="#0071E3">③ 能预测</text>
+  <text x="0" y="430" font-size="30" font-weight="600" fill="#1D1D1F">y · 整段</text>
+  <text x="0" y="466" font-size="21" fill="#6E6E73">老师看完整视频</text>
+  <image href="media/jepa_x0.png" x="250" y="365" width="140" height="140" clip-path="url(#cw0)"/>
+  <image href="media/jepa_x1.png" x="400" y="365" width="140" height="140" clip-path="url(#cw1)"/>
+  <image href="media/jepa_x2.png" x="550" y="365" width="140" height="140" clip-path="url(#cw2)"/>
+  <rect x="281" y="385" width="51" height="62" fill="none" stroke="#2563EB" stroke-width="4"/><rect x="342" y="447" width="45" height="48" fill="none" stroke="#DC2626" stroke-width="4"/><rect x="431" y="385" width="51" height="62" fill="none" stroke="#2563EB" stroke-width="4"/><rect x="492" y="447" width="45" height="48" fill="none" stroke="#DC2626" stroke-width="4"/><rect x="581" y="385" width="51" height="62" fill="none" stroke="#2563EB" stroke-width="4"/><rect x="642" y="447" width="45" height="48" fill="none" stroke="#DC2626" stroke-width="4"/>
+  <text x="470" y="538" text-anchor="middle" font-size="20" fill="#6E6E73">切成 2×16×16 的时空块 · 1568 个</text>
+  <line x1="696" y1="435" x2="730" y2="435" stroke="#8E8E93" stroke-width="3" marker-end="url(#vj-arG)"/>
+  <rect x="736" y="403" width="130" height="64" rx="16" fill="#F5F5F7"/><text x="801" y="444" text-anchor="middle" font-size="25" font-weight="600" fill="#1D1D1F">Enc_y</text>
+  <text x="801" y="501" text-anchor="middle" font-size="20" fill="#6E6E73">Enc_x 的 EMA 副本</text>
+  <text x="801" y="529" text-anchor="middle" font-size="20" font-weight="600" fill="#D0342C">不回传梯度</text>
+  <line x1="872" y1="435" x2="906" y2="435" stroke="#8E8E93" stroke-width="3" marker-end="url(#vj-arG)"/>
+  <rect x="914" y="408" width="24" height="24" rx="5" fill="#2563EB" opacity="0.85"/>
+  <rect x="944" y="408" width="24" height="24" rx="5" fill="#2563EB" opacity="0.85"/>
+  <rect x="974" y="408" width="24" height="24" rx="5" fill="#2563EB" opacity="0.85"/>
+  <rect x="914" y="438" width="24" height="24" rx="5" fill="#DC2626" opacity="0.85"/>
+  <rect x="944" y="438" width="24" height="24" rx="5" fill="#DC2626" opacity="0.85"/>
+  <rect x="974" y="438" width="24" height="24" rx="5" fill="#DC2626" opacity="0.85"/>
+  <text x="1000" y="532" text-anchor="middle" font-size="20" fill="#1D1D1F">s_y · 抠出同样的块</text>
+  <text x="1000" y="568" text-anchor="middle" font-size="20" font-weight="600" fill="#0071E3">② 摘要不能空</text>
+  <polyline points="1006,435 1600,435 1600,145 1556,145" fill="none" stroke="#D0342C" stroke-width="3" marker-end="url(#vj-arR)"/>
+  <text x="1300" y="423" text-anchor="middle" font-size="20" fill="#6E6E73">每帧都挖同一块，抄不了相邻帧</text>
+  <text x="1160" y="480" font-size="20" fill="#6E6E73">不作弊 = 老师不接梯度，时间上贯穿抄不了邻居</text>
+</g>
+</svg></div>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-sec="03 V-JEPA" data-title="只看过去猜未来，表征更差">
+  <div class="kicker"><b>03</b>V-JEPA · mask 消融 · Table 4 · 同一个 ViT-L，同样数据</div>
+  <h1>只看过去猜未来，<span class="thin">表征反而更差</span></h1>
+  <div class="tblwrap">
+    <div class="tt">冻结编码器 + attentive probe · Top-1</div>
+    <table class="tbl">
+      <tr><th>mask 策略</th><th>K400</th><th>SSv2</th><th>IN1K</th></tr>
+      <tr><td>random-tube · 随机散点，挖 90%</td><td>51.5</td><td>46.4</td><td>55.6</td></tr>
+      <tr><td>causal[6] · 只看前 6 帧，预测后面</td><td>61.3</td><td>49.8</td><td>66.9</td></tr>
+      <tr><td>causal[12] · 只看前 12 帧，预测后面</td><td>71.9</td><td>63.6</td><td>72.2</td></tr>
+      <tr class="hi"><td>multi-block · 整段里挖块，双向补全</td><td>72.9</td><td>67.4</td><td>72.8</td></tr>
+    </table>
+  </div>
+  <div class="note">目标换成像素：K400 73.7 → 68.6　·　预训练只学补全，预测未来留给有动作的阶段</div>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-sec="04 DINO-WM" data-title="DINO-WM：编码器冻结，z 换成动作">
+  <div class="kicker"><b>04</b>DINO-WM · 2024-11 · Zhou 等 · NYU · ICML 2025 · 和第 4 页同一个形状，两处不同</div>
+  <h1>DINO-WM：<span class="thin">编码器冻结，z 换成真实动作</span></h1>
+  <div class="diagbox"><svg viewBox="-36 -6 1736 616" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid meet">
+<defs>
+  <marker id="dw-arG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8E8E93"/></marker>
+  <marker id="dw-arR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#D0342C"/></marker>
+  <clipPath id="cp0"><rect x="250" y="75" width="140" height="140" rx="14"/></clipPath>
+  <clipPath id="cp1"><rect x="400" y="75" width="140" height="140" rx="14"/></clipPath>
+  <clipPath id="cp2"><rect x="550" y="75" width="140" height="140" rx="14"/></clipPath>
+  <clipPath id="cpy"><rect x="550" y="365" width="140" height="140" rx="14"/></clipPath>
+</defs>
+<g font-family="PingFang SC, Helvetica Neue, sans-serif">
+  <text x="0" y="140" font-size="30" font-weight="600" fill="#1D1D1F">x · 过去 3 帧</text>
+  <text x="0" y="176" font-size="21" fill="#6E6E73">加这 3 步的动作</text>
+  <image href="media/pusht_f0.png" x="250" y="75" width="140" height="140" clip-path="url(#cp0)"/>
+  <image href="media/pusht_f1.png" x="400" y="75" width="140" height="140" clip-path="url(#cp1)"/>
+  <image href="media/pusht_f2.png" x="550" y="75" width="140" height="140" clip-path="url(#cp2)"/>
+  <text x="470" y="248" text-anchor="middle" font-size="20" fill="#6E6E73">PushT · 离线随机轨迹</text>
+  <line x1="696" y1="145" x2="730" y2="145" stroke="#8E8E93" stroke-width="3" marker-end="url(#dw-arG)"/>
+  <rect x="736" y="113" width="180" height="64" rx="16" fill="#F5F5F7"/><text x="826" y="154" text-anchor="middle" font-size="25" font-weight="600" fill="#1D1D1F">DINOv2 · 冻结</text>
+  <line x1="922" y1="145" x2="956" y2="145" stroke="#8E8E93" stroke-width="3" marker-end="url(#dw-arG)"/>
+  <rect x="962" y="75" width="130" height="150" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+  <text x="1027" y="107" text-anchor="middle" font-size="23" font-weight="600" fill="#1D1D1F">s_x</text>
+  <text x="1027" y="141" text-anchor="middle" font-size="20" fill="#1D1D1F">196 格</text>
+  <text x="1027" y="171" text-anchor="middle" font-size="20" fill="#1D1D1F">T 块在哪</text>
+  <text x="1027" y="201" text-anchor="middle" font-size="20" fill="#1D1D1F">推杆在哪</text>
+  <line x1="1098" y1="145" x2="1132" y2="145" stroke="#8E8E93" stroke-width="3" marker-end="url(#dw-arG)"/>
+  <rect x="1138" y="113" width="130" height="64" rx="16" fill="#E8F0FE"/><text x="1203" y="154" text-anchor="middle" font-size="25" font-weight="600" fill="#0071E3">Pred</text>
+  <circle cx="1203" cy="47" r="22" fill="#FFFFFF" stroke="#D0342C" stroke-width="3"/><text x="1203" y="55" text-anchor="middle" font-size="22" font-weight="600" fill="#D0342C">a</text>
+  <line x1="1203" y1="71" x2="1203" y2="107" stroke="#D0342C" stroke-width="3" marker-end="url(#dw-arR)"/>
+  <text x="1238" y="54" font-size="20" font-weight="600" fill="#D0342C">变化二：z → a，真实动作</text>
+  <text x="1238" y="82" font-size="19" fill="#D0342C">推杆这一步的位移</text>
+  <line x1="1274" y1="145" x2="1308" y2="145" stroke="#8E8E93" stroke-width="3" marker-end="url(#dw-arG)"/>
+  <rect x="1316" y="102" width="18" height="18" rx="3" fill="#0071E3" opacity="0.55"/>
+  <rect x="1338" y="102" width="18" height="18" rx="3" fill="#0071E3" opacity="0.65"/>
+  <rect x="1360" y="102" width="18" height="18" rx="3" fill="#0071E3" opacity="0.75"/>
+  <rect x="1382" y="102" width="18" height="18" rx="3" fill="#0071E3" opacity="0.55"/>
+  <rect x="1316" y="124" width="18" height="18" rx="3" fill="#0071E3" opacity="0.65"/>
+  <rect x="1338" y="124" width="18" height="18" rx="3" fill="#0071E3" opacity="0.75"/>
+  <rect x="1360" y="124" width="18" height="18" rx="3" fill="#0071E3" opacity="0.55"/>
+  <rect x="1382" y="124" width="18" height="18" rx="3" fill="#0071E3" opacity="0.65"/>
+  <rect x="1316" y="146" width="18" height="18" rx="3" fill="#0071E3" opacity="0.75"/>
+  <rect x="1338" y="146" width="18" height="18" rx="3" fill="#0071E3" opacity="0.55"/>
+  <rect x="1360" y="146" width="18" height="18" rx="3" fill="#0071E3" opacity="0.65"/>
+  <rect x="1382" y="146" width="18" height="18" rx="3" fill="#0071E3" opacity="0.75"/>
+  <rect x="1316" y="168" width="18" height="18" rx="3" fill="#0071E3" opacity="0.55"/>
+  <rect x="1338" y="168" width="18" height="18" rx="3" fill="#0071E3" opacity="0.65"/>
+  <rect x="1360" y="168" width="18" height="18" rx="3" fill="#0071E3" opacity="0.75"/>
+  <rect x="1382" y="168" width="18" height="18" rx="3" fill="#0071E3" opacity="0.55"/>
+  <text x="1358" y="212" text-anchor="middle" font-size="20" fill="#0071E3">s̃_y · 下一帧整帧</text>
+  <line x1="1408" y1="145" x2="1442" y2="145" stroke="#D0342C" stroke-width="3" marker-end="url(#dw-arR)"/>
+  <rect x="1448" y="113" width="150" height="64" rx="16" fill="#FDECEC" stroke="#D0342C" stroke-width="2"/><text x="1523" y="154" text-anchor="middle" font-size="24" font-weight="600" fill="#D0342C">比 · L2</text>
+  <text x="0" y="430" font-size="30" font-weight="600" fill="#1D1D1F">y · 下一帧</text>
+  <text x="0" y="466" font-size="21" fill="#6E6E73">录像里真实的下一帧</text>
+  <image href="media/pusht_f3.png" x="550" y="365" width="140" height="140" clip-path="url(#cpy)"/>
+  <text x="620" y="538" text-anchor="middle" font-size="20" fill="#6E6E73">目标是整帧，不是挖掉的块</text>
+  <line x1="696" y1="435" x2="730" y2="435" stroke="#8E8E93" stroke-width="3" marker-end="url(#dw-arG)"/>
+  <rect x="736" y="403" width="180" height="64" rx="16" fill="#F5F5F7"/><text x="826" y="444" text-anchor="middle" font-size="25" font-weight="600" fill="#1D1D1F">DINOv2 · 冻结</text>
+  <text x="826" y="352" text-anchor="middle" font-size="20" font-weight="600" fill="#D0342C">变化一：同一个网络，不训</text>
+  <text x="826" y="380" text-anchor="middle" font-size="19" fill="#D0342C">不用 EMA，也不会坍缩</text>
+  <line x1="922" y1="435" x2="956" y2="435" stroke="#8E8E93" stroke-width="3" marker-end="url(#dw-arG)"/>
+  <rect x="964" y="392" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.55"/>
+  <rect x="986" y="392" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.65"/>
+  <rect x="1008" y="392" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.75"/>
+  <rect x="1030" y="392" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.55"/>
+  <rect x="964" y="414" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.65"/>
+  <rect x="986" y="414" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.75"/>
+  <rect x="1008" y="414" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.55"/>
+  <rect x="1030" y="414" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.65"/>
+  <rect x="964" y="436" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.75"/>
+  <rect x="986" y="436" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.55"/>
+  <rect x="1008" y="436" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.65"/>
+  <rect x="1030" y="436" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.75"/>
+  <rect x="964" y="458" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.55"/>
+  <rect x="986" y="458" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.65"/>
+  <rect x="1008" y="458" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.75"/>
+  <rect x="1030" y="458" width="18" height="18" rx="3" fill="#1D1D1F" opacity="0.55"/>
+  <text x="1060" y="506" text-anchor="middle" font-size="20" fill="#1D1D1F">s_y · 下一帧整帧</text>
+  <polyline points="1056,435 1640,435 1640,145 1606,145" fill="none" stroke="#D0342C" stroke-width="3" marker-end="url(#dw-arR)"/>
+  <text x="1348" y="423" text-anchor="middle" font-size="20" fill="#6E6E73">预测器 19M，帧级因果注意力，一次吐整帧</text>
+  <text x="1200" y="480" font-size="20" fill="#6E6E73">Pred(s, a)：给定现在的摘要和动作，预测下一步的摘要</text>
+  <text x="1200" y="508" font-size="20" fill="#6E6E73">= LeCun 的世界模型</text>
+</g>
+</svg></div>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-sec="04 DINO-WM" data-title="实验：六个仿真环境">
+  <div class="kicker"><b>04</b>DINO-WM · 实验设定</div>
+  <h1>六个仿真环境，<span class="thin">任务都是「到达一张目标图」</span></h1>
+  <div class="fig card"><img src="media/dw_env.png" alt=""></div>
+  <div class="note">上：Maze · Reacher · Wall　下：PushT · Rope · Granular（仿真 XArm）　·　只用离线随机轨迹训练　·　CEM 搜动作，100 条 × 10 轮，一次 53 秒</div>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-sec="04 DINO-WM" data-title="结果：0.30 → 0.90">
+  <div class="kicker"><b>04</b>DINO-WM · Table 1 / Table 2 · 成功率</div>
+  <h1>PushT：0.30 → <span class="acc">0.90</span>；<span class="thin">换成全局向量掉回 0.44</span></h1>
+  <div class="fig2">
+    <div class="tblwrap">
+      <div class="tt">同一份离线数据、无 reward · 都用 MPC</div>
+      <table class="tbl small">
+        <tr><th>方法</th><th>Maze</th><th>Wall</th><th>Reach</th><th>PushT</th></tr>
+        <tr><td>IRIS</td><td>0.74</td><td>0.04</td><td>0.18</td><td>0.32</td></tr>
+        <tr><td>DreamerV3</td><td>1.00</td><td>1.00</td><td>0.64</td><td>0.30</td></tr>
+        <tr><td>TD-MPC2</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>
+        <tr class="hi"><td>DINO-WM</td><td>0.98</td><td>0.96</td><td>0.92</td><td>0.90</td></tr>
+      </table>
+    </div>
+    <div class="tblwrap">
+      <div class="tt">同一个预测器 · 只换编码器</div>
+      <table class="tbl small">
+        <tr><th>编码器</th><th>Wall</th><th>Reach</th><th>PushT</th></tr>
+        <tr><td>ResNet-18 · 全局向量</td><td>0.12</td><td>0.06</td><td>0.20</td></tr>
+        <tr><td>R3M · 全局向量</td><td>0.34</td><td>0.40</td><td>0.42</td></tr>
+        <tr><td>DINO CLS · 全局向量</td><td>0.58</td><td>0.60</td><td>0.44</td></tr>
+        <tr class="hi"><td>DINO patch · 196 格</td><td>0.96</td><td>0.92</td><td>0.90</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="note">去掉因果掩码：0.92 → 0.08　·　重建损失回传给预测器：0.92 → 0.80　·　全部仿真，没有真机</div>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-sec="05 V-JEPA 2" data-title="整体架构：编码器 + 动作条件预测器">
+  <div class="kicker"><b>05</b>V-JEPA 2 · 2025-06 · Meta FAIR · Assran, Bardes, Fan, Garrido 等 · 整体架构</div>
+  <h1>1B 的视频编码器，<span class="thin">加 300M 的动作条件预测器</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/v2_vjepa2-abstract-new.png" alt=""></div>
+    <div class="fig card"><img src="media/v2_vjepa2-ac-abstract-new.png" alt=""></div>
+  </div>
+  <div class="note">左 <b>V-JEPA 2</b>：编码器，阶段一训，之后冻结　·　右 <b>V-JEPA 2-AC</b>：预测器，条件从 mask 位置换成动作和末端状态，阶段二训</div>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-sec="05 V-JEPA 2" data-title="两阶段训练">
+  <div class="kicker"><b>05</b>V-JEPA 2 · 训练方式</div>
+  <h1>两阶段：<span class="thin">视频训编码器，机器人数据训预测器</span></h1>
+  <div class="fig card"><img src="media/v2_flowchart.png" alt=""></div>
+  <div class="note">阶段一：100 万小时视频，不用动作，只学「视频的摘要」　·　阶段二：62 小时机器人视频，冻结编码器，只学「动作怎么改变摘要」</div>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-sec="05 V-JEPA 2" data-title="阶段一：四个规模因素">
+  <div class="kicker"><b>05</b>V-JEPA 2 · 阶段一 · 六个分类任务平均</div>
+  <h1>阶段一：<span class="thin">配方不变，规模放大，</span>84.2 → <span class="acc">88.2</span></h1>
+  <div class="fig card"><img src="media/v2_v1_to_v2.png" alt=""></div>
+  <div class="note">2M → 22M 段视频 +1.0　·　300M → 1B +1.5　·　90K → 252K 步 +0.8　·　256 → 384，16 → 64 帧　·　渐进分辨率省 8.4 倍 GPU 时间</div>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-sec="05 V-JEPA 2-AC" data-title="阶段二：论文的图">
+  <div class="kicker"><b>05</b>V-JEPA 2-AC · 阶段二 · 论文图 4</div>
+  <h1>阶段二：<span class="thin">冻结编码器，只训预测器，两项损失</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/v2_vjepa2-ac-detail.png" alt=""></div>
+    <div class="fig card"><img src="media/v2_vjepa2-ac-detail-ar.png" alt=""></div>
+  </div>
+  <div class="note">紫色格子 = 每帧过冻结编码器得到的 z　·　左：每一步都用真实的历史，猜下一帧，和真实的比　·　右：把自己猜的喂回去再猜一步　·　两项相加，只更新预测器</div>
+</section>
+
+<!-- 16 -->
+<section class="slide" data-sec="05 V-JEPA 2-AC" data-title="阶段二：一步一步看">
+  <div class="kicker"><b>05</b>V-JEPA 2-AC · 阶段二 · 一次训练步，一步一步看</div>
+  <h1>阶段二：<span class="thin">看到现在的摘要和动作，猜下一帧的摘要</span></h1>
+  <div class="row anim">
+    <div class="diagbox"><svg data-anim="1" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid meet">
+<defs>
+  <marker id="an-arB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0071E3"/></marker>
+  <marker id="an-arP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7C3AED"/></marker>
+  <clipPath id="an-f1"><rect x="85" y="28" width="110" height="110" rx="12"/></clipPath>
+  <clipPath id="an-f2"><rect x="275" y="28" width="110" height="110" rx="12"/></clipPath>
+  <clipPath id="an-f3"><rect x="465" y="28" width="110" height="110" rx="12"/></clipPath>
+  <clipPath id="an-f4"><rect x="655" y="28" width="110" height="110" rx="12"/></clipPath>
+</defs>
+<g font-family="PingFang SC, Helvetica Neue, sans-serif">
+  <text x="140" y="18" text-anchor="middle" font-size="17" fill="#6E6E73">帧 1</text>
+  <text x="330" y="18" text-anchor="middle" font-size="17" fill="#6E6E73">帧 2</text>
+  <text x="520" y="18" text-anchor="middle" font-size="17" fill="#6E6E73">帧 3</text>
+  <text x="710" y="18" text-anchor="middle" font-size="17" fill="#6E6E73">帧 4</text>
+  <image data-a="f1" href="media/jepa_x0.png" x="85" y="28" width="110" height="110" clip-path="url(#an-f1)"/>
+  <g data-a="s1"><rect x="108" y="148" width="64" height="30" rx="15" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/><text x="140" y="169" text-anchor="middle" font-size="17" fill="#1D1D1F">s1</text></g>
+  <image data-a="f2" href="media/jepa_x1.png" x="275" y="28" width="110" height="110" clip-path="url(#an-f2)"/>
+  <g data-a="s2"><rect x="298" y="148" width="64" height="30" rx="15" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/><text x="330" y="169" text-anchor="middle" font-size="17" fill="#1D1D1F">s2</text></g>
+  <image data-a="f3" href="media/jepa_x2.png" x="465" y="28" width="110" height="110" clip-path="url(#an-f3)"/>
+  <g data-a="s3"><rect x="488" y="148" width="64" height="30" rx="15" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/><text x="520" y="169" text-anchor="middle" font-size="17" fill="#1D1D1F">s3</text></g>
+  <image data-a="f4" href="media/jepa_y.png" x="655" y="28" width="110" height="110" clip-path="url(#an-f4)"/>
+  <g data-a="s4"><rect x="678" y="148" width="64" height="30" rx="15" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/><text x="710" y="169" text-anchor="middle" font-size="17" fill="#1D1D1F">s4</text></g>
+  <g data-a="a1"><rect x="201" y="68" width="68" height="30" rx="15" fill="#FDECEC" stroke="#D0342C" stroke-width="2"/><text x="235" y="89" text-anchor="middle" font-size="17" font-weight="600" fill="#D0342C">a1 →</text><text x="235" y="122" text-anchor="middle" font-size="14" fill="#D0342C">= s2 − s1</text></g>
+  <g data-a="a2"><rect x="391" y="68" width="68" height="30" rx="15" fill="#FDECEC" stroke="#D0342C" stroke-width="2"/><text x="425" y="89" text-anchor="middle" font-size="17" font-weight="600" fill="#D0342C">a2 →</text><text x="425" y="122" text-anchor="middle" font-size="14" fill="#D0342C">= s3 − s2</text></g>
+  <g data-a="a3"><rect x="581" y="68" width="68" height="30" rx="15" fill="#FDECEC" stroke="#D0342C" stroke-width="2"/><text x="615" y="89" text-anchor="middle" font-size="17" font-weight="600" fill="#D0342C">a3 →</text><text x="615" y="122" text-anchor="middle" font-size="14" fill="#D0342C">= s4 − s3</text></g>
+  <g data-a="enc"><rect x="85" y="200" width="715" height="42" rx="12" fill="#F5F5F7"/><text x="442" y="228" text-anchor="middle" font-size="19" font-weight="600" fill="#1D1D1F">冻结的编码器 · 阶段一训好，这里不动</text></g>
+  <text data-a="lock" x="810" y="228" font-size="18" font-weight="600" fill="#D0342C">← 不动</text>
+  <g data-a="z1"><rect x="106" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="124" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="142" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="160" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="106" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="124" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="142" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="160" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="106" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="124" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="142" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="160" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="106" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="124" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="142" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="160" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><text x="140" y="346" text-anchor="middle" font-size="17" fill="#1D1D1F">z1</text></g>
+  <g data-a="z2"><rect x="296" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="314" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="332" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="350" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="296" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="314" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="332" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="350" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="296" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="314" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="332" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="350" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="296" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="314" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="332" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="350" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><text x="330" y="346" text-anchor="middle" font-size="17" fill="#1D1D1F">z2</text></g>
+  <g data-a="z3"><rect x="486" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="504" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="522" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="540" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="486" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="504" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="522" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="540" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="486" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="504" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="522" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="540" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="486" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="504" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="522" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="540" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><text x="520" y="346" text-anchor="middle" font-size="17" fill="#1D1D1F">z3</text></g>
+  <g data-a="z4"><rect x="676" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="694" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="712" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="730" y="258" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="676" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="694" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="712" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="730" y="276" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="676" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="694" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="712" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="730" y="294" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="676" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="694" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="712" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="730" y="312" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><text x="710" y="346" text-anchor="middle" font-size="17" fill="#1D1D1F">z4</text></g>
+  <g data-a="zr2"><rect x="296" y="258" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="314" y="258" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="332" y="258" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="350" y="258" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="296" y="276" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="314" y="276" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="332" y="276" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="350" y="276" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="296" y="294" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="314" y="294" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="332" y="294" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="350" y="294" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="296" y="312" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="314" y="312" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="332" y="312" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="350" y="312" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><text x="330" y="346" text-anchor="middle" font-size="17" font-weight="600" fill="#0071E3">ẑ2 顶替 z2</text></g>
+  <g data-a="pred"><rect x="85" y="372" width="715" height="42" rx="12" fill="#E8F0FE"/><text x="442" y="400" text-anchor="middle" font-size="19" font-weight="600" fill="#0071E3">预测器 · 300M · 只训这个</text></g>
+  <text data-a="upd" x="810" y="400" font-size="18" font-weight="600" fill="#D0342C">← 更新</text>
+  <rect data-a="upd" x="85" y="372" width="715" height="42" rx="12" fill="none" stroke="#D0342C" stroke-width="3" stroke-dasharray="10 8"/>
+  <g data-a="in1"><line x1="140" y1="350" x2="140" y2="368" stroke="#0071E3" stroke-width="3" marker-end="url(#an-arB)"/><text x="150" y="364" font-size="14" fill="#0071E3">+ s1 a1</text></g>
+  <g data-a="in2"><line x1="330" y1="350" x2="330" y2="368" stroke="#0071E3" stroke-width="3" marker-end="url(#an-arB)"/><text x="340" y="364" font-size="14" fill="#0071E3">+ s2 a2</text></g>
+  <g data-a="in3"><line x1="520" y1="350" x2="520" y2="368" stroke="#0071E3" stroke-width="3" marker-end="url(#an-arB)"/><text x="530" y="364" font-size="14" fill="#0071E3">+ s3 a3</text></g>
+  <line data-a="out2" x1="180" y1="416" x2="280" y2="452" stroke="#0071E3" stroke-width="3" marker-end="url(#an-arB)"/>
+  <line data-a="out3" x1="370" y1="416" x2="470" y2="452" stroke="#0071E3" stroke-width="3" marker-end="url(#an-arB)"/>
+  <line data-a="out4" x1="560" y1="416" x2="660" y2="452" stroke="#0071E3" stroke-width="3" marker-end="url(#an-arB)"/>
+  <g data-a="zh2"><rect x="256" y="456" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="274" y="456" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="292" y="456" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="310" y="456" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="256" y="474" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="274" y="474" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="292" y="474" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="310" y="474" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="256" y="492" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="274" y="492" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="292" y="492" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="310" y="492" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="256" y="510" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="274" y="510" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="292" y="510" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="310" y="510" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><text x="291" y="545" text-anchor="middle" font-size="15" fill="#0071E3">ẑ2 猜的</text></g>
+  <g data-a="zt2"><rect x="334" y="456" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="352" y="456" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="370" y="456" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="388" y="456" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="334" y="474" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="352" y="474" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="370" y="474" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="388" y="474" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="334" y="492" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="352" y="492" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="370" y="492" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="388" y="492" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="334" y="510" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="352" y="510" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="370" y="510" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="388" y="510" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><text x="369" y="545" text-anchor="middle" font-size="15" fill="#1D1D1F">z2 真的</text></g>
+  <g data-a="l2"><rect x="304" y="556" width="52" height="26" rx="13" fill="#FDECEC" stroke="#D0342C" stroke-width="2"/><text x="330" y="574" text-anchor="middle" font-size="15" font-weight="600" fill="#D0342C">L1</text></g>
+  <g data-a="zh3"><rect x="446" y="456" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="464" y="456" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="482" y="456" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="500" y="456" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="446" y="474" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="464" y="474" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="482" y="474" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="500" y="474" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="446" y="492" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="464" y="492" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="482" y="492" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="500" y="492" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="446" y="510" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="464" y="510" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="482" y="510" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="500" y="510" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><text x="481" y="545" text-anchor="middle" font-size="15" fill="#0071E3">ẑ3 猜的</text></g>
+  <g data-a="zt3"><rect x="524" y="456" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="542" y="456" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="560" y="456" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="578" y="456" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="524" y="474" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="542" y="474" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="560" y="474" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="578" y="474" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="524" y="492" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="542" y="492" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="560" y="492" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="578" y="492" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="524" y="510" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="542" y="510" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="560" y="510" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="578" y="510" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><text x="559" y="545" text-anchor="middle" font-size="15" fill="#1D1D1F">z3 真的</text></g>
+  <g data-a="l3"><rect x="494" y="556" width="52" height="26" rx="13" fill="#FDECEC" stroke="#D0342C" stroke-width="2"/><text x="520" y="574" text-anchor="middle" font-size="15" font-weight="600" fill="#D0342C">L1</text></g>
+  <g data-a="zh4"><rect x="636" y="456" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="654" y="456" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="672" y="456" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="690" y="456" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="636" y="474" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="654" y="474" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="672" y="474" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="690" y="474" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="636" y="492" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="654" y="492" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="672" y="492" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="690" y="492" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="636" y="510" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><rect x="654" y="510" width="15" height="15" rx="3" fill="#0071E3" opacity="0.7000000000000001"/><rect x="672" y="510" width="15" height="15" rx="3" fill="#0071E3" opacity="0.8500000000000001"/><rect x="690" y="510" width="15" height="15" rx="3" fill="#0071E3" opacity="0.55"/><text x="671" y="545" text-anchor="middle" font-size="15" fill="#0071E3">ẑ4 猜的</text></g>
+  <g data-a="zt4"><rect x="714" y="456" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="732" y="456" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="750" y="456" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="768" y="456" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="714" y="474" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="732" y="474" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="750" y="474" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="768" y="474" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="714" y="492" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="732" y="492" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="750" y="492" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="768" y="492" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="714" y="510" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="732" y="510" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="750" y="510" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><rect x="768" y="510" width="15" height="15" rx="3" fill="#6E6E73" opacity="0.85"/><text x="749" y="545" text-anchor="middle" font-size="15" fill="#1D1D1F">z4 真的</text></g>
+  <g data-a="l4"><rect x="684" y="556" width="52" height="26" rx="13" fill="#FDECEC" stroke="#D0342C" stroke-width="2"/><text x="710" y="574" text-anchor="middle" font-size="15" font-weight="600" fill="#D0342C">L1</text></g>
+  <g data-a="zh3r"><rect x="446" y="456" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.55"/><rect x="464" y="456" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.7000000000000001"/><rect x="482" y="456" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.8500000000000001"/><rect x="500" y="456" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.55"/><rect x="446" y="474" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.55"/><rect x="464" y="474" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.7000000000000001"/><rect x="482" y="474" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.8500000000000001"/><rect x="500" y="474" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.55"/><rect x="446" y="492" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.55"/><rect x="464" y="492" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.7000000000000001"/><rect x="482" y="492" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.8500000000000001"/><rect x="500" y="492" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.55"/><rect x="446" y="510" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.55"/><rect x="464" y="510" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.7000000000000001"/><rect x="482" y="510" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.8500000000000001"/><rect x="500" y="510" width="15" height="15" rx="3" fill="#7C3AED" opacity="0.55"/><text x="481" y="545" text-anchor="middle" font-size="15" fill="#7C3AED">ẑ3 接着猜</text></g>
+  <path data-a="outr" d="M 256 470 C 210 470, 210 300, 290 300" fill="none" stroke="#7C3AED" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#an-arP)"/>
+  <line data-a="outr" x1="370" y1="416" x2="470" y2="452" stroke="#7C3AED" stroke-width="3" marker-end="url(#an-arP)"/>
+</g>
+</svg></div>
+    <div class="stepcol"><div class="stephint">J 下一步 · K 上一步</div><div class="step-item"><div class="sn">1</div><div class="st"><b>数据</b>4 帧画面，每帧一个末端状态 s；相邻两帧状态的差，就是这一步的动作 a。没有任务标签、没有奖励</div></div><div class="step-item"><div class="sn">2</div><div class="st"><b>编码</b>冻结的编码器把每一帧变成一张格子图 z。它是阶段一训好的，这里一点不动</div></div><div class="step-item"><div class="sn">3</div><div class="st"><b>猜下一帧</b>预测器看 z1、s1 和动作 a1，猜帧 2 的格子 ẑ2，和真实的 z2 比 L1</div></div><div class="step-item"><div class="sn">4</div><div class="st"><b>三步一起猜</b>帧 2、3 也各猜下一帧；历史永远给真实的格子，三个预测一次算完</div></div><div class="step-item"><div class="sn">5</div><div class="st"><b>接自己的锅</b>把自己猜的 ẑ2 顶替 z2 当输入，再猜帧 3，也和真实的比。推理时它只能这样连着猜</div></div><div class="step-item"><div class="sn">6</div><div class="st"><b>只更新预测器</b>两项 L1 相加反传；梯度到预测器为止，编码器纹丝不动</div></div></div>
+  </div>
+</section>
+
+<!-- 17 -->
+<section class="slide" data-sec="05 V-JEPA 2-AC" data-title="规划：能量 + CEM">
+  <div class="kicker"><b>05</b>V-JEPA 2-AC · 规划 · 式 (5)</div>
+  <h1>能量 = ‖预测的表征 − 目标图的表征‖₁，<span class="thin">CEM 搜动作</span></h1>
+  <div class="fig card"><img src="media/v2_vjepa2-mpc.png" alt=""></div>
+  <div class="note"><b>800</b> 条动作 × <b>10</b> 轮，留 top-10 更新高斯，取均值　·　horizon = 1，只执行第一个动作再重规划　·　每步位移 ≤ 13 cm　·　单张 RTX 4090，<b>16 秒</b>一个动作</div>
+</section>
+
+<!-- 18 -->
+<section class="slide" data-sec="05 V-JEPA 2-AC" data-title="能量地形 · reach">
+  <div class="kicker"><b>05</b>V-JEPA 2-AC · 单目标 reach · Fig 8 / Fig 9</div>
+  <h1>能量地形平滑、局部凸，<span class="thin">最低点在真实动作附近</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/v2_y-energy.png" alt=""></div>
+    <div class="fig card"><img src="media/v2_reach-y.png" alt=""></div>
+  </div>
+  <div class="note">左：真实动作 (Δx, Δy) = (0, −0.1)，能量最低点在 (0, −0.05) 附近　·　右：三个方向都能到 <b>4 cm</b> 以内，误差单调下降　·　从无标注视频里学出来的视觉伺服</div>
+</section>
+
+<!-- 19 -->
+<section class="slide" data-sec="05 V-JEPA 2-AC" data-title="真机：抓放 80% vs 15%">
+  <div class="kicker"><b>05</b>V-JEPA 2-AC · Table 2 · 两个实验室均值 · 每项 10 次</div>
+  <h1>零样本抓放：<span class="acc">80%</span>，<span class="thin">Octo 15%</span></h1>
+  <div class="tblwrap">
+    <div class="tt">Franka + Robotiq 夹爪 · 未标定单目 RGB · 同一份权重和代码</div>
+    <table class="tbl small">
+      <tr><th>方法</th><th>Reach</th><th>抓杯子</th><th>抓盒子</th><th>持杯 reach</th><th>持盒 reach</th><th>抓放杯子</th><th>抓放盒子</th></tr>
+      <tr><td>Octo · BC</td><td>100%</td><td>15%</td><td>0%</td><td>15%</td><td>70%</td><td>15%</td><td>10%</td></tr>
+      <tr class="hi"><td>V-JEPA 2-AC</td><td>100%</td><td>65%</td><td>25%</td><td>75%</td><td>75%</td><td>80%</td><td>65%</td></tr>
+    </table>
+  </div>
+  <div class="note">Octo：OXE 100 万+ 轨迹预训练，再用全量 Droid + 目标图做行为克隆微调　·　V-JEPA 2-AC：2.3 万条 Droid 轨迹，成功失败都用</div>
+</section>
+
+<!-- 20 -->
+<section class="slide" data-sec="05 V-JEPA 2-AC" data-title="抓放：三张子目标图">
+  <div class="kicker"><b>05</b>V-JEPA 2-AC · Pick-and-place · Fig 10</div>
+  <h1>三张子目标图：<span class="thin">抓住 → 靠近放置点 → 放好</span></h1>
+  <div class="fig card"><img src="media/v2_pnpcup.jpg" alt=""></div>
+  <div class="note">4 / 10 / 4 步固定切换子目标　·　两个实验室，不同物体位置和杂乱背景</div>
+</section>
+
+<!-- 21 -->
+<section class="slide" data-sec="05 V-JEPA 2-AC" data-title="vs Cosmos：4 分钟 vs 16 秒">
+  <div class="kicker"><b>05</b>V-JEPA 2-AC · Table 3 · vs Cosmos-Predict1 7B · Lab 2 · 单张 RTX 4090</div>
+  <h1>像素世界模型 4 分钟一个动作，<span class="thin">表征世界模型 16 秒</span></h1>
+  <div class="tblwrap">
+    <div class="tt">CEM · 10 轮 · horizon 1 · Cosmos 在 Droid 上做动作条件微调</div>
+    <table class="tbl small">
+      <tr><th>方法</th><th>样本数</th><th>每个动作</th><th>Reach</th><th>抓杯子</th><th>抓盒子</th><th>抓放杯子</th><th>抓放盒子</th></tr>
+      <tr><td>Cosmos 7B · 视频扩散</td><td>80</td><td>4 min</td><td>80%</td><td>0%</td><td>20%</td><td>0%</td><td>0%</td></tr>
+      <tr class="hi"><td>V-JEPA 2-AC</td><td>800</td><td>16 s</td><td>100%</td><td>60%</td><td>20%</td><td>80%</td><td>50%</td></tr>
+    </table>
+  </div>
+  <div class="note">Cosmos 一次抓放超过 1 小时　·　因为太慢只能用 80 个样本，比较并不完全公平</div>
+</section>
+
+<!-- 22 -->
+<section class="slide" data-sec="05 V-JEPA 2-AC" data-title="可视化：解码器只用于看">
+  <div class="kicker"><b>05</b>V-JEPA 2-AC · 附录 · 单独训一个帧解码器，只用于可视化</div>
+  <h1>机械臂动，背景不动；<span class="thin">末帧杯子位置偏低</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/v2_wm_grid_correction.png" alt=""></div>
+    <div class="fig card"><img src="media/v2_wm_grid_open_close.png" alt=""></div>
+  </div>
+  <div class="note">左三行：真实轨迹 / 编码器重建 / 只给第一帧 + 真实动作的 rollout　·　右：同一串动作，夹爪闭合杯子跟着走，张开杯子不动　·　解码器不参与训练和规划</div>
+</section>
+
+<!-- 23 -->
+<section class="slide" data-sec="06 局限" data-title="局限">
+  <div class="kicker"><b>06</b>局限</div>
+  <h1>局限</h1>
+  <div class="two">
+    <div class="col">
+      <div class="h2">作者自己说的</div>
+      <div class="li"><b>对相机位置敏感</b>：没有标定，动作坐标轴要从单目画面里猜；实验相机位置是手动试出来的，35° → 85° 误差随角度线性增长，平均 1.6 cm</div>
+      <div class="li"><b>长程规划不行</b>：误差累积 + 搜索空间指数增长，抓放必须人给子目标图</div>
+      <div class="li"><b>只支持图像目标</b>，语言进不来</div>
+    </div>
+    <div class="col">
+      <div class="h2">我读出来的</div>
+      <div class="li">16 秒一个动作 + 阻塞控制，<b>离实时差两个数量级</b></div>
+      <div class="li">预测器是确定性 L1 回归，一个动作只给一个未来；<b>立场文里的潜变量 z 没有用上</b></div>
+      <div class="li">每项只 10 次；盒子抓取 20–30%；能量算的是整幅特征图的距离，<b>目标图必须来自同一相机</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- 24 -->
+<section class="slide" data-sec="07 小结" data-title="JEPA 留下的东西：一个好用的编码器">
+  <div class="kicker"><b>07</b>小结 · 后来谁在用它</div>
+  <h1>JEPA 留下的东西：<span class="thin">一个好用的编码器</span></h1>
+  <div class="tblwrap">
+    <table class="tbl left compact">
+      <tr><th>工作</th><th>时间</th><th>JEPA 在里面是什么零件</th><th>结果</th></tr>
+      <tr><td>V-JEPA 2 + Llama 3.1 8B</td><td>2025-06</td><td>冻结的编码器当大语言模型的视觉输入，做视频问答</td><td>8B 档多个 benchmark 最好，编码器没见过语言</td></tr>
+      <tr><td>JEPA-VLA · 清华</td><td>2026-02</td><td>V-JEPA 2 直接换掉 VLA 的视觉骨干（替 SigLIP / DINO）</td><td>LIBERO 96.4</td></tr>
+      <tr><td>VLA-JEPA · 中科大等</td><td>2026-02</td><td>冻结 V-JEPA 2 给「未来帧表征」当预测目标，未来帧不进 VLM</td><td>无标注人类视频也能预训练；LIBERO 97.2，LIBERO-Plus +10</td></tr>
+      <tr><td>LDA-1B</td><td>2026-02</td><td>在 DINO 表征空间里学动力学，视觉专家 + 动作专家</td><td>DINO-WM 那条路放大到 1B</td></tr>
+      <tr><td>LeWorldModel · LeCun 组</td><td>2026-03</td><td>不冻结、不用 EMA，SIGReg 正则从像素端到端训 JEPA 世界模型</td><td>15M 参数，单卡几小时，规划比 DINO-WM 快 48 倍</td></tr>
+      <tr><td>V-JEPA 2.1 · Meta</td><td>2026-03</td><td>改预训练配方，学稠密、时间一致的特征</td><td>真机抓取 +20 左右</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- 25 -->
+<section class="slide end" data-sec="07 收尾" data-title="收尾">
+  <div class="timeline"><div class="tl-row">
+    <div class="tl key"><div class="dot"></div><div class="d">2022-06</div><div class="n">LeCun 立场文</div><div class="w">六模块 · JEPA<br>Mode-1 / Mode-2</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2023-01</div><div class="n">I-JEPA</div><div class="w">表征目标 > 像素目标<br>EMA 防坍缩</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2024-02</div><div class="n">V-JEPA</div><div class="w">tube mask<br>学到运动</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">2024-11</div><div class="n">DINO-WM</div><div class="w">冻结特征 + 小预测器<br>够规划</div></div>
+    <div class="tl key"><div class="dot"></div><div class="d">2025-06</div><div class="n">V-JEPA 2-AC</div><div class="w">1B 编码器 + 300M 预测器<br>真机零样本</div></div>
+  </div></div>
+  <div class="big">这条线不变的东西：<b>在表征空间预测</b>　·　<b>编码器冻结，只训预测器</b>　·　<b>目标是一张图，动作是搜出来的</b>　·　<b>不要奖励，成功失败都能用</b></div>
+  <div class="big" style="margin-top:36px;font-size:36px">下期：世界模型 · 第 3 期</div>
+</section>
+
+</div>
+
+<div id="nav-hot"></div>
+<div id="nav-btn"><div class="b" id="nb-prev">‹</div><span class="pg" id="nb-pg">1 / 25</span><div class="b" id="nb-next">›</div><div class="b" id="nb-list">☰</div></div>
+<div id="nav-panel"></div>
+<div id="hud"></div>
+
+<script>
+(function(){
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const hud=document.getElementById('hud');
+  let cur=-1, showCounter=false;
+  function fit(){ const s=Math.min(innerWidth/1920, innerHeight/1080); stage.style.transform=`translate(-50%,-50%) scale(${s})`; if(cur>=0) fitFigs(slides[cur]); }
+  // 让白色图卡贴合图片比例：宽图不留大片空白，剩余空间上下均分
+  function fitFigs(sl){
+    sl.querySelectorAll(':scope > .fig.card, :scope > .fig.video').forEach(f=>{
+      const img=f.querySelector('img,video'); if(!img) return;
+      const nw=img.naturalWidth||img.videoWidth, nh=img.naturalHeight||img.videoHeight; if(!nw||!nh) return;
+      f.style.flex=''; f.style.width=''; f.style.height=''; f.style.margin='';
+      const W=f.clientWidth, H=f.clientHeight; if(!W||!H) return;
+      const pad=f.classList.contains('card')?60:0, ar=nw/nh;
+      let w=W, h=(W-pad)/ar+pad; if(h>H){ h=H; w=(H-pad)*ar+pad; }
+      f.style.flex='0 0 auto'; f.style.width=Math.round(w)+'px'; f.style.height=Math.round(h)+'px'; f.style.margin='auto';
+    });
+    // 两图并排（.fig2）：每张卡各自贴合图片比例，行内居中
+    sl.querySelectorAll(':scope > .fig2').forEach(row=>{
+      const cards=[...row.querySelectorAll(':scope > .fig.card')]; if(!cards.length) return;
+      cards.forEach(f=>{ f.style.flex=''; f.style.width=''; f.style.height=''; f.style.alignSelf=''; });
+      row.style.justifyContent='';
+      const H=row.clientHeight; if(!H) return;
+      const sizes=cards.map(f=>{ const img=f.querySelector('img'); if(!img||!img.naturalWidth) return null;
+        const W=f.clientWidth, pad=60, ar=img.naturalWidth/img.naturalHeight; let w=W, h=(W-pad)/ar+pad; if(h>H){ h=H; w=(H-pad)*ar+pad; } return [w,h]; });
+      if(sizes.some(x=>!x)) return;
+      cards.forEach((f,i)=>{ f.style.flex='0 0 auto'; f.style.width=Math.round(sizes[i][0])+'px'; f.style.height=Math.round(sizes[i][1])+'px'; f.style.alignSelf='center'; });
+      row.style.justifyContent='center';
+    });
+  }
+  document.querySelectorAll('.slide > .fig.card img, .slide > .fig2 > .fig.card img').forEach(img=>img.addEventListener('load',()=>{ const sl=img.closest('.slide'); if(sl.classList.contains('active')) fitFigs(sl); }));
+  document.querySelectorAll('.slide > .fig.video video').forEach(v=>v.addEventListener('loadedmetadata',()=>{ const sl=v.closest('.slide'); if(sl.classList.contains('active')) fitFigs(sl); }));
+  function show(n){
+    n=Math.max(0,Math.min(slides.length-1,n)); if(n===cur) return;
+    slides.forEach((s,k)=>{ const on=k===n; s.classList.toggle('active',on); s.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(e){} v.play().catch(()=>{}); } else { v.pause(); } }); });
+    cur=n; history.replaceState(null,'','#'+(n+1)); updateHud(); fitFigs(slides[n]); startAnim(slides[n]);
+  }
+
+  // ---- stage-2 training animation (slide with svg[data-anim]) ----
+  const PH=[
+    ['f1','f2','f3','f4','s1','s2','s3','s4','a1','a2','a3'],
+    ['f1','f2','f3','f4','s1','s2','s3','s4','a1','a2','a3','enc','z1','z2','z3','z4'],
+    ['f1','f2','f3','f4','s1','s2','s3','s4','a1','a2','a3','enc','z1','z2','z3','z4','pred','in1','out2','zh2','zt2','l2'],
+    ['f1','f2','f3','f4','s1','s2','s3','s4','a1','a2','a3','enc','z1','z2','z3','z4','pred','in1','in2','in3','out2','out3','out4','zh2','zt2','l2','zh3','zt3','l3','zh4','zt4','l4'],
+    ['f1','f2','f3','f4','s1','s2','s3','s4','a1','a2','a3','enc','z1','z3','z4','zr2','pred','in1','in2','out2','zh2','zt2','l2','outr','zh3r','zt3','l3','zh4','zt4','l4'],
+    ['f1','f2','f3','f4','s1','s2','s3','s4','a1','a2','a3','enc','z1','z3','z4','zr2','pred','in1','in2','in3','out2','out3','out4','zh2','zt2','l2','zh3r','zt3','l3','zh4','zt4','l4','lock','upd']
+  ];
+  let anim=null;   // 当前页的动画控制器：J 下一步，K 上一步（不自动播放）
+  function stopAnim(){ anim=null; }
+  function startAnim(sl){
+    stopAnim(); const svg=sl.querySelector('svg[data-anim]'); if(!svg) return;
+    const steps=[...sl.querySelectorAll('.step-item')];
+    const fixed=(location.search.match(/[?&]anim=(\d)/)||[])[1];
+    let k=fixed!==undefined?parseInt(fixed,10):0;
+    function apply(){ const on=new Set(PH[k]); svg.querySelectorAll('[data-a]').forEach(el=>el.classList.toggle('on',on.has(el.dataset.a))); steps.forEach((st,i)=>st.classList.toggle('cur',i===k)); }
+    apply();
+    anim={ next(){ k=(k+1)%PH.length; apply(); }, prev(){ k=(k-1+PH.length)%PH.length; apply(); } };
+  }
+  const navBtn=document.getElementById('nav-btn'), panel=document.getElementById('nav-panel'), pg=document.getElementById('nb-pg');
+  (function buildNav(){
+    let html='', lastSec=null;
+    slides.forEach((sl,k)=>{
+      const sec=sl.dataset.sec||''; const h=sl.querySelector('h1');
+      let title=sl.dataset.title||(h?h.textContent.trim():''); if(!title) title=sec;
+      if(sec!==lastSec){ html+=`<div class="sec-title">${sec||'—'}</div>`; lastSec=sec; }
+      html+=`<div class="it" data-k="${k}"><span class="k">${k+1}</span><span>${title}</span></div>`;
+    });
+    panel.innerHTML=html;
+  })();
+  function toggleNav(force){ const on=(force===undefined)?!panel.classList.contains('open'):force; panel.classList.toggle('open',on); navBtn.classList.toggle('open',on); }
+  document.getElementById('nb-list').addEventListener('click',e=>{ e.stopPropagation(); toggleNav(); });
+  document.getElementById('nb-prev').addEventListener('click',e=>{ e.stopPropagation(); prev(); });
+  document.getElementById('nb-next').addEventListener('click',e=>{ e.stopPropagation(); next(); });
+  navBtn.addEventListener('click',e=>{ e.stopPropagation(); });
+  panel.addEventListener('click',e=>{ e.stopPropagation(); const it=e.target.closest('.it'); if(!it) return; show(parseInt(it.dataset.k,10)); toggleNav(false); });
+  function updateHud(){ pg.textContent=`${cur+1} / ${slides.length}`; hud.textContent = showCounter ? `${cur+1} / ${slides.length}` : '← → 翻页 · F 全屏 · C 页码 · 左上角选页'; panel.querySelectorAll('.it').forEach((el,k)=>el.classList.toggle('cur',k===cur)); }
+  function next(){ show(cur+1); } function prev(){ show(cur-1); }
+  let buf='', bt=null;
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if(e.key==='Escape'){ toggleNav(false); }
+    else if(e.key==='j'||e.key==='J'){ if(anim) anim.next(); }
+    else if(e.key==='k'||e.key==='K'){ if(anim) anim.prev(); }
+    else if(e.key==='g'||e.key==='G'){ toggleNav(); }
+    else if(e.key==='Home'){ show(0); } else if(e.key==='End'){ show(slides.length-1); }
+    else if(e.key==='f'||e.key==='F'){ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }
+    else if(e.key==='c'||e.key==='C'){ showCounter=!showCounter; hud.classList.toggle('show',showCounter); updateHud(); }
+    else if(/^[0-9]$/.test(e.key)){ buf=(buf+e.key).slice(-2); clearTimeout(bt); bt=setTimeout(()=>{ const k=parseInt(buf,10); if(k>=1&&k<=slides.length) show(k-1); buf=''; },500); }
+  });
+  addEventListener('click',e=>{ if(e.target.closest('a,video[controls],#nav-panel,#nav-btn,#nav-hot')) return; if(panel.classList.contains('open')){ toggleNav(false); return; } const x=e.clientX/innerWidth; if(x<0.2) prev(); else next(); });
+  addEventListener('resize',fit); fit();
+  const h=parseInt((location.hash||'#1').slice(1),10); show(isNaN(h)?0:h-1);
+  if(/[?&]nav=1/.test(location.search)) toggleNav(true);
+  hud.classList.add('show'); setTimeout(()=>{ if(!showCounter) hud.classList.remove('show'); },4000);
+})();
+</script>
+</body>
+</html>
