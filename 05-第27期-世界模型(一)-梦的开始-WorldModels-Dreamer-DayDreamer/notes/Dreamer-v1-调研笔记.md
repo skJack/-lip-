@@ -57,6 +57,6 @@ Setting：DMC 20 个视觉任务（64×64×3，动作 1–12 维，reward ∈ [0
 
 ## 6. 关键引用链
 - 建立在：PlaNet（同一个 RSSM + 重建目标，本文把它的 CEM 规划换成 actor-critic；见 PlaNet）；World Models（Ha & Schmidhuber 2018：CNN 编解码架构，以及"在想象里学控制器"的两阶段前身，本文改为联合训练 + 梯度学习；见 World-Models）；Dyna（Sutton 1991）的"学模型 / 学行为 / 交互"三件套。
-- 方法上的近亲：SVG（Heess 2015）与 DPG / DDPG / SAC 的 value 梯度和 tanh 高斯 policy；MVE / STEVE 的多步想象目标；Schmidhuber 1990 / Henaff 的 planning by backprop；同期 IVG（Byravan 2019，确定性模型的 latent imagination）；MuZero（2019-11，value-equivalent 模型 + MCTS，另一条路，本文说它"需要大量经验"；见 muzero-value-equivalent-planning）。
+- 方法上的近亲：SVG（Heess 2015）与 DPG / DDPG / SAC 的 value 梯度和 tanh 高斯 policy；MVE / STEVE 的多步想象目标；Schmidhuber 1990 / Henaff 的 planning by backprop；同期 IVG（Byravan 2019，确定性模型的 latent imagination）；MuZero（2019-11，value-equivalent 模型 + MCTS，另一条路，本文说它"需要大量经验"；见 MuZero（arXiv:1911.08265））。
 - 后续：DreamerV2（categorical latent + KL balancing，Atari；见 Dreamer-v2）→ DreamerV3（Reinforce actor + robustness 技巧，跨领域固定超参；见 Dreamer-v3）→ DayDreamer（真机；见 DayDreamer）。
-- 对照与引用者：TD-MPC2 走"latent + 规划 + value、不重建"的路线（见 tdmpc2-scalable-latent-mpc）；DINO-WM / V-JEPA 2 把 Dreamer 系列当离线 / 仿真 baseline（见 dino-wm、vjepa2）；tutorial-wm-to-wam、survey-world-model-robot-learning 把这条线归为 state-space latent WM。
+- 对照与引用者：TD-MPC2 走"latent + 规划 + value、不重建"的路线（见 TD-MPC2（arXiv:2310.16828））；DINO-WM / V-JEPA 2 把 Dreamer 系列当离线 / 仿真 baseline（见 dino-wm、vjepa2）；tutorial（arXiv:2607.00836）、综述 arXiv:2605.00080 把这条线归为 state-space latent WM。

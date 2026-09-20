@@ -53,6 +53,6 @@ Setting：LIBERO（4 suite × 10 任务 × 50 episode）、LIBERO-Plus（7 种�
 - 坑：两视角要求（单视角复制拼接）；动作是末端 Δ位置 + Δ轴角，和 π0 系的关节空间动作不同，换 benchmark 要重新归一化；K = 24 / T 与 T 绑定；VLM 与世界模型 lr 1e-5、动作头 1e-4 两档；真机是 Franka Research 3 + 三个 D435。
 
 ## 6. 关键引用链
-- 建立在：JEPA / I-JEPA / V-JEPA / V-JEPA 2（`LeCun-2022-立场文`、`V-JEPA`、`vjepa2`）——目标编码器与"未来只当目标"的原则；latent action 预训练 LAPA（`lapa-latent-action-pretraining`）、UniVLA、Moto、villa-X——被批评的对象与主要基线；Qwen3-VL、SigLIP-2；DiT 与流匹配动作头（π0 一系）；Droid、SSv2 数据。
+- 建立在：JEPA / I-JEPA / V-JEPA / V-JEPA 2（`LeCun-2022-立场文`、`V-JEPA`、`vjepa2`）——目标编码器与"未来只当目标"的原则；latent action 预训练 LAPA（`arXiv:2410.11758`）、UniVLA、Moto、villa-X——被批评的对象与主要基线；Qwen3-VL、SigLIP-2；DiT 与流匹配动作头（π0 一系）；Droid、SSv2 数据。
 - 同期 / 对照：JEPA-VLA（2602.11832，未抓）——不训练、直接把 V-JEPA 2 最近两帧特征经 gated cross-attention 注入 OpenVLA-OFT，LIBERO 90.3 → 96.4，并做了 V-JEPA 2 vs DINOv2 / SigLIP 的对照；FLARE（2505.15659，未抓）——NVIDIA 在 DiT 策略里加"未来 token"对齐未来观测嵌入，同属"JEPA 当辅助目标"，但目标编码器是自训的 EMA 嵌入模型而非 V-JEPA；SRPO（2511.15605，未抓）——用 V-JEPA 2 latent 当进度奖励。
-- 分类：tutorial（arXiv 2607.00836）（auxiliary 范式）、`survey-wam-next-frontier`（latent-only Joint WAM）、`survey-world-model-robot-learning`（latent-space WM）。
+- 分类：tutorial（arXiv 2607.00836）（auxiliary 范式）、`survey-wam-next-frontier`（latent-only Joint WAM）、综述 arXiv:2605.00080（latent-space WM）。
