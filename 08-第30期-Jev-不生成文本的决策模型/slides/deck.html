@@ -1,0 +1,1228 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Jev · 不生成文本的决策模型</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#F5F5F7; --ink:#1D1D1F; --muted:#6E6E73; --faint:#A1A1A6; --line:#D2D2D7; --card:#FFFFFF;
+  --accent:#0071E3;
+  --font:"PingFang SC","SF Pro Display","SF Pro SC","Hiragino Sans GB","Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono","Menlo","JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(1);transform-origin:center;background:var(--bg)}
+.slide{position:absolute;inset:0;padding:92px 128px 96px;display:none;flex-direction:column}
+.slide.active{display:flex}
+.kicker{font-size:22px;font-weight:500;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.kicker b{color:var(--ink);font-weight:600;margin-right:14px}
+h1{font-size:68px;font-weight:600;letter-spacing:-.012em;line-height:1.15;margin-top:20px}
+h1 .thin{font-weight:400;color:var(--muted)}
+h1 .acc{color:var(--accent)}
+.sub{font-size:30px;color:var(--muted);margin-top:14px;font-weight:400;line-height:1.4}
+.fig{flex:1;min-height:0;position:relative;margin-top:44px}
+.fig img,.fig video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.fig.card{background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.fig.card img,.fig.card video{padding:30px}
+.fig.plain img,.fig.plain video{border-radius:22px}
+.fig2{flex:1;min-height:0;display:flex;gap:30px;margin-top:44px}
+.fig2 .fig{margin:0}
+.diagbox{flex:1;min-height:0;position:relative;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);margin-top:44px}
+.diagbox svg{position:absolute;inset:0;width:100%;height:100%}
+.diagbox.pad svg{inset:0;margin:auto;width:calc(100% - 88px);height:calc(100% - 68px)}
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:32px;text-align:center}
+.tbl th{font-size:24px;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;padding:0 0 18px;border-bottom:2px solid var(--line)}
+.tbl td{padding:22px 0;border-bottom:1px solid var(--line);font-family:var(--mono)}
+.tbl td:first-child{font-family:var(--mono);color:var(--muted)}
+.tbl tr.hi td{color:var(--accent);font-weight:600}
+.tbl tr.bad td{color:#D0342C}
+.tbl.small{font-size:28px}
+.tbl.small td{padding:18px 0}
+.tbl.left{text-align:left}
+.tbl.left th{text-align:left;padding-left:16px}
+.tbl.left td{font-family:var(--font);font-size:27px;padding:16px 16px;line-height:1.35}
+.tbl.left td:first-child{color:var(--ink);font-family:var(--font);font-weight:500}
+.tbl.left td.ok{color:var(--accent);font-weight:600;font-family:var(--font)}
+.tbl.left td.no{color:#D0342C;font-weight:600;font-family:var(--font)}
+.tbl.left td:nth-child(2){white-space:nowrap;color:var(--muted)}
+.tbl.left.compact td{font-size:25px;padding:13px 14px}
+.tbl.left.wrap td:nth-child(2){white-space:normal;color:var(--ink)}
+.tbl.left tr.hi td{color:var(--accent);font-weight:600}
+.tbl.num td{font-family:var(--mono);font-size:27px;padding:16px 10px}
+.tbl.num td:first-child{font-family:var(--font);text-align:left;color:var(--ink);font-weight:500;padding-left:16px}
+.tbl.num th:first-child{text-align:left;padding-left:16px}
+.tbl.num td.acc{color:var(--accent);font-weight:600}
+.tbl.num td.dim{color:var(--faint)}
+.tbl.num.two td{padding:14px 10px;line-height:1.25}
+.tbl.num.two td b{font-size:30px;font-weight:600}
+.tbl.num.two td small{font-size:21px;color:var(--muted)}
+.tbl.num.two td.acc small{color:var(--accent)}
+.tbl.num.compact td{font-size:24px;padding:11px 8px;white-space:nowrap}
+.tbl.num.compact th{padding-bottom:12px}
+.tblwrap{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:40px 56px;margin-top:44px}
+.fig2 .tblwrap{margin-top:0}
+.tblwrap .tt{font-size:24px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;font-weight:500;margin-bottom:26px;text-align:center}
+/* timeline */
+.timeline{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 10px}
+.tl-row{position:relative;display:flex;justify-content:space-between;padding-top:56px}
+.tl-row:before{content:"";position:absolute;left:7%;right:7%;top:0;height:2px;background:var(--line)}
+.tl{flex:1;text-align:center;position:relative}
+.tl .dot{position:absolute;left:50%;top:-66px;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:var(--line)}
+.tl.key .dot{background:var(--accent);box-shadow:0 0 0 10px rgba(0,113,227,.15)}
+.tl .d{font-family:var(--mono);font-size:20px;color:var(--muted);letter-spacing:.06em}
+.tl .n{font-size:38px;font-weight:600;margin-top:10px;letter-spacing:-.01em;line-height:1.15}
+.tl.key .n{color:var(--accent)}
+.tl.dim .n{color:var(--faint)}
+.tl .w{font-size:22px;color:var(--muted);margin-top:12px;line-height:1.4;padding:0 12px}
+/* stats */
+.stats{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:44px;align-content:stretch}
+.stats.two{grid-template-columns:repeat(2,1fr)}
+.stat{background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:36px 40px;display:flex;flex-direction:column;justify-content:center;min-height:0}
+.stat .n{font-size:82px;font-weight:600;letter-spacing:-.02em;line-height:1;color:var(--accent);white-space:nowrap}
+.stat .n small{font-size:38px;color:var(--ink);margin-left:8px;font-weight:500}
+.stat .l{font-size:25px;color:var(--muted);margin-top:16px;line-height:1.35}
+.stat .l b{color:var(--ink);font-weight:600}
+.stat.dim .n{color:var(--ink)}
+.stat.text .n{font-size:44px;color:var(--ink);white-space:normal;line-height:1.2}
+.stat.text .n .acc{color:var(--accent)}
+/* screenshot grid */
+.grid4{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:24px;margin-top:44px}
+.grid4 .ph{position:relative;background:var(--card);border-radius:22px;box-shadow:0 14px 48px rgba(0,0,0,.06);overflow:hidden}
+.grid4 .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.grid4 .ph .tag{position:absolute;left:18px;bottom:16px;background:rgba(29,29,31,.82);color:#fff;font-size:20px;padding:8px 14px;border-radius:10px;font-weight:500}
+/* big lines */
+.bigline{flex:1;display:flex;flex-direction:column;justify-content:center;gap:30px}
+.bigline .row{font-size:54px;font-weight:600;letter-spacing:-.01em;line-height:1.3}
+.bigline .row .thin{font-weight:400;color:var(--muted)}
+.bigline .row .acc{color:var(--accent)}
+.bigline .row.small{font-size:36px;font-weight:400;color:var(--muted)}
+/* code page */
+.code2{flex:1;min-height:0;display:flex;gap:26px;margin-top:44px}
+.code{flex:1;min-height:0;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:24px 32px;display:flex;flex-direction:column;overflow:hidden}
+.code .tt{font-size:20px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;font-weight:500;margin-bottom:12px}
+.code pre{font-family:var(--mono);font-size:17px;line-height:1.36;white-space:pre;color:var(--ink);margin:0}
+.code .k{color:var(--muted)}
+.code .n{color:var(--accent);font-weight:600}
+.code .c{color:var(--faint)}
+.code .h{color:var(--muted)}
+/* quotes page */
+.quotes{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:22px;margin-top:30px}
+.quote{background:var(--card);border-radius:22px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:26px 40px}
+.quote .q{font-size:34px;font-weight:600;line-height:1.35;letter-spacing:-.01em}
+.quote .q .acc{color:var(--accent)}
+.quote .src{font-size:20px;color:var(--muted);margin-top:10px}
+/* section divider */
+.divider{justify-content:center}
+.divider .num{font-family:var(--mono);font-size:26px;letter-spacing:.2em;color:var(--faint)}
+.divider .word{font-size:160px;font-weight:600;letter-spacing:-.03em;line-height:1.05;margin-top:18px}
+.divider .word .thin{font-weight:400;color:var(--muted)}
+/* cover / end */
+.cover{padding:0}
+.cover .t{position:absolute;left:128px;top:150px}
+.cover .kicker{font-size:24px}
+.cover h1{font-size:230px;letter-spacing:-.035em;line-height:.95;margin-top:26px}
+.cover .p{font-size:42px;color:var(--muted);margin-top:26px;font-weight:400;max-width:1560px;line-height:1.35}
+.cover .p b{color:var(--ink);font-weight:600}
+.cover .brand{position:absolute;right:128px;top:158px;font-size:26px;letter-spacing:.14em;color:var(--muted)}
+.cover .photos{position:absolute;left:0;right:0;bottom:0;height:330px;display:flex;gap:6px;background:#000}
+.cover .photos img{flex:1;min-width:0;height:100%;object-fit:cover;display:block}
+.end{justify-content:center}
+.end .big{font-size:42px;text-align:center;color:var(--muted);margin-top:30px;line-height:1.5}
+.end .big b{color:var(--ink);font-weight:600}
+.end h1{text-align:center;font-size:96px}
+/* nav (top-left page control) */
+#nav-hot{position:fixed;left:0;top:0;width:220px;height:110px;z-index:20}
+#nav-btn{position:fixed;left:14px;top:14px;height:44px;padding:0 14px 0 10px;border-radius:10px;background:rgba(29,29,31,.82);color:#fff;font-size:18px;font-family:var(--mono);display:flex;align-items:center;gap:10px;cursor:pointer;opacity:.22;transition:opacity .25s;z-index:21;user-select:none}
+#nav-btn span.pg{font-size:18px;letter-spacing:.06em}
+#nav-btn .b{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14)}
+#nav-btn .b:hover{background:rgba(255,255,255,.3)}
+#nav-hot:hover ~ #nav-btn,#nav-btn:hover,#nav-btn.open{opacity:1}
+#nav-panel{position:fixed;left:14px;top:66px;width:440px;max-height:calc(100vh - 90px);overflow:auto;background:#fff;color:#1D1D1F;border:1px solid #D2D2D7;border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.18);padding:8px;display:none;z-index:22;font-family:var(--font);font-size:14px}
+#nav-panel.open{display:block}
+#nav-panel .sec-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:#6E6E73;padding:10px 10px 4px;text-transform:uppercase}
+#nav-panel .it{display:flex;gap:10px;align-items:baseline;padding:7px 10px;border-radius:8px;cursor:pointer;line-height:1.35}
+#nav-panel .it:hover{background:#F5F5F7}
+#nav-panel .it.cur{background:#E8F0FE;color:#0071E3}
+#nav-panel .it .k{font-family:var(--mono);font-size:12px;color:#6E6E73;min-width:24px;text-align:right}
+#nav-panel .it.cur .k{color:#0071E3}
+#hud{position:fixed;left:18px;bottom:14px;font-family:var(--mono);font-size:13px;color:#8e8e93;opacity:0;transition:opacity .6s;pointer-events:none;z-index:9}
+#hud.show{opacity:1}
+/* svg shared */
+.sv text{font-family:"PingFang SC","Helvetica Neue",sans-serif}
+.sv .mono{font-family:"SF Mono","Menlo",monospace}
+</style>
+</head>
+<body>
+<div id="stage">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8E8E93"/></marker>
+  <marker id="arB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0071E3"/></marker>
+</defs></svg>
+
+<!-- 1 封面 -->
+<section class="slide cover" data-sec="封面" data-title="封面">
+  <div class="t">
+    <div class="kicker">TypeSafe AI · 2026-09-15 发布 · System One Model</div>
+    <h1>Jev</h1>
+    <div class="p">一个<b>不生成文本</b>的模型：给它材料和选择题，它给每个选项一个<b>校准过的概率</b>。发布一周：HN 近 2000 分、Vercel 24 小时 13% 付费团队、15 个开源复现</div>
+  </div>
+  <div class="brand">可lip</div>
+  <div class="photos">
+    <img src="media/blog_hero.png" alt="">
+    <img src="media/cover_doom.png" alt="">
+    <img src="media/wiki_result.png" alt="">
+    <img src="media/cover_race.png" alt="">
+    <img src="media/cover_home.png" alt="">
+  </div>
+</section>
+
+<!-- 2 公司背景 -->
+<section class="slide" data-sec="00 背景" data-title="谁做的">
+  <div class="kicker"><b>00</b>背景 · TypeSafe AI · 旧金山</div>
+  <h1>从 OpenAI 后训练组出来的一家公司</h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- lineage -->
+<text x="0" y="26" font-size="20" fill="#6E6E73" letter-spacing="2">创始人的路径</text>
+<rect x="0" y="44" width="300" height="96" rx="20" fill="#F5F5F7"/><text x="150" y="84" text-anchor="middle" font-size="24" fill="#1D1D1F">Google Brain</text><text x="150" y="118" text-anchor="middle" font-size="18" fill="#6E6E73">研究员</text>
+<line x1="310" y1="92" x2="368" y2="92" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="378" y="44" width="400" height="96" rx="20" fill="#F5F5F7"/><text x="578" y="84" text-anchor="middle" font-size="24" fill="#1D1D1F">OpenAI 后训练团队</text><text x="578" y="118" text-anchor="middle" font-size="18" fill="#6E6E73">InstructGPT 2022 · GPT-4 报告作者</text>
+<line x1="788" y1="92" x2="846" y2="92" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="856" y="44" width="360" height="96" rx="20" fill="#F5F5F7"/><text x="1036" y="84" text-anchor="middle" font-size="24" fill="#1D1D1F">2024 年中 · 创立 TypeSafe</text><text x="1036" y="118" text-anchor="middle" font-size="18" fill="#6E6E73">旧金山 · 两年 stealth</text>
+<line x1="1226" y1="92" x2="1284" y2="92" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="1294" y="44" width="306" height="96" rx="20" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="1447" y="84" text-anchor="middle" font-size="24" font-weight="600" fill="#0071E3">2026-09-15 · Jev</text><text x="1447" y="118" text-anchor="middle" font-size="18" fill="#1D1D1F">第一个公开模型 · 1.13 版</text>
+<!-- founders -->
+<text x="0" y="200" font-size="20" fill="#6E6E73" letter-spacing="2">三个创始人</text>
+<rect x="0" y="218" width="520" height="130" rx="20" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+<text x="24" y="256" font-size="24" font-weight="600" fill="#1D1D1F">Diogo Almeida <tspan font-weight="400" fill="#6E6E73" font-size="20">CEO</tspan></text>
+<text x="24" y="292" font-size="19" fill="#1D1D1F">InstructGPT 论文作者 · 前 Google Brain、OpenAI</text>
+<text x="24" y="324" font-size="19" fill="#6E6E73">官网写法：「RLHF 和 InstructGPT 的共同发明人」</text>
+<rect x="540" y="218" width="520" height="130" rx="20" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+<text x="564" y="256" font-size="24" font-weight="600" fill="#1D1D1F">Sasha Sheng <tspan font-weight="400" fill="#6E6E73" font-size="20">COO</tspan></text>
+<text x="564" y="292" font-size="19" fill="#1D1D1F">前 Meta FAIR 研究工程师</text>
+<text x="564" y="324" font-size="19" fill="#6E6E73">NeurIPS / ECCV 论文 · 2023 年赢过 7 场黑客松</text>
+<rect x="1080" y="218" width="520" height="130" rx="20" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+<text x="1104" y="256" font-size="24" font-weight="600" fill="#1D1D1F">Erik Gafni <tspan font-weight="400" fill="#6E6E73" font-size="20">CTO</tspan></text>
+<text x="1104" y="292" font-size="19" fill="#1D1D1F">连续创业者 · Invitae、Freenome 两家独角兽早期员工</text>
+<text x="1104" y="324" font-size="19" fill="#6E6E73">生产级 AI 系统</text>
+<!-- money and company facts -->
+<text x="0" y="408" font-size="20" fill="#6E6E73" letter-spacing="2">钱和人</text>
+<rect x="0" y="426" width="385" height="150" rx="20" fill="#F5F5F7"/>
+<text x="24" y="482" font-size="52" font-weight="600" fill="#0071E3" letter-spacing="-1">$40M</text>
+<text x="24" y="518" font-size="19" fill="#1D1D1F">种子轮 · DCVC 领投</text><text x="24" y="548" font-size="18" fill="#6E6E73">全球 AI 种子轮里排前 1%（Dealroom）</text>
+<rect x="405" y="426" width="385" height="150" rx="20" fill="#F5F5F7"/>
+<text x="429" y="482" font-size="52" font-weight="600" fill="#0071E3" letter-spacing="-1">≈ $2 亿</text>
+<text x="429" y="518" font-size="19" fill="#1D1D1F">估值（36氪）</text><text x="429" y="548" font-size="18" fill="#6E6E73">发布当天才出 stealth</text>
+<rect x="810" y="426" width="385" height="150" rx="20" fill="#F5F5F7"/>
+<text x="834" y="482" font-size="52" font-weight="600" fill="#0071E3" letter-spacing="-1">一半</text>
+<text x="834" y="518" font-size="19" fill="#1D1D1F">员工在一个合成数据实验室里</text><text x="834" y="548" font-size="18" fill="#6E6E73">「我们自己造全部训练数据」</text>
+<rect x="1215" y="426" width="385" height="150" rx="20" fill="#F5F5F7"/>
+<text x="1239" y="482" font-size="52" font-weight="600" fill="#0071E3" letter-spacing="-1">Jev</text>
+<text x="1239" y="518" font-size="19" fill="#1D1D1F">名字来自 Jevons 悖论</text><text x="1239" y="548" font-size="18" fill="#6E6E73">单价降两个数量级，用量涨得更多</text>
+</svg></div>
+</section>
+
+<!-- 3 有多火 -->
+<section class="slide" data-sec="00 背景" data-title="有多火">
+  <div class="kicker"><b>00</b>背景 · 2026-09-15 → 09-21 · 左：各模型发布当天 Hacker News 帖子的分数</div>
+  <h1>有多火</h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<text x="0" y="22" font-size="20" fill="#6E6E73" letter-spacing="2">Hacker News 发布帖分数</text>
+<text x="236" y="62" text-anchor="end" font-size="19" fill="#1D1D1F">Claude Fable 5</text><rect x="250" y="46" width="661" height="22" rx="6" fill="#D2D2D7"/><text x="923" y="62" font-size="18" fill="#1D1D1F" class="mono">2626</text>
+<text x="236" y="106" text-anchor="end" font-size="19" fill="#1D1D1F">GPT-6 Astra</text><rect x="250" y="90" width="574" height="22" rx="6" fill="#D2D2D7"/><text x="836" y="106" font-size="18" fill="#1D1D1F" class="mono">2279</text>
+<text x="236" y="150" text-anchor="end" font-size="19" fill="#1D1D1F">DeepSeek V4</text><rect x="250" y="134" width="527" height="22" rx="6" fill="#D2D2D7"/><text x="789" y="150" font-size="18" fill="#1D1D1F" class="mono">2091</text>
+<text x="236" y="194" text-anchor="end" font-size="19" fill="#1D1D1F">GPT-5</text><rect x="250" y="178" width="520" height="22" rx="6" fill="#D2D2D7"/><text x="782" y="194" font-size="18" fill="#1D1D1F" class="mono">2063</text>
+<text x="236" y="238" text-anchor="end" font-size="19" font-weight="600" fill="#0071E3">Jev</text><rect x="250" y="222" width="489" height="22" rx="6" fill="#0071E3"/><text x="751" y="238" font-size="18" font-weight="600" fill="#0071E3" class="mono">1943</text>
+<text x="236" y="282" text-anchor="end" font-size="19" fill="#1D1D1F">DeepSeek-R1</text><rect x="250" y="266" width="464" height="22" rx="6" fill="#D2D2D7"/><text x="726" y="282" font-size="18" fill="#1D1D1F" class="mono">1843</text>
+<text x="236" y="326" text-anchor="end" font-size="19" fill="#1D1D1F">Genie 3</text><rect x="250" y="310" width="380" height="22" rx="6" fill="#D2D2D7"/><text x="642" y="326" font-size="18" fill="#1D1D1F" class="mono">1510</text>
+<text x="236" y="370" text-anchor="end" font-size="19" fill="#1D1D1F">Qwen 3.8 27B</text><rect x="250" y="354" width="362" height="22" rx="6" fill="#D2D2D7"/><text x="624" y="370" font-size="18" fill="#1D1D1F" class="mono">1438</text>
+<text x="236" y="414" text-anchor="end" font-size="19" fill="#1D1D1F">Llama 4</text><rect x="250" y="398" width="311" height="22" rx="6" fill="#D2D2D7"/><text x="573" y="414" font-size="18" fill="#1D1D1F" class="mono">1235</text>
+<text x="236" y="458" text-anchor="end" font-size="19" fill="#1D1D1F">Kimi K2 Thinking</text><rect x="250" y="442" width="236" height="22" rx="6" fill="#D2D2D7"/><text x="498" y="458" font-size="18" fill="#1D1D1F" class="mono">936</text>
+<text x="236" y="502" text-anchor="end" font-size="19" fill="#1D1D1F">Atlas（第 18 期）</text><rect x="250" y="486" width="68" height="22" rx="6" fill="#D2D2D7"/><text x="330" y="502" font-size="18" fill="#1D1D1F" class="mono">271</text>
+<text x="236" y="546" text-anchor="end" font-size="19" fill="#1D1D1F">Cosmos 3（第 27 期）</text><rect x="250" y="530" width="38" height="22" rx="6" fill="#D2D2D7"/><text x="300" y="546" font-size="18" fill="#1D1D1F" class="mono">150</text>
+
+<text x="250" y="586" font-size="17" fill="#6E6E73">过去一年 HN 约 300 万条帖子，超过 Jev 这条的只有 53 条</text>
+<!-- right column -->
+<g>
+  <rect x="1040" y="40" width="560" height="118" rx="20" fill="#F5F5F7"/>
+  <text x="1064" y="86" font-size="40" font-weight="600" fill="#0071E3" letter-spacing="-1">2980 万<tspan font-size="20" font-weight="400" fill="#1D1D1F">　次浏览</tspan></text>
+  <text x="1064" y="128" font-size="19" fill="#1D1D1F">X 上的发布帖 · 比上海全市常住人口（约 2480 万）还多</text>
+  <rect x="1040" y="174" width="560" height="118" rx="20" fill="#F5F5F7"/>
+  <text x="1064" y="220" font-size="40" font-weight="600" fill="#0071E3" letter-spacing="-1">每 8 个<tspan font-size="20" font-weight="400" fill="#1D1D1F">　Vercel 付费团队有 1 个</tspan></text>
+  <text x="1064" y="262" font-size="19" fill="#1D1D1F">24 小时内接上 · GPT-5.6 那批的 2 倍、Fable 5.1 的 6 倍</text>
+  <rect x="1040" y="308" width="560" height="118" rx="20" fill="#F5F5F7"/>
+  <text x="1064" y="354" font-size="40" font-weight="600" fill="#0071E3" letter-spacing="-1">15 个<tspan font-size="20" font-weight="400" fill="#1D1D1F">　开源仿制品</tspan></text>
+  <text x="1064" y="396" font-size="19" fill="#1D1D1F">一周之内 · 光叫 awesome-jev 的整理清单就有八九个</text>
+  <rect x="1040" y="442" width="560" height="118" rx="20" fill="#F5F5F7"/>
+  <text x="1064" y="488" font-size="40" font-weight="600" fill="#0071E3" letter-spacing="-1">国内<tspan font-size="20" font-weight="400" fill="#1D1D1F">　机器之心 · 36氪 · 雷峰网 · 知乎</tspan></text>
+  <text x="1064" y="530" font-size="19" fill="#1D1D1F">机器之心标题「2400 万人围观」· API 上线两天被挤爆一次</text>
+</g>
+</svg></div>
+</section>
+
+<!-- 4 官方公开的 vs 社区反推的 -->
+<section class="slide" data-sec="00 背景" data-title="官方公开的 · 社区反推的">
+  <div class="kicker"><b>00</b>现状 · 这期内容从哪来</div>
+  <h1>没有论文，没有权重：<span class="thin">官方公开的，和社区反推的</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<g font-size="24" font-weight="600" fill="#1D1D1F"><text x="0" y="30">官方公开的</text><text x="860" y="30">社区反推的</text></g>
+<g font-size="20" fill="#6E6E73"><text x="150" y="30">TypeSafe AI</text><text x="1010" y="30">一周之内</text></g>
+<!-- left column -->
+<g>
+  <rect x="0" y="60" width="720" height="92" rx="18" fill="#F5F5F7"/>
+  <text x="26" y="98" font-size="24" font-weight="600" fill="#1D1D1F">发布文 + 文档</text>
+  <text x="26" y="132" font-size="20" fill="#6E6E73">接口、三种原语、限制、弱点清单（jaggedness）</text>
+  <rect x="0" y="166" width="720" height="92" rx="18" fill="#F5F5F7"/>
+  <text x="26" y="204" font-size="24" font-weight="600" fill="#1D1D1F">evals 站</text>
+  <text x="26" y="238" font-size="20" fill="#6E6E73">四个工作流 · 对比 GPT-5.6 / Opus 5 · 标签来自两个大模型的共识</text>
+  <rect x="0" y="272" width="720" height="92" rx="18" fill="#F5F5F7"/>
+  <text x="26" y="310" font-size="24" font-weight="600" fill="#1D1D1F">TechCrunch 采访 · HN 回复</text>
+  <text x="26" y="344" font-size="20" fill="#6E6E73">transformer · 训练数据 100% 合成 · 「架构先捂着」</text>
+  <rect x="0" y="378" width="720" height="92" rx="18" fill="#F5F5F7"/>
+  <text x="26" y="416" font-size="24" font-weight="600" fill="#1D1D1F">创始人博客</text>
+  <text x="26" y="450" font-size="20" fill="#6E6E73">The Bitterest Lesson：任务 &gt; 数据 &gt; 算力 &gt; 算法</text>
+</g>
+<!-- right column -->
+<g>
+  <rect x="860" y="60" width="740" height="92" rx="18" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+  <text x="886" y="98" font-size="24" font-weight="600" fill="#0071E3">Archer Hume · 1 万次 API 探针</text>
+  <text x="886" y="132" font-size="20" fill="#1D1D1F">计算图、底座规模、分词器、读出机制</text>
+  <rect x="860" y="166" width="740" height="92" rx="18" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+  <text x="886" y="204" font-size="24" font-weight="600" fill="#0071E3">15+ 开源复现</text>
+  <text x="886" y="238" font-size="20" fill="#1D1D1F">Laya · kev · NanoJev · open-jev：结构一周内被搭出来</text>
+  <rect x="860" y="272" width="740" height="92" rx="18" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+  <text x="886" y="310" font-size="24" font-weight="600" fill="#0071E3">9 份独立评测</text>
+  <text x="886" y="344" font-size="20" fill="#1D1D1F">校准（ECE）、公开集准确率、俄语、措辞与选项顺序</text>
+  <rect x="860" y="378" width="740" height="92" rx="18" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+  <text x="886" y="416" font-size="24" font-weight="600" fill="#0071E3">ConvAI 先例论文 + Laya 配方</text>
+  <text x="886" y="450" font-size="20" fill="#1D1D1F">2025-03 非自回归决策 + RL 校准 · 训练方法的公开参照</text>
+</g>
+<!-- merge -->
+<line x1="360" y1="482" x2="360" y2="530" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<line x1="1230" y1="482" x2="1230" y2="530" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="0" y="536" width="1600" height="60" rx="18" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+<text x="800" y="574" text-anchor="middle" font-size="22" fill="#1D1D1F">接口和实验是确定的 · 计算图证据充分 · 底座、训练、数据三部分是推断</text>
+</svg></div>
+</section>
+
+<!-- 5 过渡 -->
+<section class="slide divider" data-sec="01 什么是 Jev" data-title="过渡：什么是 Jev">
+  <div class="num">01</div>
+  <div class="word">什么是 Jev</div>
+</section>
+
+<!-- 6 一句话 -->
+<section class="slide" data-sec="01 什么是 Jev" data-title="一句话">
+  <div class="kicker"><b>01</b>什么是 Jev · 官方 demo：同样 27 道题</div>
+  <h1>材料 + 选择题 <span class="thin">→</span> <span class="acc">每个选项一个概率</span></h1>
+  <div class="sub">不写字、不解释、不推理。左：Jev 0.114 s · $0.00008　右：GPT-5.6 Terra 8.566 s · $0.0139</div>
+  <div class="fig card"><img src="media/poster_race.png" alt=""></div>
+</section>
+
+<!-- 7 输入输出 -->
+<section class="slide" data-sec="01 什么是 Jev" data-title="输入和输出">
+  <div class="kicker"><b>01</b>什么是 Jev · 接口 · 官方文档</div>
+  <h1>输入：材料 + 三种题　<span class="thin">输出：只有数</span></h1>
+  <div class="sub">每百万输入 token $0.042 · 输出免费 · 单请求 64k · 9 月 21 日起不用排队，注册送 $5</div>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- headers -->
+<text x="0" y="26" font-size="20" fill="#6E6E73" letter-spacing="2">输入</text>
+<text x="900" y="26" font-size="20" fill="#6E6E73" letter-spacing="2">输出</text>
+<!-- state -->
+<rect x="0" y="44" width="760" height="110" rx="20" fill="#F5F5F7"/>
+<text x="24" y="82" font-size="24" font-weight="600" fill="#1D1D1F">state <tspan font-weight="400" fill="#6E6E73" font-size="20">· 材料，你要让它看的东西</tspan></text>
+<text x="24" y="118" font-size="19" fill="#1D1D1F">一条消息、一个 JSON、一段文档 · 纯文本 · 最多 32k token · 只写一份</text>
+<text x="24" y="144" font-size="18" fill="#6E6E73">它是数据，不是指令</text>
+<!-- questions header -->
+<rect x="0" y="174" width="760" height="382" rx="20" fill="#F5F5F7"/>
+<text x="24" y="212" font-size="24" font-weight="600" fill="#1D1D1F">questions <tspan font-weight="400" fill="#6E6E73" font-size="20">· 题，你要它对材料做的判断 · 一次可以几百道</tspan></text>
+<text x="24" y="246" font-size="18" fill="#6E6E73">每道题写三样：类型 · 问什么（instructions）· 允许的答案（criteria）</text>
+<!-- three types -->
+<g>
+  <rect x="24" y="268" width="712" height="84" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="1.5"/>
+  <text x="44" y="302" font-size="22" font-weight="600" fill="#0071E3">choice <tspan fill="#1D1D1F">· 选择题</tspan></text>
+  <text x="44" y="334" font-size="18" fill="#1D1D1F">你列出 2–255 个选项，每个选项配一句描述；它从里面选</text>
+  <rect x="24" y="364" width="712" height="84" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="1.5"/>
+  <text x="44" y="398" font-size="22" font-weight="600" fill="#0071E3">score <tspan fill="#1D1D1F">· 打分题</tspan></text>
+  <text x="44" y="430" font-size="18" fill="#1D1D1F">你给 2–10 个有顺序的档位，每档一句描述；它落在哪一档</text>
+  <rect x="24" y="460" width="712" height="84" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="1.5"/>
+  <text x="44" y="494" font-size="22" font-weight="600" fill="#0071E3">noul <tspan fill="#1D1D1F">· 是非题</tspan></text>
+  <text x="44" y="526" font-size="18" fill="#1D1D1F">你写一个命题；它判断成立不成立</text>
+</g>
+<!-- arrow -->
+<line x1="780" y1="410" x2="880" y2="410" stroke="#0071E3" stroke-width="4" marker-end="url(#arB)"/>
+<text x="830" y="392" text-anchor="middle" font-size="20" font-weight="600" fill="#0071E3">Jev</text>
+<text x="830" y="440" text-anchor="middle" font-size="16" fill="#6E6E73">一次前向</text>
+<text x="830" y="462" text-anchor="middle" font-size="16" fill="#6E6E73">≈ 100 ms</text>
+<!-- outputs -->
+<rect x="900" y="44" width="700" height="110" rx="20" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+<text x="924" y="82" font-size="24" font-weight="600" fill="#1D1D1F">没有文本</text>
+<text x="924" y="118" font-size="19" fill="#1D1D1F">它不写字、不解释、不推理；每道题返回一组数</text>
+<text x="924" y="144" font-size="18" fill="#6E6E73">答案只能落在你给的选项里——想不到的答案它连出口都没有</text>
+<text x="900" y="212" font-size="18" fill="#6E6E73">所有题对同一份材料并行算，互不影响；多问几道几乎不加钱</text>
+<g>
+  <rect x="900" y="268" width="700" height="84" rx="16" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+  <text x="924" y="302" font-size="22" font-weight="600" fill="#0071E3">每个选项一个概率</text>
+  <text x="924" y="334" font-size="18" fill="#1D1D1F">加起来等于 1 · 顺手给出选中的那个（最高的）和一个 confidence</text>
+  <rect x="1400" y="286" width="90" height="12" rx="4" fill="#0071E3"/><rect x="1400" y="304" width="14" height="12" rx="4" fill="#0071E3"/><rect x="1418" y="304" width="3" height="12" rx="1" fill="#0071E3"/>
+  <text x="1500" y="296" font-size="15" fill="#1D1D1F" class="mono">0.89</text><text x="1500" y="314" font-size="15" fill="#1D1D1F" class="mono">0.10 · 0.01</text>
+  <rect x="900" y="364" width="700" height="84" rx="16" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+  <text x="924" y="398" font-size="22" font-weight="600" fill="#0071E3">每一档一个概率 + 一个期望分</text>
+  <text x="924" y="430" font-size="18" fill="#1D1D1F">档位从 0 数起，三档满分是 2 · 期望分 = Σ 档位 × 概率，可落在两档之间</text>
+  <rect x="1400" y="382" width="2" height="12" rx="1" fill="#0071E3"/><rect x="1406" y="382" width="34" height="12" rx="4" fill="#0071E3"/><rect x="1444" y="382" width="66" height="12" rx="4" fill="#0071E3"/>
+  <text x="1400" y="416" font-size="15" fill="#1D1D1F" class="mono">0 · 0.34 · 0.66 → 1.66</text>
+  <rect x="900" y="460" width="700" height="84" rx="16" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+  <text x="924" y="494" font-size="22" font-weight="600" fill="#0071E3">一个 0 到 1 的数</text>
+  <text x="924" y="526" font-size="18" fill="#1D1D1F">接近 1 是「成立」，接近 0 是「不成立」，0.5 附近是「没把握」</text>
+  <rect x="1400" y="478" width="98" height="12" rx="4" fill="#0071E3"/><text x="1506" y="490" font-size="15" fill="#1D1D1F" class="mono">0.98</text>
+</g>
+<text x="900" y="586" font-size="18" fill="#6E6E73">概率是校准过的：说 0.8，就应该有 80% 的时候是对的（群体意义上）</text>
+</svg></div>
+</section>
+
+<!-- 8 真实请求 -->
+<section class="slide" data-sec="01 什么是 Jev" data-title="真实的请求和返回">
+  <div class="kicker"><b>01</b>什么是 Jev · 官方 API · 同一条工单 · 原样</div>
+  <h1>发过去的，和收回来的</h1>
+  <div class="code2">
+    <div class="code"><div class="tt">请求 · 一个 JSON</div><pre><span class="h">POST https://api.typesafe.ai/v1/systemone
+Authorization: Bearer &lt;你的 key&gt;</span>
+
+{
+  <span class="k">"model"</span>: "jev-latest",
+  <span class="k">"state"</span>: "你好，我三天前买的会员到现在还没开通，
+            钱已经扣了，客服电话也打不通，今天不解决我就去投诉。",
+  <span class="k">"questions"</span>: {
+    <span class="k">"部门"</span>: {
+      <span class="k">"type"</span>: "choice",
+      <span class="k">"instructions"</span>: "这条消息应该转给哪个团队？",
+      <span class="k">"criteria"</span>: {"计费": "扣款、发票、退款、支付问题",
+                   "技术": "功能故障、接口、bug",
+                   "销售": "价格、套餐、升级"}
+    },
+    <span class="k">"情绪"</span>: {
+      <span class="k">"type"</span>: "score",
+      <span class="k">"instructions"</span>: "客户有多生气？",
+      <span class="k">"criteria"</span>: ["平静", "不满但克制", "非常愤怒"]
+    },
+    <span class="k">"威胁投诉"</span>: {
+      <span class="k">"type"</span>: "noul",
+      <span class="k">"instructions"</span>: "客户是否威胁要投诉或采取进一步行动？"
+    }
+  }
+}</pre></div>
+    <div class="code"><div class="tt">返回 · 全是数</div><pre><span class="h">HTTP 200 · 服务端 89 ms · 469 个输入 token · 2026-09-21 实测</span>
+
+{
+  <span class="k">"model"</span>: "jev-1.13.0",
+  <span class="k">"answers"</span>: {
+    <span class="k">"部门"</span>: {
+      <span class="k">"type"</span>: "choice",
+      <span class="k">"choice"</span>: "计费",
+      <span class="k">"probabilities"</span>: {"计费": <span class="n">0.89</span>, "技术": <span class="n">0.10</span>, "销售": <span class="n">0.01</span>},
+      <span class="k">"confidence"</span>: <span class="n">0.84</span>
+    },
+    <span class="k">"情绪"</span>: {
+      <span class="k">"type"</span>: "score",
+      <span class="k">"score"</span>: <span class="n">1.66</span>,
+      <span class="k">"probabilities"</span>: {"0": <span class="n">0.00</span>, "1": <span class="n">0.34</span>, "2": <span class="n">0.66</span>},
+      <span class="k">"legend"</span>: {"0": "平静", "1": "不满但克制", "2": "非常愤怒"},
+      <span class="k">"confidence"</span>: <span class="n">0.49</span>
+    },
+    <span class="k">"威胁投诉"</span>: {
+      <span class="k">"type"</span>: "noul",
+      <span class="k">"noul"</span>: <span class="n">0.98</span>
+    }
+  },
+  <span class="k">"usage"</span>: {"input_tokens": 469, "output_tokens": 75}
+}</pre></div>
+  </div>
+</section>
+
+<!-- 9 例子 -->
+<section class="slide" data-sec="01 什么是 Jev" data-title="一条工单，三道题">
+  <div class="kicker"><b>01</b>什么是 Jev · 实测 · jev-1.13.0 · 469 token · 服务端 89 ms</div>
+  <h1>一条工单，三道题，<span class="thin">89 毫秒</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 620" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- request -->
+<text x="0" y="26" font-size="20" fill="#6E6E73" letter-spacing="2">请求</text>
+<rect x="0" y="44" width="700" height="132" rx="18" fill="#F5F5F7"/>
+<text x="24" y="80" font-size="20" fill="#6E6E73" class="mono">state</text>
+<text x="24" y="116" font-size="23" fill="#1D1D1F">你好，我三天前买的会员到现在还没开通，钱已经扣了，</text>
+<text x="24" y="150" font-size="23" fill="#1D1D1F">客服电话也打不通，今天不解决我就去投诉。</text>
+<rect x="0" y="196" width="700" height="118" rx="18" fill="#F5F5F7"/>
+<text x="24" y="230" font-size="20" fill="#6E6E73" class="mono">questions · 部门 · choice</text>
+<text x="24" y="264" font-size="22" fill="#1D1D1F">这条消息应该转给哪个团队？</text>
+<text x="24" y="296" font-size="20" fill="#6E6E73">计费：扣款、发票、退款　技术：故障、接口　销售：价格、套餐</text>
+<rect x="0" y="334" width="700" height="118" rx="18" fill="#F5F5F7"/>
+<text x="24" y="368" font-size="20" fill="#6E6E73" class="mono">情绪 · score</text>
+<text x="24" y="402" font-size="22" fill="#1D1D1F">客户有多生气？</text>
+<text x="24" y="434" font-size="20" fill="#6E6E73">0 平静　1 不满但克制　2 非常愤怒</text>
+<rect x="0" y="472" width="700" height="118" rx="18" fill="#F5F5F7"/>
+<text x="24" y="506" font-size="20" fill="#6E6E73" class="mono">威胁投诉 · noul</text>
+<text x="24" y="540" font-size="22" fill="#1D1D1F">客户是否威胁要投诉或采取进一步行动？</text>
+<text x="24" y="572" font-size="20" fill="#6E6E73">答案空间：是 / 否</text>
+<!-- arrow -->
+<line x1="720" y1="316" x2="860" y2="316" stroke="#0071E3" stroke-width="4" marker-end="url(#arB)"/>
+<text x="790" y="298" text-anchor="middle" font-size="22" font-weight="600" fill="#0071E3">Jev</text>
+<text x="790" y="348" text-anchor="middle" font-size="18" fill="#6E6E73">89 ms</text>
+<!-- response -->
+<text x="900" y="26" font-size="20" fill="#6E6E73" letter-spacing="2">返回 · 全是数字</text>
+<!-- 部门 -->
+<rect x="900" y="44" width="700" height="190" rx="18" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+<text x="924" y="80" font-size="20" fill="#6E6E73" class="mono">部门 · choice</text>
+<text x="924" y="120" font-size="22" fill="#1D1D1F">计费</text><rect x="1010" y="102" width="445" height="24" rx="6" fill="#E8F0FE"/><rect x="1010" y="102" width="396" height="24" rx="6" fill="#0071E3"/><text x="1470" y="121" font-size="22" font-weight="600" fill="#0071E3" class="mono">0.89</text>
+<text x="924" y="160" font-size="22" fill="#1D1D1F">技术</text><rect x="1010" y="142" width="445" height="24" rx="6" fill="#E8F0FE"/><rect x="1010" y="142" width="44" height="24" rx="6" fill="#0071E3"/><text x="1470" y="161" font-size="22" fill="#1D1D1F" class="mono">0.10</text>
+<text x="924" y="200" font-size="22" fill="#1D1D1F">销售</text><rect x="1010" y="182" width="445" height="24" rx="6" fill="#E8F0FE"/><rect x="1010" y="182" width="5" height="24" rx="3" fill="#0071E3"/><text x="1470" y="201" font-size="22" fill="#1D1D1F" class="mono">0.01</text>
+<text x="1576" y="80" text-anchor="end" font-size="20" fill="#6E6E73" class="mono">confidence 0.84</text>
+<!-- 情绪 -->
+<rect x="900" y="254" width="700" height="190" rx="18" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+<text x="924" y="290" font-size="20" fill="#6E6E73" class="mono">情绪 · score</text>
+<text x="924" y="330" font-size="22" fill="#1D1D1F">0 平静</text><rect x="1100" y="312" width="355" height="24" rx="6" fill="#E8F0FE"/><text x="1470" y="331" font-size="22" fill="#A1A1A6" class="mono">0.00</text>
+<text x="924" y="370" font-size="22" fill="#1D1D1F">1 不满但克制</text><rect x="1100" y="352" width="355" height="24" rx="6" fill="#E8F0FE"/><rect x="1100" y="352" width="121" height="24" rx="6" fill="#0071E3"/><text x="1470" y="371" font-size="22" fill="#1D1D1F" class="mono">0.34</text>
+<text x="924" y="410" font-size="22" fill="#1D1D1F">2 非常愤怒</text><rect x="1100" y="392" width="355" height="24" rx="6" fill="#E8F0FE"/><rect x="1100" y="392" width="234" height="24" rx="6" fill="#0071E3"/><text x="1470" y="411" font-size="22" font-weight="600" fill="#0071E3" class="mono">0.66</text>
+<text x="1576" y="290" text-anchor="end" font-size="20" fill="#6E6E73" class="mono">score 1.66 · confidence 0.49</text>
+<!-- noul -->
+<rect x="900" y="464" width="700" height="126" rx="18" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+<text x="924" y="500" font-size="20" fill="#6E6E73" class="mono">威胁投诉 · noul</text>
+<text x="924" y="556" font-size="22" fill="#1D1D1F">是</text><rect x="1010" y="538" width="445" height="24" rx="6" fill="#E8F0FE"/><rect x="1010" y="538" width="436" height="24" rx="6" fill="#0071E3"/><text x="1470" y="557" font-size="22" font-weight="600" fill="#0071E3" class="mono">0.98</text>
+</svg></div>
+</section>
+
+<!-- 10 过渡 -->
+<section class="slide divider" data-sec="02 Motivation" data-title="过渡：动机">
+  <div class="num">02</div>
+  <div class="word">动机</div>
+</section>
+
+<!-- 11 Motivation -->
+<section class="slide" data-sec="02 Motivation" data-title="输出要人裁决 vs 输出自带把握">
+  <div class="kicker"><b>02</b>Motivation · Diogo Almeida · InstructGPT 作者</div>
+  <h1>「一个任务做对 95%，<span class="thin">但不说哪 5% 它不行，就没法自动化」</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- row 1 -->
+<text x="0" y="40" font-size="24" font-weight="600" fill="#1D1D1F">聊天模型</text><text x="130" y="40" font-size="20" fill="#6E6E73">RLHF · 优化的是人喜欢什么</text>
+<rect x="0" y="70" width="260" height="100" rx="20" fill="#F5F5F7"/><text x="130" y="112" text-anchor="middle" font-size="24" fill="#1D1D1F">输入</text><text x="130" y="144" text-anchor="middle" font-size="18" fill="#6E6E73">问题 · 材料</text>
+<line x1="270" y1="120" x2="330" y2="120" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="340" y="70" width="320" height="100" rx="20" fill="#F5F5F7"/><text x="500" y="112" text-anchor="middle" font-size="24" fill="#1D1D1F">LLM 逐 token 生成</text><text x="500" y="144" text-anchor="middle" font-size="18" fill="#6E6E73">秒级 · 按输出 token 计费</text>
+<line x1="670" y1="120" x2="730" y2="120" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="740" y="70" width="260" height="100" rx="20" fill="#F5F5F7"/><text x="870" y="112" text-anchor="middle" font-size="24" fill="#1D1D1F">文本</text><text x="870" y="144" text-anchor="middle" font-size="18" fill="#6E6E73">听起来对不对，不知道</text>
+<line x1="1010" y1="120" x2="1070" y2="120" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="1080" y="70" width="260" height="100" rx="20" fill="#FFFFFF" stroke="#D0342C" stroke-width="2.5"/><text x="1210" y="112" text-anchor="middle" font-size="24" font-weight="600" fill="#D0342C">人来裁决</text><text x="1210" y="144" text-anchor="middle" font-size="18" fill="#6E6E73">每一条都要人看</text>
+<line x1="1350" y1="120" x2="1410" y2="120" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="1420" y="70" width="180" height="100" rx="20" fill="#F5F5F7"/><text x="1510" y="126" text-anchor="middle" font-size="24" fill="#1D1D1F">执行</text>
+<line x1="0" y1="230" x2="1600" y2="230" stroke="#E5E5EA" stroke-width="1.5"/>
+<!-- row 2 -->
+<text x="0" y="290" font-size="24" font-weight="600" fill="#0071E3">System One 模型</text><text x="210" y="290" font-size="20" fill="#6E6E73">RLCD · 优化的是概率诚实</text>
+<rect x="0" y="320" width="260" height="100" rx="20" fill="#F5F5F7"/><text x="130" y="362" text-anchor="middle" font-size="24" fill="#1D1D1F">程序状态</text><text x="130" y="394" text-anchor="middle" font-size="18" fill="#6E6E73">材料 + 选择题</text>
+<line x1="270" y1="370" x2="330" y2="370" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="340" y="320" width="320" height="100" rx="20" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="500" y="362" text-anchor="middle" font-size="24" font-weight="600" fill="#0071E3">一次前向，不生成</text><text x="500" y="394" text-anchor="middle" font-size="18" fill="#1D1D1F">100 ms · 只按输入计费</text>
+<line x1="670" y1="370" x2="730" y2="370" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="740" y="320" width="260" height="100" rx="20" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="870" y="362" text-anchor="middle" font-size="24" font-weight="600" fill="#0071E3">概率</text><text x="870" y="394" text-anchor="middle" font-size="18" fill="#1D1D1F">说 0.8 就有 80% 对</text>
+<line x1="1010" y1="370" x2="1070" y2="370" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="1080" y="320" width="260" height="100" rx="20" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="1210" y="362" text-anchor="middle" font-size="24" font-weight="600" fill="#0071E3">代码按阈值裁决</text><text x="1210" y="394" text-anchor="middle" font-size="18" fill="#1D1D1F">≥ 0.9 自动 · &lt; 0.5 转人</text>
+<line x1="1350" y1="370" x2="1410" y2="370" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="1420" y="320" width="180" height="100" rx="20" fill="#F5F5F7"/><text x="1510" y="376" text-anchor="middle" font-size="24" fill="#1D1D1F">执行</text>
+<!-- footer -->
+<text x="0" y="500" font-size="22" fill="#6E6E73">三条后训练路线</text>
+<text x="200" y="500" font-size="22" fill="#1D1D1F">RLHF 学人类偏好（ChatGPT）　·　RLVR 学可验证的对错（推理模型）　·　<tspan fill="#0071E3" font-weight="600">RLCD 学校准的决策（Jev）</tspan></text>
+</svg></div>
+</section>
+
+<!-- 12 过渡 -->
+<section class="slide divider" data-sec="03 架构" data-title="过渡：架构">
+  <div class="num">03</div>
+  <div class="word">架构</div>
+</section>
+
+<!-- 13 架构总图 -->
+<section class="slide" data-sec="03 架构" data-title="一份 state，三条互不相见的分支">
+  <div class="kicker"><b>03</b>架构 · 计算图 · 由 1 万次探针反推，复现印证</div>
+  <h1>一份 state，<span class="thin">三条互不相见的分支，没有 decode</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- state -->
+<rect x="0" y="30" width="460" height="90" rx="20" fill="#F5F5F7"/>
+<text x="24" y="66" font-size="24" font-weight="600" fill="#1D1D1F">state 的 token</text>
+<text x="24" y="100" font-size="19" fill="#6E6E73">工单文本 · 只编码一次 · 每层 KV cache</text>
+<g fill="#D2D2D7"><rect x="24" y="130" width="34" height="20" rx="5"/><rect x="64" y="130" width="34" height="20" rx="5"/><rect x="104" y="130" width="34" height="20" rx="5"/><rect x="144" y="130" width="34" height="20" rx="5"/><rect x="184" y="130" width="34" height="20" rx="5"/><rect x="224" y="130" width="34" height="20" rx="5"/><rect x="264" y="130" width="34" height="20" rx="5"/><rect x="304" y="130" width="34" height="20" rx="5"/><rect x="344" y="130" width="34" height="20" rx="5"/><rect x="384" y="130" width="34" height="20" rx="5"/><rect x="424" y="130" width="34" height="20" rx="5"/></g>
+<text x="24" y="190" font-size="19" fill="#6E6E73">Transformer · 因果注意力 · ≈10B 激活</text>
+<!-- branches: each row = 题干 + opts + decide -->
+<g>
+  <line x1="470" y1="75" x2="530" y2="75" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+  <rect x="540" y="30" width="760" height="90" rx="20" fill="#F5F5F7"/>
+  <text x="564" y="66" font-size="21" font-weight="600" fill="#1D1D1F">分支 1 · 部门</text>
+  <rect x="740" y="44" width="80" height="26" rx="7" fill="#E5E5EA"/><text x="780" y="63" text-anchor="middle" font-size="15" fill="#1D1D1F">题干</text>
+  <rect x="828" y="44" width="96" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="876" y="63" text-anchor="middle" font-size="15" fill="#0071E3">[opt] 计费</text>
+  <rect x="932" y="44" width="96" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="980" y="63" text-anchor="middle" font-size="15" fill="#0071E3">[opt] 技术</text>
+  <rect x="1036" y="44" width="96" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="1084" y="63" text-anchor="middle" font-size="15" fill="#0071E3">[opt] 销售</text>
+  <rect x="1140" y="44" width="136" height="26" rx="7" fill="#0071E3"/><text x="1208" y="63" text-anchor="middle" font-size="15" font-weight="600" fill="#FFFFFF">[decide]</text>
+  <text x="740" y="104" font-size="16" fill="#6E6E73">只能看到 state + 这一行自己的 token；看不到分支 2、3</text>
+  <line x1="1310" y1="75" x2="1370" y2="75" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+  <rect x="1380" y="30" width="220" height="90" rx="20" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+  <text x="1404" y="62" font-size="19" font-weight="600" fill="#0071E3">读出 · softmax</text>
+  <text x="1404" y="96" font-size="17" fill="#1D1D1F" class="mono">0.89 · 0.10 · 0.01</text>
+
+  <line x1="470" y1="75" x2="500" y2="75" stroke="#8E8E93" stroke-width="3"/><line x1="500" y1="75" x2="500" y2="215" stroke="#8E8E93" stroke-width="3"/><line x1="500" y1="215" x2="530" y2="215" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+  <rect x="540" y="170" width="760" height="90" rx="20" fill="#F5F5F7"/>
+  <text x="564" y="206" font-size="21" font-weight="600" fill="#1D1D1F">分支 2 · 情绪</text>
+  <rect x="740" y="184" width="80" height="26" rx="7" fill="#E5E5EA"/><text x="780" y="203" text-anchor="middle" font-size="15" fill="#1D1D1F">题干</text>
+  <rect x="828" y="184" width="96" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="876" y="203" text-anchor="middle" font-size="15" fill="#0071E3">[opt] 0</text>
+  <rect x="932" y="184" width="96" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="980" y="203" text-anchor="middle" font-size="15" fill="#0071E3">[opt] 1</text>
+  <rect x="1036" y="184" width="96" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="1084" y="203" text-anchor="middle" font-size="15" fill="#0071E3">[opt] 2</text>
+  <rect x="1140" y="184" width="136" height="26" rx="7" fill="#0071E3"/><text x="1208" y="203" text-anchor="middle" font-size="15" font-weight="600" fill="#FFFFFF">[decide]</text>
+  <text x="740" y="244" font-size="16" fill="#6E6E73">同一份 KV cache，位置编码从 state 末尾重新数</text>
+  <line x1="1310" y1="215" x2="1370" y2="215" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+  <rect x="1380" y="170" width="220" height="90" rx="20" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+  <text x="1404" y="202" font-size="19" font-weight="600" fill="#0071E3">读出 · 期望</text>
+  <text x="1404" y="236" font-size="17" fill="#1D1D1F" class="mono">0.34 · 0.66 → 1.66</text>
+
+  <line x1="500" y1="215" x2="500" y2="355" stroke="#8E8E93" stroke-width="3"/><line x1="500" y1="355" x2="530" y2="355" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+  <rect x="540" y="310" width="760" height="90" rx="20" fill="#F5F5F7"/>
+  <text x="564" y="346" font-size="21" font-weight="600" fill="#1D1D1F">分支 3 · 威胁投诉</text>
+  <rect x="740" y="324" width="80" height="26" rx="7" fill="#E5E5EA"/><text x="780" y="343" text-anchor="middle" font-size="15" fill="#1D1D1F">题干</text>
+  <rect x="828" y="324" width="304" height="26" rx="7" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="1.5"/><text x="980" y="343" text-anchor="middle" font-size="15" fill="#6E6E73">是非题没有选项</text>
+  <rect x="1140" y="324" width="136" height="26" rx="7" fill="#0071E3"/><text x="1208" y="343" text-anchor="middle" font-size="15" font-weight="600" fill="#FFFFFF">[decide]</text>
+  <text x="740" y="384" font-size="16" fill="#6E6E73">每条分支最后都是一个 [decide] token，决定在它身上做</text>
+  <line x1="1310" y1="355" x2="1370" y2="355" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+  <rect x="1380" y="310" width="220" height="90" rx="20" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+  <text x="1404" y="342" font-size="19" font-weight="600" fill="#0071E3">读出 · sigmoid</text>
+  <text x="1404" y="376" font-size="17" fill="#1D1D1F" class="mono">0.98</text>
+</g>
+<!-- bottom facts -->
+<line x1="0" y1="440" x2="1600" y2="440" stroke="#E5E5EA" stroke-width="1.5"/>
+<g font-size="20" fill="#1D1D1F">
+  <text x="0" y="486"><tspan font-weight="600">state 只算一次</tspan>　token 计费可加：1 道题 268、2 道 276 · 单分支上限 32k、整请求 65k · 100 道题和 1 道题延迟一样</text>
+  <text x="0" y="524"><tspan font-weight="600">分支互相隔离</tspan>　暗号写进兄弟问题的题干：识别概率 0.00；写进 state：0.90</text>
+  <text x="0" y="562"><tspan font-weight="600">没有 decode</tspan>　读出来是数，序列化成 JSON 返回；255 个选项和 2 个选项延迟相同</text>
+</g>
+</svg></div>
+</section>
+
+<!-- 14 决定位置 -->
+<section class="slide" data-sec="03 架构" data-title="每条分支的最后一个 token 做决定">
+  <div class="kicker"><b>03</b>架构 · 放大一条分支 · 部门这道题</div>
+  <h1>最后一个 token 做决定，<span class="thin">看得到本分支的一切</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 680" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- token row -->
+<g>
+  <rect x="0" y="150" width="300" height="70" rx="16" fill="#E5E5EA"/><text x="150" y="180" text-anchor="middle" font-size="20" fill="#1D1D1F">state 的 token</text><text x="150" y="206" text-anchor="middle" font-size="15" fill="#6E6E73">那条工单 · 共享，算过一次</text>
+  <rect x="316" y="150" width="200" height="70" rx="16" fill="#F5F5F7" stroke="#D2D2D7" stroke-width="1.5"/><text x="416" y="180" text-anchor="middle" font-size="20" fill="#1D1D1F">题干</text><text x="416" y="206" text-anchor="middle" font-size="15" fill="#6E6E73">转给哪个团队</text>
+  <rect x="532" y="150" width="200" height="70" rx="16" fill="#FFFFFF" stroke="#0071E3" stroke-width="2"/><text x="632" y="180" text-anchor="middle" font-size="20" fill="#0071E3">[opt] 计费</text><text x="632" y="206" text-anchor="middle" font-size="15" fill="#6E6E73">扣款、发票、退款</text>
+  <rect x="748" y="150" width="200" height="70" rx="16" fill="#FFFFFF" stroke="#0071E3" stroke-width="2"/><text x="848" y="180" text-anchor="middle" font-size="20" fill="#0071E3">[opt] 技术</text><text x="848" y="206" text-anchor="middle" font-size="15" fill="#6E6E73">故障、接口</text>
+  <rect x="964" y="150" width="200" height="70" rx="16" fill="#FFFFFF" stroke="#0071E3" stroke-width="2"/><text x="1064" y="180" text-anchor="middle" font-size="20" fill="#0071E3">[opt] 销售</text><text x="1064" y="206" text-anchor="middle" font-size="15" fill="#6E6E73">价格、套餐</text>
+  <rect x="1180" y="150" width="170" height="70" rx="16" fill="#0071E3"/><text x="1265" y="180" text-anchor="middle" font-size="20" font-weight="600" fill="#FFFFFF">[decide]</text><text x="1265" y="206" text-anchor="middle" font-size="15" fill="#E8F0FE">这条分支的最后一个</text>
+  <!-- attention arcs from decide back to everything before it -->
+  <path d="M1250,150 C1200,40 200,40 150,150" fill="none" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+  <path d="M1255,150 C1210,70 460,70 416,150" fill="none" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+  <path d="M1260,150 C1220,90 670,90 632,150" fill="none" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+  <path d="M1265,150 C1235,105 880,105 848,150" fill="none" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+  <path d="M1270,150 C1250,118 1085,118 1064,150" fill="none" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+  <text x="700" y="30" text-anchor="middle" font-size="19" fill="#0071E3">因果注意力：一个 token 看得到它前面的所有 token，[decide] 排最后，所以 state、题干、三个选项它全看得到</text>
+  <!-- cannot see other branches -->
+  <rect x="1400" y="150" width="200" height="70" rx="16" fill="#F5F5F7" stroke="#D2D2D7" stroke-width="1.5" stroke-dasharray="7 5"/><text x="1500" y="180" text-anchor="middle" font-size="18" fill="#A1A1A6">分支 2、3 的 token</text><text x="1500" y="206" text-anchor="middle" font-size="15" fill="#A1A1A6">mask 挡住，看不到</text>
+  <line x1="1350" y1="185" x2="1392" y2="185" stroke="#D0342C" stroke-width="2.5" stroke-dasharray="5 4"/><line x1="1364" y1="172" x2="1378" y2="198" stroke="#D0342C" stroke-width="3"/>
+</g>
+<!-- readout below decide -->
+<line x1="1265" y1="222" x2="1265" y2="262" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="1110" y="270" width="310" height="60" rx="14" fill="#E8F0FE"/><text x="1265" y="308" text-anchor="middle" font-size="18" fill="#1D1D1F">[decide] 位置的隐状态 h（一个向量）</text>
+<line x1="1265" y1="332" x2="1265" y2="362" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="1110" y="370" width="310" height="60" rx="14" fill="#E8F0FE"/><text x="1265" y="408" text-anchor="middle" font-size="18" fill="#1D1D1F">读出头：h → 3 个分数 → softmax</text>
+<line x1="1265" y1="432" x2="1265" y2="462" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="1110" y="470" width="310" height="60" rx="14" fill="#0071E3"/><text x="1265" y="508" text-anchor="middle" font-size="19" font-weight="600" fill="#FFFFFF" class="mono">0.89 · 0.10 · 0.01</text>
+<!-- listwise evidence left-bottom -->
+<text x="0" y="292" font-size="22" font-weight="600" fill="#1D1D1F">三个选项不是三条分支：它们在同一行里，中间没有 mask</text>
+<text x="0" y="326" font-size="18" font-weight="600" fill="#6E6E73">算法 A · 各打各的 <tspan font-weight="400">（每个选项各开一行 · Jev 不是这样）</tspan></text>
+<rect x="0" y="340" width="70" height="26" rx="7" fill="#E5E5EA"/><text x="35" y="358" text-anchor="middle" font-size="14" fill="#1D1D1F">state</text><rect x="76" y="340" width="56" height="26" rx="7" fill="#E5E5EA"/><text x="104" y="358" text-anchor="middle" font-size="14" fill="#1D1D1F">题干</text><rect x="138" y="340" width="70" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="173" y="358" text-anchor="middle" font-size="14" fill="#0071E3">计费</text><rect x="214" y="340" width="80" height="26" rx="7" fill="#0071E3"/><text x="254" y="358" text-anchor="middle" font-size="14" font-weight="600" fill="#FFFFFF">[decide]</text><text x="306" y="358" font-size="16" fill="#1D1D1F" class="mono">→ s₁</text>
+<rect x="0" y="372" width="70" height="26" rx="7" fill="#E5E5EA"/><text x="35" y="390" text-anchor="middle" font-size="14" fill="#1D1D1F">state</text><rect x="76" y="372" width="56" height="26" rx="7" fill="#E5E5EA"/><text x="104" y="390" text-anchor="middle" font-size="14" fill="#1D1D1F">题干</text><rect x="138" y="372" width="70" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="173" y="390" text-anchor="middle" font-size="14" fill="#0071E3">技术</text><rect x="214" y="372" width="80" height="26" rx="7" fill="#0071E3"/><text x="254" y="390" text-anchor="middle" font-size="14" font-weight="600" fill="#FFFFFF">[decide]</text><text x="306" y="390" font-size="16" fill="#1D1D1F" class="mono">→ s₂</text>
+<rect x="0" y="404" width="70" height="26" rx="7" fill="#E5E5EA"/><text x="35" y="422" text-anchor="middle" font-size="14" fill="#1D1D1F">state</text><rect x="76" y="404" width="56" height="26" rx="7" fill="#E5E5EA"/><text x="104" y="422" text-anchor="middle" font-size="14" fill="#1D1D1F">题干</text><rect x="138" y="404" width="70" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="173" y="422" text-anchor="middle" font-size="14" fill="#0071E3">销售</text><rect x="214" y="404" width="80" height="26" rx="7" fill="#0071E3"/><text x="254" y="422" text-anchor="middle" font-size="14" font-weight="600" fill="#FFFFFF">[decide]</text><text x="306" y="422" font-size="16" fill="#1D1D1F" class="mono">→ s₃</text>
+<rect x="0" y="436" width="70" height="26" rx="7" fill="#E5E5EA"/><text x="35" y="454" text-anchor="middle" font-size="14" fill="#1D1D1F">state</text><rect x="76" y="436" width="56" height="26" rx="7" fill="#E5E5EA"/><text x="104" y="454" text-anchor="middle" font-size="14" fill="#1D1D1F">题干</text><rect x="138" y="436" width="70" height="26" rx="7" fill="#FFF3E0" stroke="#C2620A" stroke-width="1.5" stroke-dasharray="5 3"/><text x="173" y="454" text-anchor="middle" font-size="14" fill="#9A4B00">其他</text><rect x="214" y="436" width="80" height="26" rx="7" fill="#0071E3"/><text x="254" y="454" text-anchor="middle" font-size="14" font-weight="600" fill="#FFFFFF">[decide]</text><text x="306" y="454" font-size="16" fill="#9A4B00" class="mono">→ s₄　加第四个选项 = 新开一行，s₁ s₂ s₃ 不变</text>
+<text x="0" y="494" font-size="18" font-weight="600" fill="#0071E3">算法 B · 一起看 <tspan font-weight="400" fill="#6E6E73">（三个选项排在一行 · Jev 实测是这样）</tspan></text>
+<rect x="0" y="508" width="70" height="26" rx="7" fill="#E5E5EA"/><text x="35" y="526" text-anchor="middle" font-size="14" fill="#1D1D1F">state</text><rect x="76" y="508" width="56" height="26" rx="7" fill="#E5E5EA"/><text x="104" y="526" text-anchor="middle" font-size="14" fill="#1D1D1F">题干</text><rect x="138" y="508" width="60" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="168" y="526" text-anchor="middle" font-size="14" fill="#0071E3">计费</text><rect x="204" y="508" width="60" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="234" y="526" text-anchor="middle" font-size="14" fill="#0071E3">技术</text><rect x="270" y="508" width="60" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="300" y="526" text-anchor="middle" font-size="14" fill="#0071E3">销售</text><rect x="336" y="508" width="80" height="26" rx="7" fill="#0071E3"/><text x="376" y="526" text-anchor="middle" font-size="14" font-weight="600" fill="#FFFFFF">[decide]</text><text x="428" y="526" font-size="16" fill="#1D1D1F" class="mono">→ s₁ s₂ s₃ 一次出</text>
+<rect x="0" y="540" width="70" height="26" rx="7" fill="#E5E5EA"/><text x="35" y="558" text-anchor="middle" font-size="14" fill="#1D1D1F">state</text><rect x="76" y="540" width="56" height="26" rx="7" fill="#E5E5EA"/><text x="104" y="558" text-anchor="middle" font-size="14" fill="#1D1D1F">题干</text><rect x="138" y="540" width="60" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="168" y="558" text-anchor="middle" font-size="14" fill="#0071E3">计费</text><rect x="204" y="540" width="60" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="234" y="558" text-anchor="middle" font-size="14" fill="#0071E3">技术</text><rect x="270" y="540" width="60" height="26" rx="7" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="300" y="558" text-anchor="middle" font-size="14" fill="#0071E3">销售</text><rect x="336" y="540" width="60" height="26" rx="7" fill="#FFF3E0" stroke="#C2620A" stroke-width="1.5" stroke-dasharray="5 3"/><text x="366" y="558" text-anchor="middle" font-size="14" fill="#9A4B00">其他</text><rect x="402" y="540" width="80" height="26" rx="7" fill="#0071E3"/><text x="442" y="558" text-anchor="middle" font-size="14" font-weight="600" fill="#FFFFFF">[decide]</text><text x="494" y="558" font-size="16" fill="#9A4B00" class="mono">→ 整行变了，s₁ s₂ s₃ 可以变</text>
+<text x="0" y="600" font-size="17" fill="#1D1D1F">实测：加了「其他」之后，计费和技术之间的比例变了（log-odds +0.38 → +0.11）<tspan font-weight="600" fill="#0071E3">　→ 选项在同一行，是算法 B</tspan></text>
+<text x="0" y="632" font-size="17" fill="#1D1D1F">mask 挡的是行与行之间（题与题）；一行内部，[decide] 看得到全部选项，后面的选项也看得到前面的</text>
+<text x="0" y="662" font-size="17" fill="#6E6E73">副作用：选项顺序会影响概率（顺序反转 0.84 → 0.95）；线索放在离 [decide] 近的末尾更容易被用上（16/16 vs 12/16）</text>
+</svg></div>
+</section>
+
+<!-- 15 三种头 -->
+<section class="slide" data-sec="03 架构" data-title="三种读出头">
+  <div class="kicker"><b>03</b>架构 · 三种原语的读出 · 官方文档给出的公式</div>
+  <h1>三种头：<span class="thin">softmax · 期望 · sigmoid</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- col 1 choice -->
+<g>
+  <text x="0" y="34" font-size="26" font-weight="600" fill="#0071E3">choice</text><text x="110" y="34" font-size="20" fill="#6E6E73">2–255 个命名选项</text>
+  <rect x="0" y="60" width="490" height="150" rx="20" fill="#F5F5F7"/>
+  <text x="24" y="98" font-size="22" fill="#1D1D1F" class="mono">z = W·h + b</text>
+  <text x="24" y="134" font-size="22" fill="#1D1D1F" class="mono">p = softmax(z)</text>
+  <text x="24" y="170" font-size="19" fill="#6E6E73">或 pointer：h 与每个 [/opt] 的隐状态打分</text>
+  <text x="24" y="196" font-size="19" fill="#6E6E73">两种设计现有证据分不出</text>
+  <rect x="0" y="236" width="490" height="300" rx="20" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+  <text x="24" y="276" font-size="20" fill="#6E6E73">部门</text>
+  <text x="24" y="318" font-size="22" fill="#1D1D1F">计费</text><rect x="110" y="300" width="300" height="24" rx="6" fill="#E8F0FE"/><rect x="110" y="300" width="267" height="24" rx="6" fill="#0071E3"/><text x="424" y="319" font-size="22" font-weight="600" fill="#0071E3" class="mono">0.89</text>
+  <text x="24" y="358" font-size="22" fill="#1D1D1F">技术</text><rect x="110" y="340" width="300" height="24" rx="6" fill="#E8F0FE"/><rect x="110" y="340" width="30" height="24" rx="6" fill="#0071E3"/><text x="424" y="359" font-size="22" fill="#1D1D1F" class="mono">0.10</text>
+  <text x="24" y="398" font-size="22" fill="#1D1D1F">销售</text><rect x="110" y="380" width="300" height="24" rx="6" fill="#E8F0FE"/><rect x="110" y="380" width="4" height="24" rx="2" fill="#0071E3"/><text x="424" y="399" font-size="22" fill="#1D1D1F" class="mono">0.01</text>
+  <text x="24" y="452" font-size="20" fill="#1D1D1F" class="mono">choice = argmax = 计费</text>
+  <text x="24" y="488" font-size="20" fill="#1D1D1F" class="mono">confidence = (p_max − 1/K)/(1 − 1/K)</text>
+  <text x="24" y="518" font-size="20" fill="#0071E3" class="mono">= (0.89 − 0.33)/(1 − 0.33) = 0.84</text>
+</g>
+<!-- col 2 score -->
+<g>
+  <text x="555" y="34" font-size="26" font-weight="600" fill="#0071E3">score</text><text x="650" y="34" font-size="20" fill="#6E6E73">2–10 个有序档位</text>
+  <rect x="555" y="60" width="490" height="150" rx="20" fill="#F5F5F7"/>
+  <text x="579" y="98" font-size="22" fill="#1D1D1F" class="mono">p = softmax(z)  在档位上</text>
+  <text x="579" y="134" font-size="22" fill="#1D1D1F" class="mono">score = Σ l · p_l</text>
+  <text x="579" y="170" font-size="19" fill="#6E6E73">不是回归，是分类后取期望</text>
+  <text x="579" y="196" font-size="19" fill="#6E6E73">可以落在两档之间</text>
+  <rect x="555" y="236" width="490" height="300" rx="20" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+  <text x="579" y="276" font-size="20" fill="#6E6E73">情绪</text>
+  <text x="579" y="318" font-size="22" fill="#1D1D1F">0 平静</text><rect x="720" y="300" width="245" height="24" rx="6" fill="#E8F0FE"/><text x="979" y="319" font-size="22" fill="#A1A1A6" class="mono">0.00</text>
+  <text x="579" y="358" font-size="22" fill="#1D1D1F">1 不满但克制</text><rect x="720" y="340" width="245" height="24" rx="6" fill="#E8F0FE"/><rect x="720" y="340" width="83" height="24" rx="6" fill="#0071E3"/><text x="979" y="359" font-size="22" fill="#1D1D1F" class="mono">0.34</text>
+  <text x="579" y="398" font-size="22" fill="#1D1D1F">2 非常愤怒</text><rect x="720" y="380" width="245" height="24" rx="6" fill="#E8F0FE"/><rect x="720" y="380" width="162" height="24" rx="6" fill="#0071E3"/><text x="979" y="399" font-size="22" font-weight="600" fill="#0071E3" class="mono">0.66</text>
+  <text x="579" y="452" font-size="20" fill="#1D1D1F" class="mono">score = 0×0 + 1×0.34 + 2×0.66</text>
+  <text x="579" y="488" font-size="20" fill="#0071E3" class="mono">= 1.66</text>
+  <text x="579" y="518" font-size="20" fill="#1D1D1F" class="mono">confidence = (0.66 − 0.33)/(0.67) = 0.49</text>
+</g>
+<!-- col 3 noul -->
+<g>
+  <text x="1110" y="34" font-size="26" font-weight="600" fill="#0071E3">noul</text><text x="1190" y="34" font-size="20" fill="#6E6E73">一个命题</text>
+  <rect x="1110" y="60" width="490" height="150" rx="20" fill="#F5F5F7"/>
+  <text x="1134" y="98" font-size="22" fill="#1D1D1F" class="mono">p = sigmoid(w·h + b)</text>
+  <text x="1134" y="134" font-size="22" fill="#1D1D1F" class="mono">返回 p，没有 confidence</text>
+  <text x="1134" y="170" font-size="19" fill="#6E6E73">与 choice 不是同一个头：</text>
+  <text x="1134" y="196" font-size="19" fill="#6E6E73">P(A) 与 1 − P(非 A) 不保证一致</text>
+  <rect x="1110" y="236" width="490" height="300" rx="20" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="2"/>
+  <text x="1134" y="276" font-size="20" fill="#6E6E73">威胁投诉</text>
+  <text x="1134" y="338" font-size="22" fill="#1D1D1F">是</text><rect x="1200" y="320" width="300" height="24" rx="6" fill="#E8F0FE"/><rect x="1200" y="320" width="294" height="24" rx="6" fill="#0071E3"/><text x="1514" y="339" font-size="22" font-weight="600" fill="#0071E3" class="mono">0.98</text>
+  <text x="1134" y="452" font-size="20" fill="#1D1D1F">概率精确到 0.01</text>
+  <text x="1134" y="488" font-size="20" fill="#1D1D1F">output_tokens 只是返回 JSON 的字数</text>
+  <text x="1134" y="518" font-size="20" fill="#1D1D1F">255 选项与 2 选项延迟相同</text>
+</g>
+</svg></div>
+</section>
+
+<!-- 16 延迟证据 -->
+<section class="slide" data-sec="03 架构" data-title="延迟随 state 线性，随问题数持平">
+  <div class="kicker"><b>03</b>架构 · 证据 · 服务端上报的中位耗时 · Archer Hume 测量</div>
+  <h1>延迟随 state 线性，<span class="thin">随问题数持平</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- panel 1 -->
+<text x="90" y="34" font-size="24" font-weight="600" fill="#1D1D1F">一道题，state 越来越长</text>
+<line x1="90" y1="500" x2="700" y2="500" stroke="#D2D2D7" stroke-width="2"/><line x1="90" y1="500" x2="90" y2="60" stroke="#D2D2D7" stroke-width="2"/>
+<g font-size="17" fill="#6E6E73" class="mono">
+  <text x="90" y="530" text-anchor="middle">0</text><text x="293" y="530" text-anchor="middle">10k</text><text x="497" y="530" text-anchor="middle">20k</text><text x="700" y="530" text-anchor="middle">30k token</text>
+  <text x="78" y="505" text-anchor="end">0</text><text x="78" y="329" text-anchor="end">100</text><text x="78" y="153" text-anchor="end">200 ms</text>
+</g>
+<polyline points="97,399 128,352 190,357 289,343 396,231 505,174 621,148 697,116" fill="none" stroke="#0071E3" stroke-width="4" stroke-linejoin="round"/>
+<g fill="#0071E3"><circle cx="97" cy="399" r="7"/><circle cx="128" cy="352" r="7"/><circle cx="190" cy="357" r="7"/><circle cx="289" cy="343" r="7"/><circle cx="396" cy="231" r="7"/><circle cx="505" cy="174" r="7"/><circle cx="621" cy="148" r="7"/><circle cx="697" cy="116" r="7"/></g>
+<g font-size="18" fill="#1D1D1F" class="mono"><text x="112" y="430">360 token · 57.5 ms</text><text x="690" y="100" text-anchor="end">29,835 token · 218 ms</text></g>
+<!-- panel 2 -->
+<text x="890" y="34" font-size="24" font-weight="600" fill="#1D1D1F">短 state，问题越来越多</text>
+<line x1="890" y1="500" x2="1500" y2="500" stroke="#D2D2D7" stroke-width="2"/><line x1="890" y1="500" x2="890" y2="60" stroke="#D2D2D7" stroke-width="2"/>
+<g font-size="17" fill="#6E6E73" class="mono">
+  <text x="890" y="530" text-anchor="middle">1</text><text x="1093" y="530" text-anchor="middle">500</text><text x="1297" y="530" text-anchor="middle">1000</text><text x="1500" y="530" text-anchor="middle">1500 道题</text>
+  <text x="878" y="505" text-anchor="end">0</text><text x="878" y="298" text-anchor="end">300</text><text x="878" y="95" text-anchor="end">600 ms</text>
+</g>
+<polyline points="890,441 931,444 1093,377 1297,193 1500,87" fill="none" stroke="#0071E3" stroke-width="4" stroke-linejoin="round"/>
+<g fill="#0071E3"><circle cx="890" cy="441" r="7"/><circle cx="931" cy="444" r="7"/><circle cx="1093" cy="377" r="7"/><circle cx="1297" cy="193" r="7"/><circle cx="1500" cy="87" r="7"/></g>
+<g font-size="18" fill="#1D1D1F" class="mono"><text x="905" y="470">1 道 86.5 ms · 100 道 82 ms</text><text x="1490" y="70" text-anchor="end">1500 道 · 610 ms</text></g>
+</svg></div>
+</section>
+
+<!-- 17 底座画像 -->
+<section class="slide" data-sec="03 架构" data-title="底座画像">
+  <div class="kicker"><b>03</b>架构 · 底座 · 官方两句话，其余是反推</div>
+  <h1>底座画像</h1>
+  <div class="stats">
+    <div class="stat text"><div class="n">Transformer<span class="acc">，对预训练 LM 做后训练</span></div><div class="l">TechCrunch 采访 · docs · <b>官方</b></div></div>
+    <div class="stat"><div class="n">≈10B</div><div class="l">激活参数 · 30k token 跑 160–220 ms 反推 · 70B dense 需要 1 秒多</div></div>
+    <div class="stat text"><div class="n">因果 decoder<span class="acc">，大概率 MoE</span></div><div class="l">前缀 KV cache + 后缀分支只在因果注意力下自然成立 · prefill-only 是算力瓶颈</div></div>
+    <div class="stat"><div class="n">84.6%</div><div class="l">MMLU-Pro · 14 个学科 1.2 万道 10 选 1 的知识题 · GPT-4o 72.6%、DeepSeek-R1 84.0%、8B 模型 40–55%</div></div>
+    <div class="stat text"><div class="n">自定义分词器</div><div class="l">192 个公开分词器全不匹配 · 数字逐个切 · 最接近 <b>Qwen</b>（348/415 探针一致）</div></div>
+    <div class="stat"><div class="n">64k<small>/ 32k</small></div><div class="l">整请求 / 单分支上限 · 纯文本 · 英文为主 · 不做按客户微调</div></div>
+  </div>
+</section>
+
+<!-- 18 过渡 -->
+<section class="slide divider" data-sec="04 训练" data-title="过渡：训练">
+  <div class="num">04</div>
+  <div class="word">训练</div>
+</section>
+
+<!-- 19 三条后训练路线 -->
+<section class="slide" data-sec="04 训练" data-title="三条后训练路线">
+  <div class="kicker"><b>04</b>训练 · 同一个框架，只差奖励</div>
+  <h1>三条后训练路线</h1>
+  <div class="tblwrap"><table class="tbl left wrap">
+    <tr><th></th><th>奖励来自</th><th>奖励作用在</th><th>期望奖励最大时 p 的形状</th><th>产物</th></tr>
+    <tr><td>RLHF<br><span style="font-size:18px;color:var(--muted);font-weight:400">Reinforcement Learning from Human Feedback · 人类反馈</span></td><td>reward model 的偏好分</td><td>采样出的文本</td><td>收窄到高分模式（mode dropping）</td><td>会讨好的生成器</td></tr>
+    <tr><td>RLVR<br><span style="font-size:18px;color:var(--muted);font-weight:400">Reinforcement Learning with Verifiable Rewards · 可验证奖励</span></td><td>采样答案对不对，0 / 1</td><td>采样出的那一个动作</td><td>全部质量压到 argmax</td><td>会做题，不会说「不知道」</td></tr>
+    <tr class="hi"><td>RLCD<br><span style="font-size:18px;font-weight:400">Reinforcement Learning for Calibrated Decisions · 校准的决策</span></td><td>proper scoring rule（log / Brier）</td><td>整个分布 p</td><td>p = 真实条件概率</td><td>概率诚实的判断器</td></tr>
+  </table></div>
+</section>
+
+<!-- 20 过渡 -->
+<section class="slide divider" data-sec="05 数据" data-title="过渡：数据">
+  <div class="num">05</div>
+  <div class="word">数据</div>
+</section>
+
+<!-- 21 创始人说数据 -->
+<section class="slide" data-sec="05 数据" data-title="创始人怎么说数据">
+  <div class="kicker"><b>05</b>数据 · 官方说法 · 原话</div>
+  <h1>创始人怎么说数据</h1>
+  <div class="quotes">
+    <div class="quote"><div class="q">训练数据 <span class="acc">100% 合成</span>，一个真实样本都没有</div><div class="src">TechCrunch 2026-09-18："trained exclusively on synthetic data"</div></div>
+    <div class="quote"><div class="q">「我们很早就赌自己会造全部数据，这是我这辈子最好的一个赌注——<span class="acc">比这次发布好，比 RLHF 还好</span>」</div><div class="src">Diogo Almeida · TechCrunch 采访</div></div>
+    <div class="quote"><div class="q">公司<span class="acc">一半的人</span>在一个实验室里，专门做「统计上被充分理解的合成数据」</div><div class="src">TechCrunch："half its staff to a lab developing statistically well-understood synthetic data"</div></div>
+    <div class="quote"><div class="q">「数据比架构有意思得多」· 任务 &gt; 数据 &gt; 算力 &gt; 算法 · 客户数据不进训练</div><div class="src">HN 回复 · 博客 The Bitterest Lesson · docs Models 页</div></div>
+  </div>
+</section>
+
+<!-- 22 倒果为因 -->
+<section class="slide" data-sec="05 数据" data-title="倒果为因：先抽结果，再造材料">
+  <div class="kicker"><b>05</b>数据 · 官方：训练数据 100% 合成 · 一半员工在一个合成数据实验室</div>
+  <h1>倒果为因：<span class="thin">先抽结果，再造材料</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- row 1: normal labeling -->
+<text x="0" y="40" font-size="24" font-weight="600" fill="#1D1D1F">正常打标</text><text x="120" y="40" font-size="20" fill="#6E6E73">先有材料，再猜答案</text>
+<rect x="0" y="70" width="420" height="120" rx="22" fill="#F5F5F7"/><text x="210" y="120" text-anchor="middle" font-size="26" fill="#1D1D1F">真实的工单</text><text x="210" y="158" text-anchor="middle" font-size="18" fill="#6E6E73">从系统里捞出来的文本</text>
+<line x1="432" y1="130" x2="558" y2="130" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="570" y="70" width="420" height="120" rx="22" fill="#F5F5F7"/><text x="780" y="120" text-anchor="middle" font-size="26" fill="#1D1D1F">人或大模型来猜</text><text x="780" y="158" text-anchor="middle" font-size="18" fill="#6E6E73">这条是 technical 吗</text>
+<line x1="1002" y1="130" x2="1128" y2="130" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="1140" y="70" width="460" height="120" rx="22" fill="#FFFFFF" stroke="#D0342C" stroke-width="2.5"/><text x="1370" y="120" text-anchor="middle" font-size="26" fill="#D0342C">一个标签</text><text x="1370" y="158" text-anchor="middle" font-size="18" fill="#6E6E73">可能猜错 · 拿不到「有多大比例是 technical」</text>
+<line x1="0" y1="250" x2="1600" y2="250" stroke="#E5E5EA" stroke-width="1.5"/>
+<!-- row 2: reverse -->
+<text x="0" y="310" font-size="24" font-weight="600" fill="#0071E3">倒果为因</text><text x="120" y="310" font-size="20" fill="#6E6E73">先抽答案，再造材料</text>
+<rect x="0" y="340" width="420" height="120" rx="22" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="210" y="390" text-anchor="middle" font-size="26" font-weight="600" fill="#0071E3">先抽结果</text><text x="210" y="428" text-anchor="middle" font-size="18" fill="#1D1D1F">technical · 很急 · 提到集成失败和重复扣款</text>
+<line x1="432" y1="400" x2="558" y2="400" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="570" y="340" width="420" height="120" rx="22" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="780" y="390" text-anchor="middle" font-size="26" font-weight="600" fill="#0071E3">模拟器写出工单</text><text x="780" y="428" text-anchor="middle" font-size="18" fill="#1D1D1F">LLM 只当打字员，不负责判断</text>
+<line x1="1002" y1="400" x2="1128" y2="400" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="1140" y="340" width="460" height="120" rx="22" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="1370" y="390" text-anchor="middle" font-size="26" font-weight="600" fill="#0071E3">答案天生正确</text><text x="1370" y="428" text-anchor="middle" font-size="18" fill="#1D1D1F">而且「有多大比例是 technical」算得出来</text>
+<text x="0" y="530" font-size="20" fill="#6E6E73">官方原话：「我们很早就赌自己会造全部数据，这是我这辈子最好的一个赌注」· 流程没公开，下面两页是重构</text>
+</svg></div>
+</section>
+
+<!-- 23 模拟器四步 -->
+<section class="slide" data-sec="05 数据" data-title="模拟器怎么造一条数据">
+  <div class="kicker"><b>05</b>数据 · 模拟器 · 一条工单的四步 · 数字是示例</div>
+  <h1>模拟器怎么造一条数据</h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<rect x="0" y="30" width="370" height="440" rx="22" fill="#F5F5F7"/>
+<text x="24" y="76" font-size="26" font-weight="600" fill="#0071E3">① 抽结果</text>
+<text x="24" y="120" font-size="20" fill="#1D1D1F">部门　technical</text>
+<text x="24" y="156" font-size="20" fill="#1D1D1F">急不急　急</text>
+<text x="24" y="192" font-size="20" fill="#1D1D1F">情绪　不满但克制</text>
+<text x="24" y="228" font-size="20" fill="#1D1D1F">提到什么　集成失败 · 重复扣款</text>
+<line x1="24" y1="262" x2="346" y2="262" stroke="#D2D2D7" stroke-width="1.5"/>
+<text x="24" y="300" font-size="18" fill="#6E6E73">模拟器里的规矩（人定的）</text>
+<text x="24" y="334" font-size="18" fill="#6E6E73">三个部门 40 / 45 / 15</text>
+<text x="24" y="368" font-size="18" fill="#6E6E73">technical 提集成 0.8 · 提扣款 0.1</text>
+<text x="24" y="402" font-size="18" fill="#6E6E73">billing 提集成 0.1 · 提扣款 0.7</text>
+<line x1="380" y1="250" x2="426" y2="250" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="432" y="30" width="370" height="440" rx="22" fill="#F5F5F7"/>
+<text x="456" y="76" font-size="26" font-weight="600" fill="#0071E3">② 写文本</text>
+<text x="456" y="112" font-size="18" fill="#6E6E73">LLM 照着①写，只当打字员</text>
+<rect x="456" y="134" width="322" height="200" rx="14" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="1.5"/>
+<g font-size="17" fill="#1D1D1F"><text x="472" y="168">"Hi, I've been trying to connect</text><text x="472" y="196">my Stripe account for 3 days and</text><text x="472" y="224">the integration keeps failing, and</text><text x="472" y="252">I also got charged twice. I'm losing</text><text x="472" y="280">sales. Please help ASAP."</text></g>
+<text x="456" y="380" font-size="18" fill="#6E6E73">同一个①写 N 遍：措辞、长度、</text>
+<text x="456" y="410" font-size="18" fill="#6E6E73">JSON 结构、选项顺序都换</text>
+<line x1="812" y1="250" x2="858" y2="250" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="864" y="30" width="370" height="440" rx="22" fill="#F5F5F7"/>
+<text x="888" y="76" font-size="26" font-weight="600" fill="#0071E3">③ 算比例</text>
+<text x="888" y="112" font-size="18" fill="#6E6E73">长成这样的工单，各部门占多少</text>
+<g font-size="19" fill="#1D1D1F" class="mono"><text x="888" y="160">technical 0.45×0.8×0.1</text><text x="888" y="188">          = 0.036</text><text x="888" y="228">billing   0.40×0.1×0.7</text><text x="888" y="256">          = 0.028</text></g>
+<line x1="888" y1="282" x2="1210" y2="282" stroke="#D2D2D7" stroke-width="1.5"/>
+<text x="888" y="330" font-size="28" font-weight="600" fill="#0071E3" class="mono">0.56 : 0.44</text>
+<text x="888" y="380" font-size="18" fill="#6E6E73">算不出闭式时：造十万条，</text>
+<text x="888" y="410" font-size="18" fill="#6E6E73">按内容分组，数一数</text>
+<line x1="1244" y1="250" x2="1290" y2="250" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="1296" y="30" width="304" height="440" rx="22" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+<text x="1320" y="76" font-size="26" font-weight="600" fill="#0071E3">④ 训练行</text>
+<g font-size="19" fill="#1D1D1F" class="mono"><text x="1320" y="130">state: ②的文本</text><text x="1320" y="180">部门:</text><text x="1320" y="212">  [0.44, 0.56, 0]</text><text x="1320" y="262">急不急: 1.0</text><text x="1320" y="312">情绪: 档 1</text></g>
+<text x="1320" y="380" font-size="18" fill="#0071E3">目标是一个分布，</text>
+<text x="1320" y="410" font-size="18" fill="#0071E3">不是 one-hot</text>
+<text x="0" y="530" font-size="20" fill="#6E6E73">「统计上被充分理解的合成数据」：每条数据的正确比例，是模拟器里一个算得出来的量</text>
+</svg></div>
+</section>
+
+<!-- 24 三种样本 -->
+<section class="slide" data-sec="05 数据" data-title="三种样本，一个代价">
+  <div class="kicker"><b>05</b>数据 · 转模拟器的旋钮 · 目标分布</div>
+  <h1>三种样本，<span class="thin">一个代价</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- three mini charts -->
+<g>
+  <rect x="0" y="30" width="500" height="330" rx="22" fill="#F5F5F7"/>
+  <text x="24" y="72" font-size="24" font-weight="600" fill="#1D1D1F">清楚的样本</text>
+  <text x="24" y="104" font-size="18" fill="#6E6E73">只提集成，不提扣款</text>
+  <text x="60" y="300" text-anchor="middle" font-size="17" fill="#1D1D1F">计费</text><rect x="35" y="270" width="50" height="8" rx="3" fill="#0071E3"/>
+  <text x="250" y="300" text-anchor="middle" font-size="17" fill="#1D1D1F">技术</text><rect x="225" y="86" width="50" height="192" rx="6" fill="#0071E3"/>
+  <text x="440" y="300" text-anchor="middle" font-size="17" fill="#1D1D1F">销售</text><rect x="415" y="276" width="50" height="2" rx="1" fill="#0071E3"/>
+  <text x="250" y="340" text-anchor="middle" font-size="20" fill="#0071E3" class="mono">[0.04, 0.96, 0]</text>
+</g>
+<g>
+  <rect x="550" y="30" width="500" height="330" rx="22" fill="#F5F5F7"/>
+  <text x="574" y="72" font-size="24" font-weight="600" fill="#1D1D1F">模糊的样本</text>
+  <text x="574" y="104" font-size="18" fill="#6E6E73">两个部门的话题拉近，既提集成又提扣款</text>
+  <text x="610" y="300" text-anchor="middle" font-size="17" fill="#1D1D1F">计费</text><rect x="585" y="190" width="50" height="88" rx="6" fill="#0071E3"/>
+  <text x="800" y="300" text-anchor="middle" font-size="17" fill="#1D1D1F">技术</text><rect x="775" y="166" width="50" height="112" rx="6" fill="#0071E3"/>
+  <text x="990" y="300" text-anchor="middle" font-size="17" fill="#1D1D1F">销售</text><rect x="965" y="276" width="50" height="2" rx="1" fill="#0071E3"/>
+  <text x="800" y="340" text-anchor="middle" font-size="20" fill="#0071E3" class="mono">[0.44, 0.56, 0]</text>
+</g>
+<g>
+  <rect x="1100" y="30" width="500" height="330" rx="22" fill="#F5F5F7"/>
+  <text x="1124" y="72" font-size="24" font-weight="600" fill="#1D1D1F">不可知的样本</text>
+  <text x="1124" y="104" font-size="18" fill="#6E6E73">把能区分的话题全删掉，只剩「你们产品有问题」</text>
+  <text x="1160" y="300" text-anchor="middle" font-size="17" fill="#1D1D1F">计费</text><rect x="1135" y="198" width="50" height="80" rx="6" fill="#0071E3"/>
+  <text x="1350" y="300" text-anchor="middle" font-size="17" fill="#1D1D1F">技术</text><rect x="1325" y="188" width="50" height="90" rx="6" fill="#0071E3"/>
+  <text x="1540" y="300" text-anchor="middle" font-size="17" fill="#1D1D1F">销售</text><rect x="1515" y="248" width="50" height="30" rx="6" fill="#0071E3"/>
+  <text x="1350" y="340" text-anchor="middle" font-size="20" fill="#0071E3" class="mono">[0.40, 0.45, 0.15] = 先验</text>
+</g>
+<g font-size="20" fill="#1D1D1F">
+  <text x="0" y="420"><tspan font-weight="600">能造什么</tspan>　标签零噪声 · 比例可算 · 量无限 · 想要多少「六成把握」的样本就造多少</text>
+  <text x="0" y="462"><tspan font-weight="600">代价</tspan>　模拟器里的每个数字是人拍的：「technical 工单 80% 提集成」真实世界是 60% 的话，校准就系统性地偏了</text>
+  <text x="0" y="504" fill="#6E6E73">客户数据不进训练，没有回流来修——第三方实测：域内 ECE 0.02–0.03，分布外 0.107，规则不在文本里的题 0.325</text>
+</g>
+</svg></div>
+</section>
+
+<!-- 25 过渡 -->
+<section class="slide divider" data-sec="06 实验" data-title="过渡：实验">
+  <div class="num">06</div>
+  <div class="word">实验</div>
+</section>
+
+<!-- 26 官方评测散点 -->
+<section class="slide" data-sec="06 实验" data-title="官方评测：Pareto 前沿">
+  <div class="kicker"><b>06</b>实验 · 官方 evals · 四个工作流平均 · 标签 = GPT-6 Astra 与 Fable 5.1 高推理档答案的平均</div>
+  <h1>四个工作流平均：<span class="acc">67.8%</span> <span class="thin">· $0.0004 · 0.4 s</span></h1>
+  <div class="fig card"><img src="media/blog_pareto.png" alt=""></div>
+</section>
+
+<!-- 27 官方表 -->
+<section class="slide" data-sec="06 实验" data-title="官方评测：分工作流">
+  <div class="kicker"><b>06</b>实验 · 官方 evals · 准确率 / 每条成本 · 延迟 · 其他模型按供应商默认推理设置</div>
+  <h1>客服和告警持平或胜出，<span class="thin">发票输 13–17 个点</span></h1>
+  <div class="tblwrap"><table class="tbl num two">
+    <tr><th>工作流</th><th>Jev</th><th>GPT-5.6 Terra</th><th>GPT-5.6 Sol</th><th>Opus 5</th></tr>
+    <tr><td>安全告警</td><td class="acc"><b>61.7%</b><br><small>$0.0001 · 0.3 s</small></td><td><b>51.2%</b><br><small>$0.0119 · 5.7 s</small></td><td><b>62.5%</b><br><small>$0.0295 · 8.5 s</small></td><td><b>66.2%</b><br><small>$0.0574 · 15.1 s</small></td></tr>
+    <tr><td>Agent trace 审核</td><td class="acc"><b>71.6%</b><br><small>$0.0003 · 0.5 s</small></td><td><b>73.0%</b><br><small>$0.0209 · 11.4 s</small></td><td><b>76.6%</b><br><small>$0.0575 · 40.3 s</small></td><td><b>75.2%</b><br><small>$0.1033 · 27.4 s</small></td></tr>
+    <tr><td>发票处理</td><td class="acc"><b>61.8%</b><br><small>$0.0011 · 0.5 s</small></td><td><b>74.7%</b><br><small>$0.0778 · 17.3 s</small></td><td><b>79.1%</b><br><small>$0.2152 · 34.3 s</small></td><td><b>78.4%</b><br><small>$0.4856 · 92.1 s</small></td></tr>
+    <tr><td>客服</td><td class="acc"><b>76.0%</b><br><small>$0.0001 · 0.4 s</small></td><td><b>72.7%</b><br><small>$0.0111 · 6.0 s</small></td><td><b>78.3%</b><br><small>$0.0323 · 10.1 s</small></td><td><b>72.4%</b><br><small>$0.0579 · 16.6 s</small></td></tr>
+    <tr><td>平均</td><td class="acc"><b>67.8%</b><br><small>$0.0004 · 0.4 s</small></td><td><b>67.9%</b><br><small>$0.0304 · 10.1 s</small></td><td><b>74.1%</b><br><small>$0.0836 · 23.3 s</small></td><td><b>73.1%</b><br><small>$0.1761 · 37.8 s</small></td></tr>
+  </table></div>
+</section>
+
+<!-- 28 校准 -->
+<section class="slide" data-sec="06 实验" data-title="两端可信，中间不可信">
+  <div class="kicker"><b>06</b>实验 · 独立评测 · 校准 · 左：18,514 封邮件的垃圾率按 Jev 报的概率分桶（Arize）</div>
+  <h1>两端可信，<span class="thin">中间不可信</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- bars -->
+<line x1="90" y1="470" x2="760" y2="470" stroke="#D2D2D7" stroke-width="2"/>
+<g font-size="20" fill="#6E6E73" class="mono"><text x="78" y="475" text-anchor="end">0%</text><text x="78" y="275" text-anchor="end">50%</text><text x="78" y="75" text-anchor="end">100%</text></g>
+<line x1="90" y1="270" x2="760" y2="270" stroke="#E5E5EA" stroke-width="1.5" stroke-dasharray="6 5"/>
+<rect x="150" y="466" width="150" height="4" rx="2" fill="#0071E3"/><text x="225" y="440" text-anchor="middle" font-size="24" font-weight="600" fill="#0071E3" class="mono">0.1%</text>
+<rect x="350" y="318" width="150" height="152" rx="8" fill="#0071E3"/><text x="425" y="298" text-anchor="middle" font-size="24" font-weight="600" fill="#0071E3" class="mono">38%</text>
+<rect x="550" y="70" width="150" height="400" rx="8" fill="#0071E3"/><text x="625" y="52" text-anchor="middle" font-size="24" font-weight="600" fill="#0071E3" class="mono">99.9%</text>
+<g font-size="20" fill="#1D1D1F" text-anchor="middle">
+  <text x="225" y="510">报 &lt; 0.1</text><text x="425" y="510">报 0.5–0.6</text><text x="625" y="510">报 ≥ 0.9</text>
+</g>
+<text x="425" y="545" text-anchor="middle" font-size="18" fill="#6E6E73">实际是垃圾邮件的比例</text>
+<!-- right: numbers -->
+<g font-size="21" fill="#1D1D1F">
+  <text x="860" y="70" font-size="24" font-weight="600">ECE（期望校准误差，越小越好）</text>
+  <text x="860" y="116">域内公开集　OpenBookQA 0.024 · CommonsenseQA 0.032</text>
+  <text x="860" y="152">HellaSwag 0.029 · MMLU（1200 题）0.031　　前沿 LLM 同类任务 0.14–0.18</text>
+  <text x="860" y="204" fill="#D0342C">分布外 900 条规则生成的工单　0.107（噪声底 0.024）</text>
+  <text x="860" y="240" fill="#D0342C">规则不在文本里的优先级题　准确率 44.7% · ECE 0.325 · 平均报 0.74</text>
+  <text x="860" y="276" fill="#D0342C">同一批数据换一种问法　ECE 在 0.21–0.52 之间波动</text>
+  <text x="860" y="330" font-size="24" font-weight="600">按报出的概率分桶的准确率（4 个公开集 + 3300 条生产数据）</text>
+  <text x="860" y="376">≥ 0.9　对 90–99.6%　　　&lt; 0.9　对 55–72%</text>
+  <text x="860" y="430" font-size="24" font-weight="600">按类型 · 按语言</text>
+  <text x="860" y="476">choice / score 一致偏自信，noul 一致偏保守</text>
+  <text x="860" y="512">俄语　准确率 88.3% → 77.3%　ECE 0.032 → 0.096</text>
+</g>
+</svg></div>
+</section>
+
+<!-- 29 准确率对比 -->
+<section class="slide" data-sec="06 实验" data-title="短文本持平小模型，要推理的输前沿">
+  <div class="kicker"><b>06</b>实验 · 独立评测 · 准确率 · 每集 200–300 条</div>
+  <h1>短文本持平小模型，<span class="thin">要推理的输给前沿模型</span></h1>
+  <div class="tblwrap"><table class="tbl num">
+    <tr><th>任务</th><th>Jev</th><th>对手</th><th>来源</th></tr>
+    <tr><td>Enron 垃圾邮件 · 2 类</td><td class="acc">98.7%</td><td>gpt-5.6-luna 98.0% · gpt-5.4-mini 97.7%</td><td class="dim">amankumar</td></tr>
+    <tr><td>SST-2 情感 · 2 类</td><td class="acc">95.7%</td><td>93.0% · 92.7%</td><td class="dim">amankumar</td></tr>
+    <tr><td>AG News 主题 · 4 类</td><td class="acc">91.3%</td><td>89.7% · 88.3%</td><td class="dim">amankumar</td></tr>
+    <tr><td>Banking77 意图 · 77 类</td><td>76.0% / 0.832</td><td>luna 81.7% · 监督 encoder 0.933 · Terra 0.875</td><td class="dim">amankumar · ickma</td></tr>
+    <tr><td>CLINC150 意图 · 150 类</td><td>0.870</td><td>Terra 0.915 · nano 0.795</td><td class="dim">ickma</td></tr>
+    <tr><td>钓鱼邮件 · 2000 封</td><td>62.6%</td><td>Claude Haiku 4.5 81.3%</td><td class="dim">XenoSpectrum</td></tr>
+    <tr><td>49 任务综合 vs GPT-5.6-Luna</td><td class="acc">42 / 49 赢或平</td><td>105 ms vs 710–808 ms · ECE 0.07 vs 0.14–0.18</td><td class="dim">jev-decision-bench</td></tr>
+    <tr><td>18,514 封垃圾邮件 · 零样本</td><td class="acc">98.3%</td><td>= 用 1.48 万条标注训的 TF-IDF</td><td class="dim">Arize</td></tr>
+  </table></div>
+</section>
+
+<!-- 30 过渡 -->
+<section class="slide divider" data-sec="07 应用" data-title="过渡：应用">
+  <div class="num">07</div>
+  <div class="word">应用</div>
+</section>
+
+<!-- 31 DOOM -->
+<section class="slide" data-sec="07 应用" data-title="DOOM">
+  <div class="kicker"><b>07</b>应用 · 官方 demo · 每秒约 10 次决策 · 约 $7 / 小时</div>
+  <h1>DOOM：<span class="thin">一个小问题问一万遍，「接下来做什么」</span></h1>
+  <div class="sub">Jev 不看图：游戏引擎把状态写成 JSON，它只读文本 · 官方文档：图像 / 音频 / 视频要先用别的模型转成文本</div>
+  <div class="fig plain"><img src="media/poster_doom.png" alt=""></div>
+</section>
+
+<!-- 32 Wikirace -->
+<section class="slide" data-sec="07 应用" data-title="Wikirace">
+  <div class="kicker"><b>07</b>应用 · 官方 demo · 维基百科接龙 · 四个模型同时跑</div>
+  <h1>Wikirace：<span class="thin">只能点页面里的链接，从 Baseball 走到 Sun</span></h1>
+  <div class="sub">每一步是一道选择题：这一页几百个链接点哪个 · Jev 3 跳 0.419 s · Terra 6 跳 9.45 s，点过一次不存在的链接</div>
+  <div class="fig plain"><img src="media/poster_wikirace.png" alt=""></div>
+</section>
+
+<!-- 33 过渡 -->
+<section class="slide divider" data-sec="08 PaperDance" data-title="过渡：我们的例子">
+  <div class="num">08</div>
+  <div class="word">我们的例子</div>
+</section>
+
+<!-- 34 PaperDance 问题 -->
+<section class="slide" data-sec="08 PaperDance" data-title="现在的相关性：词面 + 粗向量">
+  <div class="kicker"><b>08</b>PaperDance · 我们自己的例子 · 25 万篇 arXiv · 每工作日约 450 篇新论文 · 159 个用户方向</div>
+  <h1>现在的相关性：<span class="thin">BM25 词面匹配 + 256 维余弦</span></h1>
+  <div class="tblwrap"><table class="tbl left wrap">
+    <tr><th>用户方向</th><th>现状召回的</th><th>问题</th></tr>
+    <tr><td>视频生成 · 人脸、表情</td><td>「text-to-long-video retrieval」（检索）、图像生成、新视角合成</td><td>词面命中 video generation</td></tr>
+    <tr><td>视频生成 · 人脸、表情</td><td>KeyFace、FaceShot、3D Talking Avatar 命不中</td><td>摘要里不写 video generation，FTS 交集找不到</td></tr>
+    <tr><td>医疗大模型 KV cache 压缩</td><td>GNN 量化、骨架动作「quantization」、扩散步数「pruning」</td><td>同词异义</td></tr>
+    <tr><td>世界动作模型</td><td>0 命中</td><td>改写模型吐了中文检索词</td></tr>
+    <tr><td>严格模式</td><td>人脸相关率 55%</td><td>只有余弦门槛可调，没有真正的「是 / 不是」</td></tr>
+  </table></div>
+</section>
+
+<!-- 35 PaperDance 方案 -->
+<section class="slide" data-sec="08 PaperDance" data-title="召回负责找得全，Jev 负责判得准">
+  <div class="kicker"><b>08</b>PaperDance · 方案 · 两阶段</div>
+  <h1>召回负责找得全，<span class="acc">Jev 负责判得准</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- stage 1 recall -->
+<rect x="0" y="40" width="1600" height="150" rx="22" fill="#F5F5F7"/>
+<text x="24" y="76" font-size="20" fill="#6E6E73" letter-spacing="2">召回 · 不变</text>
+<rect x="24" y="96" width="250" height="70" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="1.5"/><text x="149" y="126" text-anchor="middle" font-size="21" fill="#1D1D1F">FTS 方向词 600</text><text x="149" y="152" text-anchor="middle" font-size="17" fill="#6E6E73">∪ 方向 ∧ 细分 400</text>
+<rect x="298" y="96" width="250" height="70" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="1.5"/><text x="423" y="126" text-anchor="middle" font-size="21" fill="#1D1D1F">语义 top 500</text><text x="423" y="152" text-anchor="middle" font-size="17" fill="#6E6E73">256 维余弦</text>
+<rect x="572" y="96" width="250" height="70" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="1.5"/><text x="697" y="126" text-anchor="middle" font-size="21" fill="#1D1D1F">最新 300</text><text x="697" y="152" text-anchor="middle" font-size="17" fill="#6E6E73">∪ 成色补池 300</text>
+<line x1="832" y1="131" x2="890" y2="131" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="900" y="96" width="320" height="70" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="1.5"/><text x="1060" y="126" text-anchor="middle" font-size="21" fill="#1D1D1F">基础分排序 · 现有公式</text><text x="1060" y="152" text-anchor="middle" font-size="17" fill="#6E6E73">0.55·BM25 ⊕ 0.45·余弦 × 成色 × 时间 × 抖动</text>
+<line x1="1230" y1="131" x2="1288" y2="131" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="1298" y="96" width="278" height="70" rx="16" fill="#FFFFFF" stroke="#D2D2D7" stroke-width="1.5"/><text x="1437" y="126" text-anchor="middle" font-size="21" fill="#1D1D1F">取前 100</text><text x="1437" y="152" text-anchor="middle" font-size="17" fill="#6E6E73">按块 · 命中缓存的跳过</text>
+<!-- arrow down -->
+<line x1="1437" y1="196" x2="1437" y2="250" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<!-- stage 2 judge -->
+<rect x="0" y="260" width="1600" height="150" rx="22" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+<text x="24" y="296" font-size="20" fill="#0071E3" letter-spacing="2">判断 · Jev</text>
+<rect x="24" y="316" width="440" height="70" rx="16" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="244" y="346" text-anchor="middle" font-size="21" fill="#1D1D1F">state = 方向的英文描述 + 40 篇摘要</text><text x="244" y="372" text-anchor="middle" font-size="17" fill="#6E6E73">≤ 40 篇 / 请求 · 并行 · 超时 2.5 s · 熔断</text>
+<line x1="474" y1="351" x2="532" y2="351" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="542" y="316" width="520" height="70" rx="16" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="802" y="346" text-anchor="middle" font-size="21" fill="#1D1D1F">每篇一个 noul：rel（是不是这个方向）</text><text x="802" y="372" text-anchor="middle" font-size="17" fill="#6E6E73">+ 每个细分一个 noul：sub_i · 反引号按名字引用 `papers.p3`</text>
+<line x1="1072" y1="351" x2="1130" y2="351" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+<rect x="1140" y="316" width="436" height="70" rx="16" fill="#FFFFFF" stroke="#0071E3" stroke-width="1.5"/><text x="1358" y="346" text-anchor="middle" font-size="21" fill="#1D1D1F">写入缓存表</text><text x="1358" y="372" text-anchor="middle" font-size="17" fill="#6E6E73">(direction_hash, paper_id) → rel, sub · 记录 model</text>
+<!-- stage 3 rerank -->
+<line x1="800" y1="416" x2="800" y2="446" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+<rect x="0" y="456" width="1600" height="90" rx="22" fill="#F5F5F7"/>
+<g font-size="21" fill="#1D1D1F" class="mono">
+  <text x="24" y="494">score' = score × (0.2 + 0.8·rel) × (1 + 1.5·max sub_i)</text>
+  <text x="24" y="528">严格模式 rel &lt; 0.5 丢 · 探索卡 rel &lt; 0.3 丢 · 分页不变 · 后台一个开关秒关，关掉就是今天的 feed</text>
+</g>
+</svg></div>
+</section>
+
+<!-- 36 PaperDance 结果表 -->
+<section class="slide" data-sec="08 PaperDance" data-title="线上 8 个真实方向">
+  <div class="kicker"><b>08</b>PaperDance · 线上 feed 仿真 · 8 个真实用户方向各前 100 张 · 独立评审 qwen3-max 读完整摘要打标 · 800 篇共 $0.017</div>
+  <h1>第 1 页 20 张卡：<span class="thin">离题卡归零</span></h1>
+  <div class="tblwrap"><table class="tbl num compact">
+    <tr><th>用户方向</th><th>窗口 100 张 贴题 / 离题</th><th>AUC</th><th>现状第 1 页 贴题·沾边·离题</th><th>+Jev 第 1 页</th><th>细分命中</th></tr>
+    <tr><td>视频生成 · 人脸、表情</td><td>74 / 8</td><td>0.997</td><td>14 · 2 · 4</td><td class="acc">20 · 0 · 0</td><td>13 → 20</td></tr>
+    <tr><td>医疗 LLM 的 KV cache 压缩 · 5 细分</td><td>77 / 6</td><td>0.982</td><td>13 · 5 · 2</td><td class="acc">20 · 0 · 0</td><td>17 → 20</td></tr>
+    <tr><td>遗忘学习 · 遗忘学习、CoT</td><td>22 / 46</td><td>1.000</td><td>6 · 5 · 9</td><td class="acc">20 · 0 · 0</td><td>8 → 20</td></tr>
+    <tr><td>世界动作模型</td><td>44 / 27</td><td>0.999</td><td>8 · 5 · 7</td><td class="acc">18 · 2 · 0</td><td>—</td></tr>
+    <tr><td>红外</td><td>45 / 54</td><td>0.999</td><td>17 · 0 · 3</td><td class="acc">20 · 0 · 0</td><td>—</td></tr>
+    <tr><td>vla robotic</td><td>95 / 2</td><td>1.000</td><td>18 · 1 · 1</td><td class="acc">20 · 0 · 0</td><td>—</td></tr>
+    <tr><td>语音模型的投机解码</td><td>2 / 85</td><td>1.000</td><td>1 · 4 · 15</td><td class="dim">2 · 6 · 12</td><td class="dim">只有 2 篇</td></tr>
+    <tr><td>DP 图像生成</td><td>5 / 85</td><td>1.000</td><td>2 · 5 · 13</td><td class="dim">5 · 6 · 9</td><td class="dim">只有 5 篇</td></tr>
+  </table></div>
+</section>
+
+<!-- 37 PaperDance 视频 -->
+<section class="slide" data-sec="08 PaperDance" data-title="左：现状 · 右：+Jev">
+  <div class="kicker"><b>08</b>PaperDance · 三个方向逐卡对比 · 同一个 100 张窗口</div>
+  <h1>左：现状 <span class="thin">·</span> 右：<span class="acc">+Jev</span></h1>
+  <div class="fig plain"><img src="media/poster_paperdance.png" alt=""></div>
+</section>
+
+<!-- 38 PaperDance 实测 -->
+<section class="slide" data-sec="08 PaperDance" data-title="四组实测">
+  <div class="kicker"><b>08</b>PaperDance · 本地库 54 篇候选人工标注 · 线上 VPS 直连 api.typesafe.ai</div>
+  <h1>四组实测</h1>
+  <div class="stats">
+    <div class="stat"><div class="n">0.995</div><div class="l">相关性 AUC · 「视频生成 + 人脸」 · 细分命中 AUC <b>1.000</b> · 阈值 0.5 精确率 1.00</div></div>
+    <div class="stat"><div class="n">0.979</div><div class="l">「医疗 LLM 的 KV cache 压缩」5 个细分 · 378 个问题一次请求 2.3 s · 同词异义全部识别</div></div>
+    <div class="stat"><div class="n">1.0<small>s</small></div><div class="l">20 篇一页 · 9.2k token · <b>$0.0004</b> · 重复 3 次概率最大偏差 0.06</div></div>
+    <div class="stat"><div class="n">0.924<small>→ 0.995</small></div><div class="l">纯中文方向 AUC 掉、校准失效（核心论文 0.14–0.25）· 换英文检索词恢复 · <b>必须喂英文</b></div></div>
+    <div class="stat"><div class="n">0.60</div><div class="l">用红心 / 收藏代替方向做「口味」判断的 AUC · 不划算 · 行为个性化保留原方案</div></div>
+    <div class="stat"><div class="n">¥100<small>/ 月</small></div><div class="l">当前规模 · 页内精排 + 每日预计算 · 10 倍规模 ≈ ¥500–1000</div></div>
+  </div>
+</section>
+
+<!-- 39 过渡 -->
+<section class="slide divider" data-sec="09 未来" data-title="过渡：未来">
+  <div class="num">09</div>
+  <div class="word">未来</div>
+</section>
+
+<!-- 40 未来：判断点 -->
+<section class="slide" data-sec="09 未来" data-title="一个 agent 任务里，判断点比生成点多">
+  <div class="kicker"><b>09</b>未来 · LangChain / Vercel / 官方 cookbook 里已经接上的位置</div>
+  <h1>一个 agent 任务里，<span class="acc">判断点</span><span class="thin">比生成点多</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<!-- loop of nodes -->
+<g>
+  <rect x="0" y="230" width="200" height="100" rx="20" fill="#F5F5F7"/><text x="100" y="272" text-anchor="middle" font-size="22" fill="#1D1D1F">用户任务</text><text x="100" y="302" text-anchor="middle" font-size="17" fill="#6E6E73">输入</text>
+  <line x1="210" y1="280" x2="256" y2="280" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+  <rect x="266" y="230" width="220" height="100" rx="20" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="376" y="266" text-anchor="middle" font-size="22" font-weight="600" fill="#0071E3">路由</text><text x="376" y="296" text-anchor="middle" font-size="17" fill="#1D1D1F">选模型 · 选工具 · 选子任务</text><text x="376" y="320" text-anchor="middle" font-size="16" fill="#6E6E73">choice</text>
+  <line x1="496" y1="280" x2="542" y2="280" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+  <rect x="552" y="230" width="220" height="100" rx="20" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="662" y="266" text-anchor="middle" font-size="22" font-weight="600" fill="#0071E3">护栏</text><text x="662" y="296" text-anchor="middle" font-size="17" fill="#1D1D1F">调用工具前：危险吗</text><text x="662" y="320" text-anchor="middle" font-size="16" fill="#6E6E73">noul · 越权吗</text>
+  <line x1="782" y1="280" x2="828" y2="280" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+  <rect x="838" y="230" width="200" height="100" rx="20" fill="#F5F5F7" stroke="#D2D2D7" stroke-width="2"/><text x="938" y="272" text-anchor="middle" font-size="22" fill="#1D1D1F">LLM 生成</text><text x="938" y="302" text-anchor="middle" font-size="17" fill="#6E6E73">写代码 · 写回复</text>
+  <line x1="1048" y1="280" x2="1094" y2="280" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+  <rect x="1104" y="230" width="220" height="100" rx="20" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="1214" y="266" text-anchor="middle" font-size="22" font-weight="600" fill="#0071E3">验证</text><text x="1214" y="296" text-anchor="middle" font-size="17" fill="#1D1D1F">输出对不对 · 引用真不真</text><text x="1214" y="320" text-anchor="middle" font-size="16" fill="#6E6E73">noul · score</text>
+  <line x1="1334" y1="280" x2="1380" y2="280" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+  <rect x="1390" y="230" width="210" height="100" rx="20" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="1495" y="266" text-anchor="middle" font-size="22" font-weight="600" fill="#0071E3">继续 / 重试 / 转人</text><text x="1495" y="296" text-anchor="middle" font-size="17" fill="#1D1D1F">按置信度分流</text><text x="1495" y="320" text-anchor="middle" font-size="16" fill="#6E6E73">choice + 阈值</text>
+  <!-- loop back -->
+  <path d="M1495,340 L1495,400 L376,400 L376,340" fill="none" stroke="#A1A1A6" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#ar)"/>
+  <text x="935" y="392" text-anchor="middle" font-size="18" fill="#6E6E73">循环，直到完成</text>
+</g>
+<!-- top: other judgment jobs -->
+<g font-size="20" fill="#1D1D1F">
+  <text x="0" y="60" font-size="22" font-weight="600" fill="#1D1D1F">循环之外，同一类判断</text>
+  <text x="0" y="104">工单分流 · 内容审核 · 垃圾邮件 · 发票核对 · 告警分级 · 重排序 · 数据打标 · 兴趣过滤（PaperDance）</text>
+  <text x="0" y="144" fill="#6E6E73">共同点：答案空间封闭、量大、要快、要知道自己有几成把握</text>
+</g>
+<!-- bottom -->
+<line x1="0" y1="450" x2="1600" y2="450" stroke="#E5E5EA" stroke-width="1.5"/>
+<g font-size="20" fill="#1D1D1F">
+  <text x="0" y="494"><tspan fill="#0071E3" font-weight="600">蓝色</tspan>：不需要生成一个字的位置 · <tspan fill="#6E6E73">灰色</tspan>：需要生成的位置</text>
+  <text x="0" y="534" fill="#6E6E73">OpenRouter 已加 Decisions API · LangChain TypeSafeClassifier · Vercel 用它换掉了自己的安全分类模型</text>
+</g>
+</svg></div>
+</section>
+
+<!-- 41 启示 -->
+<section class="slide" data-sec="09 未来" data-title="发现问题的重要性">
+  <div class="kicker"><b>09</b>未来 · 启示</div>
+  <h1>发现问题的重要性</h1>
+  <div class="bigline">
+    <div class="row"><span class="thin">创始人的排序：</span>任务 <span class="thin">&gt;</span> 数据 <span class="thin">&gt;</span> 算力 <span class="thin">&gt;</span> 算法</div>
+    <div class="row"><span class="thin">结构：</span>一周内被复现 15 次 <span class="thin">— 不是护城河</span></div>
+    <div class="row"><span class="thin">数据与校准：</span>没有一个复现追平 <span class="thin">— 是护城河，但也只是执行</span></div>
+    <div class="row"><span class="thin">问题：</span><span class="acc">软件里的判断，不需要生成，需要把握</span> <span class="thin">— 这一步之前没人当成产品做</span></div>
+    <div class="row small">InstructGPT 的配方是「换任务」；Jev 又换了一次任务。</div>
+  </div>
+</section>
+
+<!-- 42 收尾 -->
+<section class="slide end" data-sec="收尾" data-title="收尾">
+  <h1>Jev</h1>
+  <div class="big"><b>材料 + 选择题 → 每个选项一个校准过的概率</b><br>一次前向 · 100 毫秒 · 输出免费 · 两端可信，中间不可信 · 用之前拿自己的数据验一遍</div>
+  <div class="big" style="margin-top:70px">可lip</div>
+</section>
+
+</div>
+<div id="nav-hot"></div>
+<div id="nav-btn"><div class="b" id="nb-prev">‹</div><span class="pg" id="nb-pg">1 / 42</span><div class="b" id="nb-next">›</div><div class="b" id="nb-list">☰</div></div>
+<div id="nav-panel"></div>
+<div id="hud"></div>
+<script>
+(function(){
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const hud=document.getElementById('hud');
+  let cur=-1, showCounter=false;
+  function fit(){ const s=Math.min(innerWidth/1920, innerHeight/1080); stage.style.transform=`translate(-50%,-50%) scale(${s})`; if(cur>=0) fitFigs(slides[cur]); }
+  // 让白色图卡贴合图片 / 视频比例：宽图不留大片空白，剩余空间上下均分
+  function fitFigs(sl){
+    sl.querySelectorAll(':scope > .fig.card, :scope > .fig.plain').forEach(f=>{
+      const img=f.querySelector('img,video'); if(!img) return;
+      const nw=img.naturalWidth||img.videoWidth, nh=img.naturalHeight||img.videoHeight; if(!nw||!nh) return;
+      f.style.flex=''; f.style.width=''; f.style.height=''; f.style.margin='';
+      const W=f.clientWidth, H=f.clientHeight; if(!W||!H) return;
+      const pad=f.classList.contains('card')?60:0, ar=nw/nh;
+      let w=W, h=(W-pad)/ar+pad; if(h>H){ h=H; w=(H-pad)*ar+pad; }
+      f.style.flex='0 0 auto'; f.style.width=Math.round(w)+'px'; f.style.height=Math.round(h)+'px'; f.style.margin='auto';
+    });
+    sl.querySelectorAll(':scope > .fig2').forEach(row=>{
+      const cards=[...row.querySelectorAll(':scope > .fig.card')]; if(!cards.length) return;
+      cards.forEach(f=>{ f.style.flex=''; f.style.width=''; f.style.height=''; f.style.alignSelf=''; });
+      row.style.justifyContent='';
+      const H=row.clientHeight; if(!H) return;
+      const sizes=cards.map(f=>{ const img=f.querySelector('img'); if(!img||!img.naturalWidth) return null;
+        const W=f.clientWidth, pad=60, ar=img.naturalWidth/img.naturalHeight; let w=W, h=(W-pad)/ar+pad; if(h>H){ h=H; w=(H-pad)*ar+pad; } return [w,h]; });
+      if(sizes.some(x=>!x)) return;
+      cards.forEach((f,i)=>{ f.style.flex='0 0 auto'; f.style.width=Math.round(sizes[i][0])+'px'; f.style.height=Math.round(sizes[i][1])+'px'; f.style.alignSelf='center'; });
+      row.style.justifyContent='center';
+    });
+  }
+  document.querySelectorAll('.slide > .fig img, .slide > .fig2 > .fig img').forEach(img=>img.addEventListener('load',()=>{ const sl=img.closest('.slide'); if(sl.classList.contains('active')) fitFigs(sl); }));
+  document.querySelectorAll('.slide > .fig video').forEach(v=>v.addEventListener('loadedmetadata',()=>{ const sl=v.closest('.slide'); if(sl.classList.contains('active')) fitFigs(sl); }));
+  function show(n){
+    n=Math.max(0,Math.min(slides.length-1,n)); if(n===cur) return;
+    slides.forEach((s,k)=>{ const on=k===n; s.classList.toggle('active',on); s.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(e){} v.play().catch(()=>{}); } else { v.pause(); } }); });
+    const nx=slides[n+1]; if(nx) nx.querySelectorAll('video').forEach(v=>{ if(v.preload!=='auto'){ v.preload='auto'; v.load(); } });
+    cur=n; history.replaceState(null,'','#'+(n+1)); updateHud(); fitFigs(slides[n]);
+  }
+  const navBtn=document.getElementById('nav-btn'), panel=document.getElementById('nav-panel'), pg=document.getElementById('nb-pg');
+  (function buildNav(){
+    let html='', lastSec=null;
+    slides.forEach((sl,k)=>{
+      const sec=sl.dataset.sec||''; const h=sl.querySelector('h1');
+      let title=sl.dataset.title||(h?h.textContent.trim():''); if(!title) title=sec;
+      if(sec!==lastSec){ html+=`<div class="sec-title">${sec||'—'}</div>`; lastSec=sec; }
+      html+=`<div class="it" data-k="${k}"><span class="k">${k+1}</span><span>${title}</span></div>`;
+    });
+    panel.innerHTML=html;
+  })();
+  function toggleNav(force){ const on=(force===undefined)?!panel.classList.contains('open'):force; panel.classList.toggle('open',on); navBtn.classList.toggle('open',on); }
+  document.getElementById('nb-list').addEventListener('click',e=>{ e.stopPropagation(); toggleNav(); });
+  document.getElementById('nb-prev').addEventListener('click',e=>{ e.stopPropagation(); prev(); });
+  document.getElementById('nb-next').addEventListener('click',e=>{ e.stopPropagation(); next(); });
+  navBtn.addEventListener('click',e=>{ e.stopPropagation(); });
+  panel.addEventListener('click',e=>{ e.stopPropagation(); const it=e.target.closest('.it'); if(!it) return; show(parseInt(it.dataset.k,10)); toggleNav(false); });
+  function updateHud(){ pg.textContent=`${cur+1} / ${slides.length}`; hud.textContent = showCounter ? `${cur+1} / ${slides.length}` : '← → 翻页 · F 全屏 · C 页码 · 左上角选页'; panel.querySelectorAll('.it').forEach((el,k)=>el.classList.toggle('cur',k===cur)); }
+  function next(){ show(cur+1); } function prev(){ show(cur-1); }
+  let buf='', bt=null;
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if(e.key==='Escape'){ toggleNav(false); }
+    else if(e.key==='g'||e.key==='G'){ toggleNav(); }
+    else if(e.key==='Home'){ show(0); } else if(e.key==='End'){ show(slides.length-1); }
+    else if(e.key==='f'||e.key==='F'){ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }
+    else if(e.key==='c'||e.key==='C'){ showCounter=!showCounter; hud.classList.toggle('show',showCounter); updateHud(); }
+    else if(/^[0-9]$/.test(e.key)){ buf=(buf+e.key).slice(-2); clearTimeout(bt); bt=setTimeout(()=>{ const k=parseInt(buf,10); if(k>=1&&k<=slides.length) show(k-1); buf=''; },500); }
+  });
+  addEventListener('click',e=>{ if(e.target.closest('a,#nav-panel,#nav-btn,#nav-hot')) return; if(panel.classList.contains('open')){ toggleNav(false); return; } const x=e.clientX/innerWidth; if(x<0.2) prev(); else next(); });
+  addEventListener('resize',fit); fit();
+  if(location.search.includes('nav=1')) toggleNav(true);
+  const h=parseInt((location.hash||'#1').slice(1),10); show(isNaN(h)?0:h-1);
+})();
+</script>
+</body>
+</html>

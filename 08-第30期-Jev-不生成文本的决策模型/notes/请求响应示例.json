@@ -1,0 +1,70 @@
+{
+  "request": {
+    "model": "jev-latest",
+    "state": "你好，我三天前买的会员到现在还没开通，钱已经扣了，客服电话也打不通，今天不解决我就去投诉。",
+    "questions": {
+      "部门": {
+        "type": "choice",
+        "instructions": "这条消息应该转给哪个团队？",
+        "criteria": {
+          "计费": "扣款、发票、退款、支付问题",
+          "技术": "功能故障、接口、bug",
+          "销售": "价格、套餐、升级"
+        }
+      },
+      "情绪": {
+        "type": "score",
+        "instructions": "客户有多生气？",
+        "criteria": [
+          "平静",
+          "不满但克制",
+          "非常愤怒"
+        ]
+      },
+      "威胁投诉": {
+        "type": "noul",
+        "instructions": "客户是否威胁要投诉或采取进一步行动？"
+      }
+    }
+  },
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "部门": {
+        "type": "choice",
+        "choice": "计费",
+        "confidence": 0.83,
+        "probabilities": {
+          "计费": 0.88,
+          "销售": 0.01,
+          "技术": 0.11
+        }
+      },
+      "情绪": {
+        "type": "score",
+        "score": 1.62,
+        "confidence": 0.44,
+        "legend": {
+          "0": "平静",
+          "1": "不满但克制",
+          "2": "非常愤怒"
+        },
+        "probabilities": {
+          "0": 0.0,
+          "1": 0.38,
+          "2": 0.62
+        }
+      },
+      "威胁投诉": {
+        "type": "noul",
+        "noul": 0.98
+      }
+    },
+    "usage": {
+      "input_tokens": 469,
+      "output_tokens": 75
+    }
+  },
+  "server_ms": "90",
+  "client_s": 0.92
+}
