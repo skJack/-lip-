@@ -16,6 +16,7 @@
 | 第 28 期 | 世界模型（二） | 世界模型第2期 · JEPA：不生成像素，在表征空间预测未来｜从 LeCun 立场文到 V-JEPA 2 真机零样本抓放 | LeCun-2022-立场文、V-JEPA-2、V-JEPA、DINO-WM（前置：VLA-JEPA、LeWorldModel） | [`06-第28期-世界模型(二)-JEPA-LeCun立场文-IJEPA-VJEPA-DINOWM-VJEPA2/`](06-第28期-世界模型(二)-JEPA-LeCun立场文-IJEPA-VJEPA-DINOWM-VJEPA2/) |
 | 第 29 期 | 世界模型（三） | 世界模型第3期 · Cosmos：视频生成模型怎么变成机器人策略｜从 UniPi、Genie 到 NVIDIA 的 Cosmos Policy 和 Cosmos 3 | Cosmos-Policy、Cosmos-3、UniPi、Genie、Cosmos-1（前置：Cosmos-Predict2.5） | [`07-第29期-世界模型(三)-Cosmos-UniPi-Genie-CosmosPolicy-Cosmos3/`](07-第29期-世界模型(三)-Cosmos-UniPi-Genie-CosmosPolicy-Cosmos3/) |
 | 第 30 期 | 模型拆解 | Jev：一个字都不写的模型，一周拿下 HN 近两千分——结构、RLCD 训练、100% 合成数据，和我接进 PaperDance 的实测 | 无论文（官方文档 + 社区逆向 + 独立评测） | [`08-第30期-Jev-不生成文本的决策模型/`](08-第30期-Jev-不生成文本的决策模型/) |
+| 第 31 期 | 世界模型（四） | 世界模型第4期 · World Action Model：视频预测到底怎么帮到动作｜从 UniPi、GR-1、VPP、UWM 到 NVIDIA DreamZero 和蚂蚁 LingBot-VA | DreamZero、LingBot-VA、UniPi、GR-1、VPP、UWM（前置：Fast-WAM、WM-to-WAM-教程） | [`09-第31期-世界模型(四)-WorldActionModel-DreamZero-LingBotVA/`](09-第31期-世界模型(四)-WorldActionModel-DreamZero-LingBotVA/) |
 
 ## 目录结构
 

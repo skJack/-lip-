@@ -56,4 +56,4 @@ Setting：4 台机器人、4 个任务、同一套超参；每个任务只有 1 
 ## 6. 关键引用链
 - 建立在（Dreamer 谱系）：DreamerV2（Dreamer-v2；离散 latent + KL balancing，本文直接用其官方实现）← DreamerV1（Dreamer-v1；想象中训 actor-critic）← PlaNet / RSSM（PlaNet）← World Models（World-Models）；latent 里的大批量并行想象类比 Isaac Gym。
 - 建立在（真机 model-based 前人）：Visual Foresight（arXiv:1812.00568；像素级视频预测 + 规划，本文批评它只能短程、规划时要生成图像太贵）、SOLAR（Zhang 2019）、PDDM（Nagabandi 2019）、Yang 2019 / 2022 的四足 foot-placement 模型（需领域控制器）。作者点名"不重建的 latent WM"（DreamerPro、Dreaming、BLAST）为未来方向——后来 TD-MPC2、V-JEPA 2 走的正是这条路（arXiv:2310.16828、vjepa2）。
-- 后续：DreamerV3（Dreamer-v3，2023-01）解决 V2 逐领域调参的问题并把 replay ratio 显式化，Dreamer-v3 笔记已把本文列为 Dreamer 系列的真机后续；tutorial（arXiv:2607.00836，Section 2.2）把本文与 DreamerV3 并列为"重建式、目标域自学的 latent WM"；DINO-WM / V-JEPA 2-AC（dino-wm、vjepa2）用预训练视觉特征 + 离线数据回答它"每任务从零学、光照一变就崩"的问题；综述 arXiv:2605.00080 对真机 WM 的综述可作延伸阅读（是否点名本文未核实）。
+- 后续：DreamerV3（Dreamer-v3，2023-01）解决 V2 逐领域调参的问题并把 replay ratio 显式化，Dreamer-v3 笔记已把本文列为 Dreamer 系列的真机后续；tutorial（WM-to-WAM-教程，Section 2.2）把本文与 DreamerV3 并列为"重建式、目标域自学的 latent WM"；DINO-WM / V-JEPA 2-AC（dino-wm、vjepa2）用预训练视觉特征 + 离线数据回答它"每任务从零学、光照一变就崩"的问题；综述 arXiv:2605.00080 对真机 WM 的综述可作延伸阅读（是否点名本文未核实）。

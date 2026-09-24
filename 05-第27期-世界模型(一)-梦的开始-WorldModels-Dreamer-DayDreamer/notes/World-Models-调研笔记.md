@@ -49,7 +49,7 @@ Setting：CarRacing-v0（Box2D 俯视赛车，赛道每局随机生成，3 维�
 - 建立在（Schmidhuber 一线）：1990 "Making the World Differentiable"（FKI-126-90，RNN 控制器 + RNN 世界模型，Fig 20 / 21 直接翻印 1990 年的图）、IJCNN 1990 在线算法、NeurIPS 1991 "RL in Markovian and non-Markovian environments"、1990 curiosity & boredom（Section 5 的 curiosity 来源）、"On Learning to Think"（2015，arXiv 1511.09249；本文术语和迭代训练流程的出处）、One Big Net（2018，C 与 M 合一）。
 - 建立在（技术组件与同行）：VAE（Kingma & Welling 2013）；MDN（Bishop 1994）+ Graves 2013 手写生成 + SketchRNN（Ha & Eck 2017，τ 的来源）；CMA-ES（Hansen & Ostermeier 2001；Hansen 2016 教程）与作者自己的 Evolving Stable Strategies（种群 64 × 16 seed 的设置）、Salimans 2017 ES；PILCO（Deisenroth & Rasmussen 2011，用贝叶斯不确定性抑制模型被利用）；E2C（Watter 2015）、Wahlström 2015、Finn 2016 deep spatial autoencoders（先压缩像素再学动态）；Oh 2015 action-conditional video prediction、Chiappa 2017 recurrent environment simulators（学了模拟器但没用它替代环境）；I2A（Weber 2017）、Predictron（Silver 2016）；Alvernaz & Togelius 2017（VAE + 神经进化打 Doom，作者称与本文最相似）。
 - 后续继承（本仓库 slug）：PlaNet 保留"在 latent 空间做动态预测"和随机 latent（RSSM 的 stochastic 部分接替了 MDN 的角色），把 V、M 合并成一个联合训练的模型；Dreamer-v1 保留"在想象里训 policy"，并把本文 Section 7 只提了一句的"用 WM 的可微性 backprop 训 policy"真正做出来（actor-critic 在 latent 想象里训练）；Dreamer 系列的 collect → train WM → train in imagination 循环就是本文 Section 5 纸上的迭代流程。
-- 后续继承（更远）：Dreamer-v2、Dreamer-v3 继续这条线，DayDreamer 把它搬到真机；Genie 把"在生成的环境里训 agent"放大到互联网视频规模；综述 arXiv:2605.00080 把本文列为机器人 WM 的概念源头（其笔记第 7 节）；tutorial（arXiv:2607.00836） 未引用。
+- 后续继承（更远）：Dreamer-v2、Dreamer-v3 继续这条线，DayDreamer 把它搬到真机；Genie 把"在生成的环境里训 agent"放大到互联网视频规模；综述 arXiv:2605.00080 把本文列为机器人 WM 的概念源头（其笔记第 7 节）；WM-to-WAM-教程 未引用。
 - 后续抛弃：
   - V / M 分开训练——PlaNet 起 encoder、dynamics、reward 头联合训练，让 latent 带任务信息（本文 Section 7 自己预见了这个取舍）。
   - CMA-ES 进化线性 controller——Dreamer 改用梯度训练的 MLP actor-critic，controller 不再受"几千参数"限制。

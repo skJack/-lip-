@@ -1,6 +1,6 @@
 # Learning Universal Policies via Text-Guided Video Generation（UniPi）
 
-> 对应「可lip」第 29 期视频（世界模型系列第三期）。论文：[arXiv:2302.00111](https://arxiv.org/abs/2302.00111)。
+> 对应「可lip」第 31 期视频（世界模型系列第四期）。论文：[arXiv:2302.00111](https://arxiv.org/abs/2302.00111)。
 > 这是我读论文时的整理笔记：数字都来自论文正文或图表，标了「估读」的是从没有数值的柱状图上估的；看图请对照 arXiv 上的原文。
 
 - arXiv: 2302.00111（v1 2023-02-01 前后，精确日期未核实；v3 2023-11-20；NeurIPS 2023）· 机构: MIT、Google DeepMind、UC Berkeley、Georgia Tech、University of Alberta（Yilun Du、Mengjiao "Sherry" Yang 共同一作）· 代码/权重: 官方未开源（项目页只有视频；LAPA 论文复现 UniPi 时改用 AVDC 的视频模型 + 自训 IDM，可作旁证；后来是否放出未核实）· 项目页: https://universal-policy.github.io

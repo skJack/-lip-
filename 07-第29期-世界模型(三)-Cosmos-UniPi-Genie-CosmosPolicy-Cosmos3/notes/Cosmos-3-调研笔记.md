@@ -58,6 +58,6 @@
 
 ## 6. 关键引用链
 - 建立在：Cosmos 1（Cosmos-1，WFM 范式与数据管线）→ Cosmos-Predict2 / 2.5（视频侧唯一前代对照）；架构上是 Transfusion / Mixture-of-Transformers（Liang et al. 2024）/ BAGEL 一路，backbone 取 Qwen3-VL，VAE 取 Wan2.2；动作表示引 X-VLA（域投影）、LDA-1B、EgoVLA。
-- 基线与相关工作：Ctrl-World（arXiv:2510.10125，FD 基线）、DreamZero（arXiv:2602.15922，RoboLab 基线，且其仿真操作片段进了 SDG-RobotSim）、GR00T N1 / N1.6（arXiv:2503.14734）、π0 / π0.5；相关工作引了 GAIA-1（arXiv:2309.17080）、Genie 1 / 2 / 3（Genie）、UniSim（arXiv:2310.06114）、DreamGen（arXiv:2505.12705）、DreamDojo（arXiv:2602.06949）、V-JEPA 2、LeWorldModel、Motus（arXiv:2512.13030，作为"具身 MoT 式扩展"引用）。
-- **未引用**：Cosmos Policy（Cosmos-Policy，同公司同思路却未提，本笔记的对照是我加的）、LingBot-VA（arXiv:2601.21998，同期"统一视频-动作"思路相近，论文未引用 / 未核实）、UniPi、DINO-WM、HarnessWAM（HarnessWAM）。
+- 基线与相关工作：Ctrl-World（arXiv:2510.10125，FD 基线）、DreamZero（DreamZero，RoboLab 基线，且其仿真操作片段进了 SDG-RobotSim）、GR00T N1 / N1.6（arXiv:2503.14734）、π0 / π0.5；相关工作引了 GAIA-1（arXiv:2309.17080）、Genie 1 / 2 / 3（Genie）、UniSim（arXiv:2310.06114）、DreamGen（arXiv:2505.12705）、DreamDojo（arXiv:2602.06949）、V-JEPA 2、LeWorldModel、Motus（arXiv:2512.13030，作为"具身 MoT 式扩展"引用）。
+- **未引用**：Cosmos Policy（Cosmos-Policy，同公司同思路却未提，本笔记的对照是我加的）、LingBot-VA（LingBot-VA，同期"统一视频-动作"思路相近，论文未引用 / 未核实）、UniPi、DINO-WM、HarnessWAM（HarnessWAM）。
 - 后续：2026-06 之后的工作本地暂无。

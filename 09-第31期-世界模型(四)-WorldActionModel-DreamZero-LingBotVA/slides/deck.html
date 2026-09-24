@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>世界模型 · 第 4 期 · World Action Model</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#F5F5F7; --ink:#1D1D1F; --muted:#6E6E73; --faint:#A1A1A6; --line:#D2D2D7; --card:#FFFFFF;
+  --accent:#0071E3;
+  --font:"PingFang SC","SF Pro Display","SF Pro SC","Hiragino Sans GB","Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono","Menlo","JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(1);transform-origin:center;background:var(--bg)}
+.slide{position:absolute;inset:0;padding:92px 128px 96px;display:none;flex-direction:column}
+.slide.active{display:flex}
+.kicker{font-size:22px;font-weight:500;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.kicker b{color:var(--ink);font-weight:600;margin-right:14px}
+h1{font-size:68px;font-weight:600;letter-spacing:-.012em;line-height:1.15;margin-top:20px}
+h1 .thin{font-weight:400;color:var(--muted)}
+h1 .acc{color:var(--accent)}
+.sub{font-size:30px;color:var(--muted);margin-top:14px;font-weight:400;line-height:1.4}
+.fig{flex:1;min-height:0;position:relative;margin-top:44px}
+.fig img,.fig video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.fig.card{background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.fig.card img,.fig.card video{padding:30px}
+.fig.plain img,.fig.plain video{border-radius:22px}
+.fig2{flex:1;min-height:0;display:flex;gap:30px;margin-top:44px}
+.fig2 .fig{margin:0}
+.ph{position:relative;border-radius:22px;overflow:hidden;background:#000}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.diagbox{flex:1;min-height:0;position:relative;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);margin-top:44px}
+.diagbox svg{position:absolute;inset:0;width:100%;height:100%}
+.diagbox.pad svg{inset:0;margin:auto;width:calc(100% - 88px);height:calc(100% - 68px)}
+.sv text{font-family:"PingFang SC","Helvetica Neue",sans-serif}
+.sv .mono{font-family:"SF Mono","Menlo",monospace}
+.tblwrap{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:40px 56px;margin-top:44px}
+/* 行少的表：白卡只包住内容、上下居中，不撑满整页 */
+.tblwrap.fit{flex:0 0 auto;margin-top:auto;margin-bottom:auto;padding:52px 56px}
+.tbl.left.nw23 td:nth-child(2),.tbl.left.nw23 td:nth-child(3),.tbl.left.nw23 td:nth-child(4){white-space:nowrap}
+.fig2 .tblwrap{margin-top:0}
+.tblwrap .tt{font-size:24px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;font-weight:500;margin-bottom:26px;text-align:center}
+.tbl{width:100%;border-collapse:collapse;font-size:32px;text-align:center}
+.tbl th{font-size:24px;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;padding:0 0 18px;border-bottom:2px solid var(--line)}
+.tbl td{padding:22px 0;border-bottom:1px solid var(--line);font-family:var(--mono)}
+.tbl td:first-child{font-family:var(--mono);color:var(--muted)}
+.tbl tr.hi td{color:var(--accent);font-weight:600}
+.tbl.small{font-size:28px}
+.tbl.small td{padding:18px 0}
+.tbl.left{text-align:left}
+.tbl.left th{text-align:left;padding-left:16px}
+.tbl.left td{font-family:var(--font);font-size:27px;padding:16px 16px;line-height:1.35}
+.tbl.left td:first-child{color:var(--ink);font-family:var(--font);font-weight:600}
+.tbl.left td.ok{color:var(--accent);font-weight:600;font-family:var(--font)}
+.tbl.left td.no{color:#D0342C;font-weight:600;font-family:var(--font)}
+.tbl.left.compact td{font-size:25px;padding:13px 14px}
+.tbl.left tr.hi td{color:var(--accent);font-weight:600}
+.tbl.left tr.hi td:first-child{color:var(--accent)}
+.tbl.left td small{display:block;font-size:20px;color:var(--faint);margin-top:4px}
+.tbl.num td{font-family:var(--mono);font-size:27px;padding:16px 10px}
+.tbl.num td:first-child{font-family:var(--font);text-align:left;color:var(--ink);font-weight:500;padding-left:16px}
+.tbl.num th:first-child{text-align:left;padding-left:16px}
+.tbl.num td.acc{color:var(--accent);font-weight:600}
+.tbl.num td.dim{color:var(--faint)}
+.tbl.num.compact td{font-size:25px;padding:13px 8px;white-space:nowrap}
+.tbl.num.compact th{padding-bottom:12px;font-size:22px}
+.stats{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:44px;align-content:stretch}
+.stats.two{grid-template-columns:repeat(2,1fr)}
+.stat{background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:36px 40px;display:flex;flex-direction:column;justify-content:center;min-height:0}
+.stat .n{font-size:82px;font-weight:600;letter-spacing:-.02em;line-height:1;color:var(--accent);white-space:nowrap}
+.stat .n small{font-size:38px;color:var(--ink);margin-left:8px;font-weight:500}
+.stat .l{font-size:25px;color:var(--muted);margin-top:16px;line-height:1.35}
+.stat .l b{color:var(--ink);font-weight:600}
+.stat.dim .n{color:var(--ink)}
+.stat.text .n{font-size:44px;color:var(--ink);white-space:normal;line-height:1.2}
+.stat.text .n .acc{color:var(--accent)}
+.two{display:flex;gap:80px;flex:1;margin-top:48px;align-items:flex-start}
+.two .col{flex:1}
+.h2{font-size:22px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;font-weight:500}
+.li{font-size:27px;line-height:1.45;padding:17px 0;border-top:1px solid var(--line)}
+.li:last-child{border-bottom:1px solid var(--line)}
+.li b{font-weight:600}
+.bigline{flex:1;display:flex;flex-direction:column;justify-content:center;gap:30px}
+.bigline .row{font-size:54px;font-weight:600;letter-spacing:-.01em;line-height:1.3}
+.bigline .row .thin{font-weight:400;color:var(--muted)}
+.bigline .row .acc{color:var(--accent)}
+.bigline .row.small{font-size:34px;font-weight:400;color:var(--muted);line-height:1.45}
+.quotes{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:22px;margin-top:30px}
+.quote{background:var(--card);border-radius:22px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:26px 40px}
+.quote .q{font-size:34px;font-weight:600;line-height:1.35;letter-spacing:-.01em}
+.quote .q .acc{color:var(--accent)}
+.quote .src{font-size:20px;color:var(--muted);margin-top:10px}
+.timeline{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 10px}
+.tl-row{position:relative;display:flex;justify-content:space-between;padding-top:56px}
+.tl-row:before{content:"";position:absolute;left:5%;right:5%;top:0;height:2px;background:var(--line)}
+.tl{flex:1;text-align:center;position:relative}
+.tl .dot{position:absolute;left:50%;top:-66px;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:var(--line)}
+.tl.key .dot{background:var(--accent);box-shadow:0 0 0 10px rgba(0,113,227,.15)}
+.tl .d{font-family:var(--mono);font-size:19px;color:var(--muted);letter-spacing:.04em}
+.tl .n{font-size:34px;font-weight:600;margin-top:10px;letter-spacing:-.01em;line-height:1.15}
+.tl.key .n{color:var(--accent)}
+.tl.dim .n{color:var(--faint)}
+.tl .w{font-size:20px;color:var(--muted);margin-top:12px;line-height:1.4;padding:0 8px}
+.cover{padding:0}
+.cover .t{position:absolute;left:128px;top:140px}
+.cover .kicker{font-size:24px}
+.cover h1{font-size:176px;letter-spacing:-.035em;line-height:.95;margin-top:26px}
+.cover .p{font-size:40px;color:var(--muted);margin-top:30px;font-weight:400;max-width:1520px;line-height:1.35}
+.cover .p b{color:var(--ink);font-weight:600}
+.cover .brand{position:absolute;right:128px;top:148px;font-size:26px;letter-spacing:.14em;color:var(--muted)}
+.cover .photos{position:absolute;left:0;right:0;bottom:0;height:330px;display:flex;gap:6px;background:#000}
+.cover .photos img{flex:1;min-width:0;height:100%;object-fit:cover;display:block}
+.divider{justify-content:center}
+.divider .num{font-family:var(--mono);font-size:26px;letter-spacing:.2em;color:var(--faint)}
+.divider .word{font-size:150px;font-weight:600;letter-spacing:-.03em;line-height:1.05;margin-top:18px}
+.divider .word .thin{font-weight:400;color:var(--muted)}
+.divider .word .acc{color:var(--accent)}
+.end{justify-content:center}
+.end h1{text-align:center;font-size:96px}
+.end .big{font-size:42px;text-align:center;color:var(--muted);margin-top:30px;line-height:1.5}
+.end .big b{color:var(--ink);font-weight:600}
+#nav-hot{position:fixed;left:0;top:0;width:220px;height:110px;z-index:20}
+#nav-btn{position:fixed;left:14px;top:14px;height:44px;padding:0 14px 0 10px;border-radius:10px;background:rgba(29,29,31,.82);color:#fff;font-size:18px;font-family:var(--mono);display:flex;align-items:center;gap:10px;cursor:pointer;opacity:.22;transition:opacity .25s;z-index:21;user-select:none}
+#nav-btn span.pg{font-size:18px;letter-spacing:.06em}
+#nav-btn .b{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14)}
+#nav-btn .b:hover{background:rgba(255,255,255,.3)}
+#nav-hot:hover ~ #nav-btn,#nav-btn:hover,#nav-btn.open{opacity:1}
+#nav-panel{position:fixed;left:14px;top:66px;width:460px;max-height:calc(100vh - 90px);overflow:auto;background:#fff;color:#1D1D1F;border:1px solid #D2D2D7;border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.18);padding:8px;display:none;z-index:22;font-family:var(--font);font-size:14px}
+#nav-panel.open{display:block}
+#nav-panel .sec-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:#6E6E73;padding:10px 10px 4px;text-transform:uppercase}
+#nav-panel .it{display:flex;gap:10px;align-items:baseline;padding:7px 10px;border-radius:8px;cursor:pointer;line-height:1.35}
+#nav-panel .it:hover{background:#F5F5F7}
+#nav-panel .it.cur{background:#E8F0FE;color:#0071E3}
+#nav-panel .it .k{font-family:var(--mono);font-size:12px;color:#6E6E73;min-width:24px;text-align:right}
+#nav-panel .it.cur .k{color:#0071E3}
+#hud{position:fixed;left:18px;bottom:14px;font-family:var(--mono);font-size:13px;color:#8e8e93;opacity:0;transition:opacity .6s;pointer-events:none;z-index:9}
+#hud.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="stage">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8E8E93"/></marker>
+  <marker id="arB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0071E3"/></marker>
+  <marker id="arR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#D0342C"/></marker>
+</defs></svg>
+
+<!-- ===== 1 封面 ===== -->
+<section class="slide cover" data-sec="封面" data-title="封面">
+  <div class="t">
+    <div class="kicker">世界模型 · 第 4 期 · 2023 → 2026</div>
+    <h1>World<br>Action Model</h1>
+    <div class="p">视频模型不只是画出未来，它<b>同时把动作一起生成出来</b>。从 UniPi 讲到 <b>DreamZero</b> 和 <b>LingBot-VA</b>。</div>
+  </div>
+  <div class="brand">可lip</div>
+  <div class="photos">
+    <img src="media/cover_1.png" alt=""><img src="media/cover_2.png" alt=""><img src="media/cover_3.png" alt="">
+    <img src="media/cover_4.png" alt=""><img src="media/cover_5.png" alt="">
+  </div>
+</section>
+
+<!-- ===== 2 divider 01 什么是 WAM ===== -->
+<section class="slide divider" data-sec="01 什么是 WAM" data-title="过渡：什么是 WAM">
+  <div class="num">01</div>
+  <div class="word">什么是 <span class="acc">WAM</span></div>
+</section>
+
+<!-- ===== 3 三行对比表 ===== -->
+<section class="slide" data-sec="01 什么是 WAM" data-title="WM / VLA / WAM 三行对比">
+  <div class="kicker"><b>01</b>什么是 WAM · 口径取自 WM→WAM 教程与 DreamZero 附录 A</div>
+  <h1>世界模型、VLA、<span class="acc">世界动作模型</span></h1>
+  <div class="tblwrap fit"><table class="tbl left nw23">
+    <tr><th>　</th><th>输入</th><th>输出</th><th>你能问它</th><th>代表</th></tr>
+    <tr><td>世界模型 WM</td><td>观测 + <b>动作</b></td><td>未来观测</td><td>「执行这个动作会怎样」</td><td>Dreamer · Cosmos · Ctrl-World</td></tr>
+    <tr><td>VLA</td><td>观测 + 指令</td><td><b>动作</b></td><td>「现在该怎么动」</td><td>π0.5 · OpenVLA · GR00T</td></tr>
+    <tr class="hi"><td>世界动作模型 WAM</td><td>观测 + 指令</td><td>未来观测 + <b>动作</b></td><td>「你打算怎么做」</td><td>DreamZero · LingBot-VA · Cosmos Policy</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== 4 摊销 ===== -->
+<section class="slide" data-sec="01 什么是 WAM" data-title="WAM = 把规划摊销进权重">
+  <div class="kicker"><b>01</b>什么是 WAM · 延迟数字来自各自论文</div>
+  <h1>真正的区别：<span class="thin">这笔账算在</span><span class="acc">训练时还是测试时</span></h1>
+  <div class="bigline">
+    <div class="row"><span class="thin">世界模型：</span>动作在条件里 <span class="thin">— 部署时还得外挂一个搜索或规划</span></div>
+    <div class="row"><span class="thin">世界动作模型：</span>动作在输出里 <span class="thin">— 一次前向直接吐出来</span></div>
+    <div class="row">V-JEPA 2 规划一步 16 秒 <span class="thin">·</span> Cosmos 一个动作 4 分钟 <span class="thin">→</span> <span class="acc">DreamZero 150 毫秒</span></div>
+    <div class="row small">所以 WAM 不是一种新模型，是把「预测未来 → 选出动作」这一步，从测试时的搜索挪进了训练时的权重。</div>
+  </div>
+</section>
+
+<!-- ===== 5 时间线 ===== -->
+<section class="slide" data-sec="02 这条线" data-title="七篇论文，三年">
+  <div class="kicker"><b>02</b>这条线</div>
+  <h1>七篇论文，三年</h1>
+  <div class="sub">前四篇是铺垫，讲它们的想法；后三篇讲架构、训练、推理、数据、实验</div>
+  <div class="timeline"><div class="tl-row">
+    <div class="tl dim"><div class="dot"></div><div class="d">2023-02</div><div class="n">UniPi</div><div class="w">文本生成一段视频<br>再翻译成动作</div></div>
+    <div class="tl dim"><div class="dot"></div><div class="d">2023-12</div><div class="n">GR-1</div><div class="w">视频预测当训练时<br>的辅助损失</div></div>
+    <div class="tl dim"><div class="dot"></div><div class="d">2024-12</div><div class="n">VPP</div><div class="w">不解码画面<br>只取一步特征</div></div>
+    <div class="tl dim"><div class="dot"></div><div class="d">2025-04</div><div class="n">UWM</div><div class="w">两个 timestep<br>一套权重四种用法</div></div>
+    <div class="tl key"><div class="dot"></div><div class="d">2026-01</div><div class="n">LingBot-VA</div><div class="w">蚂蚁 · 因果自回归<br>持久记忆</div></div>
+    <div class="tl key"><div class="dot"></div><div class="d">2026-02</div><div class="n">DreamZero</div><div class="w">NVIDIA · 14B<br>零样本做未见动作</div></div>
+    <div class="tl key"><div class="dot"></div><div class="d">2026-07</div><div class="n">VA 2.0</div><div class="w">从零原生预训练<br>latent action + MoE</div></div>
+  </div></div>
+</section>
+
+<!-- ===== 6 总图 ===== -->
+<section class="slide" data-sec="02 这条线" data-title="总图：动作在哪进出">
+  <div class="kicker"><b>02</b>这条线 · 自绘 · 蓝色是动作</div>
+  <h1>动作从模型外面，<span class="thin">一步一步走进了</span><span class="acc">模型里面</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <g font-size="19" fill="#A1A1A6" font-weight="500" letter-spacing="2">
+      <text x="310" y="22" text-anchor="middle">条件</text>
+      <text x="640" y="22" text-anchor="middle">模型</text>
+      <text x="985" y="22" text-anchor="middle">输出</text>
+      <text x="1350" y="22" text-anchor="middle">动作</text>
+    </g>
+
+    <!-- row 1 UniPi -->
+    <g>
+      <text x="0" y="78" font-size="26" font-weight="600" fill="#1D1D1F">UniPi</text>
+      <text x="0" y="104" font-size="18" fill="#A1A1A6" class="mono">2023-02</text>
+      <rect x="190" y="48" width="240" height="66" rx="14" fill="#F5F5F7"/><text x="310" y="88" text-anchor="middle" font-size="23" fill="#1D1D1F">首帧 + 文本</text>
+      <line x1="440" y1="81" x2="482" y2="81" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="492" y="48" width="296" height="66" rx="14" fill="#F5F5F7"/><text x="640" y="88" text-anchor="middle" font-size="23" fill="#1D1D1F">视频扩散模型</text>
+      <line x1="798" y1="81" x2="840" y2="81" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="850" y="48" width="270" height="66" rx="14" fill="#F5F5F7"/><text x="985" y="88" text-anchor="middle" font-size="23" fill="#1D1D1F">一段未来视频</text>
+      <line x1="1130" y1="81" x2="1168" y2="81" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="1178" y="52" width="100" height="58" rx="12" fill="#fff" stroke="#A1A1A6" stroke-width="2" stroke-dasharray="6 5"/><text x="1228" y="88" text-anchor="middle" font-size="21" fill="#6E6E73">IDM</text>
+      <line x1="1288" y1="81" x2="1322" y2="81" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+      <rect x="1332" y="52" width="130" height="58" rx="12" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="1397" y="88" text-anchor="middle" font-size="23" font-weight="600" fill="#0071E3">动作</text>
+      <text x="190" y="146" font-size="19" fill="#8E8E93">视频模型不知道动作；动作靠一个单独的小网络，从相邻两帧反推出来</text>
+    </g>
+
+    <!-- row 2 GR-1 -->
+    <g>
+      <text x="0" y="208" font-size="26" font-weight="600" fill="#1D1D1F">GR-1</text>
+      <text x="0" y="234" font-size="18" fill="#A1A1A6" class="mono">2023-12</text>
+      <rect x="190" y="178" width="240" height="66" rx="14" fill="#F5F5F7"/><text x="310" y="218" text-anchor="middle" font-size="23" fill="#1D1D1F">图 + 文本 + 状态</text>
+      <line x1="440" y1="211" x2="482" y2="211" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="492" y="178" width="296" height="66" rx="14" fill="#F5F5F7"/><text x="640" y="218" text-anchor="middle" font-size="23" fill="#1D1D1F">一个 Transformer</text>
+      <line x1="798" y1="193" x2="840" y2="193" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="850" y="170" width="270" height="46" rx="12" fill="#F5F5F7"/><text x="985" y="200" text-anchor="middle" font-size="23" fill="#1D1D1F">未来帧</text>
+      <line x1="798" y1="229" x2="1322" y2="229" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+      <rect x="1332" y="198" width="130" height="50" rx="12" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="1397" y="231" text-anchor="middle" font-size="23" font-weight="600" fill="#0071E3">动作</text>
+      <text x="190" y="276" font-size="19" fill="#8E8E93">两个头从同一个上下文并行读出、互相看不见；推理时把视频头整个砍掉，动作一点不变</text>
+    </g>
+
+    <!-- row 3 VPP -->
+    <g>
+      <text x="0" y="338" font-size="26" font-weight="600" fill="#1D1D1F">VPP</text>
+      <text x="0" y="364" font-size="18" fill="#A1A1A6" class="mono">2024-12</text>
+      <rect x="190" y="308" width="240" height="66" rx="14" fill="#F5F5F7"/><text x="310" y="348" text-anchor="middle" font-size="23" fill="#1D1D1F">首帧 + 文本</text>
+      <line x1="440" y1="341" x2="482" y2="341" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="492" y="308" width="296" height="66" rx="14" fill="#F5F5F7"/><text x="640" y="341" text-anchor="middle" font-size="22" fill="#1D1D1F">视频模型 · 冻结</text><text x="640" y="366" text-anchor="middle" font-size="19" fill="#6E6E73">只去噪一步</text>
+      <line x1="798" y1="341" x2="840" y2="341" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="850" y="312" width="270" height="58" rx="12" fill="#fff" stroke="#A1A1A6" stroke-width="2" stroke-dasharray="6 5"/><text x="985" y="348" text-anchor="middle" font-size="22" fill="#6E6E73">中间特征 · 不解码</text>
+      <line x1="1130" y1="341" x2="1168" y2="341" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="1178" y="312" width="100" height="58" rx="12" fill="#F5F5F7"/><text x="1228" y="348" text-anchor="middle" font-size="21" fill="#1D1D1F">动作头</text>
+      <line x1="1288" y1="341" x2="1322" y2="341" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+      <rect x="1332" y="312" width="130" height="58" rx="12" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="1397" y="348" text-anchor="middle" font-size="23" font-weight="600" fill="#0071E3">动作</text>
+      <text x="190" y="406" font-size="19" fill="#8E8E93">画面根本不画出来；策略直接在这团特征里读「手接下来要往哪走」，140 毫秒</text>
+    </g>
+
+    <!-- row 4 UWM -->
+    <g>
+      <text x="0" y="468" font-size="26" font-weight="600" fill="#1D1D1F">UWM</text>
+      <text x="0" y="494" font-size="18" fill="#A1A1A6" class="mono">2025-04</text>
+      <rect x="190" y="438" width="240" height="66" rx="14" fill="#F5F5F7"/>
+      <text x="310" y="465" text-anchor="middle" font-size="22" fill="#1D1D1F">当前帧</text>
+      <rect x="248" y="472" width="124" height="26" rx="8" fill="#E8F0FE" stroke="#0071E3" stroke-width="1.6" stroke-dasharray="5 4"/><text x="310" y="491" text-anchor="middle" font-size="17" fill="#0071E3">+ 动作（可选）</text>
+      <line x1="440" y1="471" x2="482" y2="471" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="492" y="438" width="296" height="66" rx="14" fill="#F5F5F7"/><text x="640" y="471" text-anchor="middle" font-size="22" fill="#1D1D1F">联合扩散</text><text x="640" y="496" text-anchor="middle" font-size="19" fill="#6E6E73">视频、动作各一个 timestep</text>
+      <line x1="798" y1="471" x2="840" y2="471" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="850" y="442" width="270" height="58" rx="12" fill="#F5F5F7"/><text x="985" y="478" text-anchor="middle" font-size="23" fill="#1D1D1F">未来帧</text>
+      <line x1="1130" y1="471" x2="1322" y2="471" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+      <rect x="1332" y="442" width="130" height="58" rx="12" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="1397" y="478" text-anchor="middle" font-size="23" font-weight="600" fill="#0071E3">动作</text>
+      <text x="190" y="536" font-size="19" fill="#8E8E93">动作第一次能当输入 —— 可以问它「如果执行这个动作，画面会变成什么样」</text>
+    </g>
+
+    <!-- row 5 DreamZero / LingBot-VA -->
+    <g>
+      <rect x="-18" y="558" width="1500" height="130" rx="18" fill="#F0F6FE"/>
+      <text x="0" y="602" font-size="25" font-weight="600" fill="#0071E3">DreamZero</text>
+      <text x="0" y="628" font-size="25" font-weight="600" fill="#0071E3">LingBot-VA</text>
+      <text x="0" y="652" font-size="18" fill="#7FB0EA" class="mono">2026</text>
+      <rect x="190" y="568" width="240" height="66" rx="14" fill="#fff"/><text x="310" y="596" text-anchor="middle" font-size="21" fill="#1D1D1F">真实历史画面</text><text x="310" y="620" text-anchor="middle" font-size="19" fill="#6E6E73">+ 文本 + 状态</text>
+      <line x1="440" y1="601" x2="482" y2="601" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="492" y="568" width="296" height="66" rx="14" fill="#fff"/><text x="640" y="596" text-anchor="middle" font-size="21" fill="#1D1D1F">视频生成骨干</text><text x="640" y="620" text-anchor="middle" font-size="19" fill="#6E6E73">视频和动作一起去噪</text>
+      <line x1="798" y1="601" x2="840" y2="601" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="850" y="572" width="270" height="58" rx="12" fill="#fff"/><text x="985" y="608" text-anchor="middle" font-size="23" fill="#1D1D1F">未来帧</text>
+      <line x1="1130" y1="601" x2="1322" y2="601" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+      <rect x="1332" y="572" width="130" height="58" rx="12" fill="#0071E3"/><text x="1397" y="608" text-anchor="middle" font-size="23" font-weight="600" fill="#fff">动作</text>
+      <text x="190" y="668" font-size="19" fill="#5793DC">动作是从想象出来的那几帧里读出来的，同一次前向；执行完再把真实画面写回去</text>
+    </g>
+  </svg></div>
+</section>
+
+<!-- ===== 7 divider 03 铺垫 ===== -->
+<section class="slide divider" data-sec="03 铺垫" data-title="过渡：四种答案">
+  <div class="num">03</div>
+  <div class="word">四种答案</div>
+</section>
+
+<!-- ===== 8 UniPi ===== -->
+<section class="slide" data-sec="03 铺垫" data-title="UniPi：生成视频，再翻译成动作">
+  <div class="kicker"><b>03</b>铺垫 · UniPi · NeurIPS 2023 · MIT + Google DeepMind · 论文图 2</div>
+  <h1>先生成一段做完任务的视频，<span class="thin">再把视频翻译成动作</span></h1>
+  <div class="fig card"><img src="media/unipi_method.png" alt=""></div>
+</section>
+
+<!-- ===== 9 GR-1 ===== -->
+<section class="slide" data-sec="03 铺垫" data-title="GR-1：视频预测当辅助损失">
+  <div class="kicker"><b>03</b>铺垫 · GR-1 · ICLR 2024 · ByteDance · 论文图 2</div>
+  <h1>视频预测只当<span class="acc">训练时的辅助损失</span>，<span class="thin">推理时砍掉</span></h1>
+  <div class="fig card"><img src="media/gr1_overview.png" alt=""></div>
+</section>
+
+<!-- ===== 10 VPP ===== -->
+<section class="slide" data-sec="03 铺垫" data-title="VPP：只取一步中间特征">
+  <div class="kicker"><b>03</b>铺垫 · VPP · ICML 2025 · 清华 IIIS · 论文图 3</div>
+  <h1>连画面都不解码，<span class="thin">只取去噪一步的</span><span class="acc">中间特征</span></h1>
+  <div class="fig card"><img src="media/vpp_fig3_v5.png" alt=""></div>
+</section>
+
+<!-- ===== 11 UWM 方法 ===== -->
+<section class="slide" data-sec="03 铺垫" data-title="UWM：动作第一次进到模型里">
+  <div class="kicker"><b>03</b>铺垫 · UWM · RSS 2025 · 华盛顿大学 + 丰田研究院 · 论文图 2 · 左边训练，中间和右边是推理的两种用法</div>
+  <h1>动作第一次<span class="acc">进到模型里面</span></h1>
+  <div class="fig card"><img src="media/uwm_method.png" alt=""></div>
+</section>
+
+<!-- ===== 12 UWM 四角 ===== -->
+<section class="slide" data-sec="03 铺垫" data-title="UWM：两个旋钮切四种用法">
+  <div class="kicker"><b>03</b>铺垫 · UWM · 论文图 1 · timestep 就是「这个空填多满」</div>
+  <h1>两个旋钮，<span class="thin">同一套权重切出</span><span class="acc">四种用法</span></h1>
+  <div class="fig card"><img src="media/uwm_teaser.png" alt=""></div>
+</section>
+
+<!-- ===== 13 四条路小结 ===== -->
+<section class="slide" data-sec="03 铺垫" data-title="四条路各自的代价">
+  <div class="kicker"><b>03</b>铺垫 · 小结</div>
+  <h1>四条路，<span class="thin">各自付了什么代价</span></h1>
+  <div class="tblwrap"><table class="tbl left compact">
+    <tr><th>论文</th><th>推理时的视频</th><th>动作怎么出来</th><th>留下的问题</th></tr>
+    <tr><td>UniPi</td><td>完整生成一整段</td><td>外挂一个 IDM 从帧里反推</td><td>分钟级、全开环，视频错了原样传下去</td></tr>
+    <tr><td>GR-1</td><td>可以完全不生成</td><td>和视频并行的另一个头</td><td>未来不是计划，只是个正则项</td></tr>
+    <tr><td>VPP</td><td>去噪一步，不解码</td><td>策略头从特征里读</td><td>看不见它想象了什么，也不能问 what-if</td></tr>
+    <tr><td>UWM</td><td>按 timestep 决定</td><td>和视频联合去噪</td><td>没有语言接口，规模也小</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== 14 divider 04 DreamZero ===== -->
+<section class="slide divider" data-sec="04 DreamZero" data-title="过渡：DreamZero">
+  <div class="num">04</div>
+  <div class="word">DreamZero</div>
+</section>
+
+<!-- ===== 15 这个词是 DreamZero 起的 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="这个词是 DreamZero 起的">
+  <div class="kicker"><b>04</b>DreamZero · arXiv 摘要里出现 "world action model" 的论文数 · 2026-09-06 抓取</div>
+  <h1>「World Action Model」这个词，<span class="thin">是</span><span class="acc">DreamZero</span><span class="thin"> 起的</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 540" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <!-- bars: 2025-09 → 2026-08 -->
+    <g>
+      <rect x="90"  y="420" width="66" height="0.1" fill="#D2D2D7"/><text x="123"  y="408" text-anchor="middle" font-size="20" fill="#A1A1A6">0</text>
+      <rect x="208" y="420" width="66" height="0.1" fill="#D2D2D7"/><text x="241"  y="408" text-anchor="middle" font-size="20" fill="#A1A1A6">0</text>
+      <rect x="326" y="420" width="66" height="0.1" fill="#D2D2D7"/><text x="359"  y="408" text-anchor="middle" font-size="20" fill="#A1A1A6">0</text>
+      <rect x="444" y="415" width="66" height="5"   fill="#D2D2D7"/><text x="477"  y="403" text-anchor="middle" font-size="20" fill="#A1A1A6">1</text>
+      <rect x="562" y="420" width="66" height="0.1" fill="#D2D2D7"/><text x="595"  y="408" text-anchor="middle" font-size="20" fill="#A1A1A6">0</text>
+      <rect x="680" y="411" width="66" height="9"   fill="#0071E3"/><text x="713"  y="399" text-anchor="middle" font-size="20" font-weight="600" fill="#0071E3">2</text>
+      <rect x="798" y="387" width="66" height="33"  fill="#0071E3"/><text x="831"  y="375" text-anchor="middle" font-size="20" fill="#0071E3">7</text>
+      <rect x="916" y="378" width="66" height="42"  fill="#0071E3"/><text x="949"  y="366" text-anchor="middle" font-size="20" fill="#0071E3">9</text>
+      <rect x="1034" y="322" width="66" height="98" fill="#0071E3"/><text x="1067" y="310" text-anchor="middle" font-size="20" fill="#0071E3">21</text>
+      <rect x="1152" y="204" width="66" height="216" fill="#0071E3"/><text x="1185" y="192" text-anchor="middle" font-size="20" fill="#0071E3">46</text>
+      <rect x="1270" y="251" width="66" height="169" fill="#0071E3"/><text x="1303" y="239" text-anchor="middle" font-size="20" fill="#0071E3">36</text>
+      <rect x="1388" y="120" width="66" height="300" fill="#0071E3"/><text x="1421" y="108" text-anchor="middle" font-size="24" font-weight="600" fill="#0071E3">64</text>
+    </g>
+    <line x1="70" y1="420" x2="1540" y2="420" stroke="#D2D2D7" stroke-width="2"/>
+    <g font-size="18" fill="#A1A1A6" class="mono">
+      <text x="123"  y="450" text-anchor="middle">09</text>
+      <text x="241"  y="450" text-anchor="middle">10</text>
+      <text x="359"  y="450" text-anchor="middle">11</text>
+      <text x="477"  y="450" text-anchor="middle">12</text>
+      <text x="595"  y="450" text-anchor="middle">01</text>
+      <text x="713"  y="450" text-anchor="middle" fill="#0071E3" font-weight="600">02</text>
+      <text x="831"  y="450" text-anchor="middle">03</text>
+      <text x="949"  y="450" text-anchor="middle">04</text>
+      <text x="1067" y="450" text-anchor="middle">05</text>
+      <text x="1185" y="450" text-anchor="middle">06</text>
+      <text x="1303" y="450" text-anchor="middle">07</text>
+      <text x="1421" y="450" text-anchor="middle">08</text>
+    </g>
+    <line x1="90" y1="472" x2="510" y2="472" stroke="#E5E5EA" stroke-width="2"/>
+    <text x="300" y="500" text-anchor="middle" font-size="20" fill="#A1A1A6" class="mono">2025</text>
+    <line x1="562" y1="472" x2="1454" y2="472" stroke="#E5E5EA" stroke-width="2"/>
+    <text x="1008" y="500" text-anchor="middle" font-size="20" fill="#A1A1A6" class="mono">2026</text>
+    <!-- annotation -->
+    <line x1="713" y1="252" x2="713" y2="396" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+    <text x="713" y="204" text-anchor="middle" font-size="25" font-weight="600" fill="#0071E3">DreamZero · 2026-02-17</text>
+    <text x="713" y="234" text-anchor="middle" font-size="21" fill="#5793DC">第一个把这个词写进标题，并给它下了定义</text>
+  </svg></div>
+  <div class="quotes" style="flex:0 0 auto;margin-top:24px">
+    <div class="quote"><div class="q">「我们用 <span class="acc">World</span> Action Model 而不是 <span class="thin">Video</span> Action Model —— 视频只是世界建模的一种方式，以后也可以是触觉、力反馈，或者学出来的隐表征。」</div><div class="src">DreamZero 相关工作一节 · 原话翻译</div></div>
+  </div>
+</section>
+
+<!-- ===== 16 DreamZero 总览 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="DreamZero 总览">
+  <div class="kicker"><b>04</b>DreamZero · NVIDIA GEAR · 2026-02-17 · arXiv 2602.15922 · 论文图 1</div>
+  <h1>14B 的视频模型，<span class="acc">零样本</span>做训练里没有的动作</h1>
+  <div class="fig card"><img src="media/dz_header.png" alt=""></div>
+</section>
+
+<!-- ===== 17 核心公式 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="核心公式：联合 = 视频预测 × 逆动力学">
+  <div class="kicker"><b>04</b>DreamZero · 自绘 · 对应论文式 1</div>
+  <h1>联合分布 = 视频预测 <span class="thin">×</span> <span class="acc">逆动力学</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 520" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <rect x="30" y="60" width="450" height="110" rx="16" fill="#F0F6FE"/>
+    <text x="255" y="105" text-anchor="middle" font-size="26" fill="#0071E3" font-weight="600">p( 未来画面 , 动作</text>
+    <text x="255" y="142" text-anchor="middle" font-size="24" fill="#0071E3">| 历史画面, 指令, 状态 )</text>
+    <text x="510" y="125" font-size="46" fill="#6E6E73">=</text>
+
+    <rect x="570" y="60" width="440" height="110" rx="16" fill="#F5F5F7"/>
+    <text x="790" y="105" text-anchor="middle" font-size="26" fill="#1D1D1F" font-weight="600">p( 未来画面</text>
+    <text x="790" y="142" text-anchor="middle" font-size="24" fill="#1D1D1F">| 历史画面, 指令 )</text>
+    <text x="790" y="200" text-anchor="middle" font-size="22" fill="#8E8E93">视频预测 —— 预训练时已经会了</text>
+
+    <text x="1032" y="125" font-size="42" fill="#6E6E73">×</text>
+
+    <rect x="1090" y="60" width="480" height="110" rx="16" fill="#F5F5F7"/>
+    <text x="1330" y="105" text-anchor="middle" font-size="26" fill="#1D1D1F" font-weight="600">p( 动作</text>
+    <text x="1330" y="142" text-anchor="middle" font-size="24" fill="#1D1D1F">| 历史画面 <tspan fill="#0071E3" font-weight="600">+ 未来画面</tspan> )</text>
+    <text x="1330" y="200" text-anchor="middle" font-size="22" fill="#8E8E93">逆动力学 —— 微调时真正要学的只有这个</text>
+
+    <line x1="30" y1="270" x2="1570" y2="270" stroke="#E5E5EA" stroke-width="1.5"/>
+
+    <text x="30" y="330" font-size="25" font-weight="600" fill="#6E6E73">UniPi</text>
+    <text x="230" y="330" font-size="24" fill="#1D1D1F">拆成两个模型、分开训 —— 视频画错了，原样传给 IDM，没有任何校验</text>
+
+    <text x="30" y="400" font-size="25" font-weight="600" fill="#0071E3">DreamZero</text>
+    <text x="230" y="400" font-size="24" fill="#1D1D1F">一个模型端到端学同一个分解 —— 视频和动作在同一次去噪里天然对齐</text>
+
+    <rect x="230" y="432" width="1040" height="56" rx="12" fill="#F0F6FE"/>
+    <text x="255" y="468" font-size="23" fill="#0071E3">换句话说：把「看着画面猜动作」这个病态问题，换成了「起点终点都给你，中间怎么动」</text>
+  </svg></div>
+</section>
+
+<!-- ===== 18 架构 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="架构：训练与推理">
+  <div class="kicker"><b>04</b>DreamZero · 论文图 4 · 骨干是 Wan2.1-I2V-14B，只新增状态、动作两个编码器和一个动作解码器</div>
+  <h1>训练：一起加噪一起去噪 <span class="thin">·</span> 推理：<span class="acc">真实画面回喂</span></h1>
+  <div class="fig card"><img src="media/dz_model.png" alt=""></div>
+</section>
+
+<!-- ===== 19 注意力 mask ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="注意力 mask：训练喂真值，推理换真观测">
+  <div class="kicker"><b>04</b>DreamZero · 论文图 14 · C = 条件帧，Z = 要预测的视频，Y = 要预测的动作</div>
+  <h1>训练时喂真值，<span class="thin">推理时 C 全部换成</span><span class="acc">真实观测</span></h1>
+  <div class="fig card"><img src="media/dz_attn.png" alt=""></div>
+</section>
+
+<!-- ===== 20 误差累积 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="自绘：自回归视频的老毛病，被闭环治好了">
+  <div class="kicker"><b>04</b>DreamZero · 自绘 · 作者称这是 WAM 独有的优势</div>
+  <h1>纯视频生成治不好的毛病，<span class="thin">闭环机器人</span><span class="acc">白捡一个解药</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 540" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <text x="0" y="52" font-size="24" font-weight="600" fill="#6E6E73">纯视频生成</text>
+    <text x="0" y="82" font-size="19" fill="#A1A1A6">一段接一段往下画</text>
+    <g>
+      <rect x="300" y="24" width="150" height="76" rx="14" fill="#F5F5F7"/><text x="375" y="60" text-anchor="middle" font-size="22" fill="#1D1D1F">第 1 段</text><text x="375" y="85" text-anchor="middle" font-size="18" fill="#6E6E73">从真首帧起</text>
+      <line x1="460" y1="62" x2="500" y2="62" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="510" y="24" width="150" height="76" rx="14" fill="#F8F0F0"/><text x="585" y="60" text-anchor="middle" font-size="22" fill="#1D1D1F">第 2 段</text><text x="585" y="85" text-anchor="middle" font-size="18" fill="#B05550">基于第 1 段</text>
+      <line x1="670" y1="62" x2="710" y2="62" stroke="#D0342C" stroke-width="2.5" marker-end="url(#arR)"/>
+      <rect x="720" y="24" width="150" height="76" rx="14" fill="#F6E6E5"/><text x="795" y="60" text-anchor="middle" font-size="22" fill="#1D1D1F">第 3 段</text><text x="795" y="85" text-anchor="middle" font-size="18" fill="#B05550">基于第 2 段</text>
+      <line x1="880" y1="62" x2="920" y2="62" stroke="#D0342C" stroke-width="2.5" marker-end="url(#arR)"/>
+      <rect x="930" y="24" width="150" height="76" rx="14" fill="#F2D6D4"/><text x="1005" y="60" text-anchor="middle" font-size="22" fill="#1D1D1F">第 4 段</text><text x="1005" y="85" text-anchor="middle" font-size="18" fill="#B05550">已经崩了</text>
+      <text x="1120" y="70" font-size="23" font-weight="600" fill="#D0342C">误差越滚越大</text>
+    </g>
+
+    <line x1="0" y1="160" x2="1600" y2="160" stroke="#E5E5EA" stroke-width="1.5"/>
+
+    <text x="0" y="236" font-size="24" font-weight="600" fill="#0071E3">世界动作模型</text>
+    <text x="0" y="266" font-size="19" fill="#7FB0EA">想一段，执行一段</text>
+    <g>
+      <rect x="300" y="200" width="150" height="76" rx="14" fill="#F0F6FE"/><text x="375" y="236" text-anchor="middle" font-size="22" fill="#0071E3" font-weight="600">想象 1.6 秒</text><text x="375" y="261" text-anchor="middle" font-size="18" fill="#5793DC">动作从这里读</text>
+      <line x1="460" y1="238" x2="500" y2="238" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+      <rect x="510" y="200" width="150" height="76" rx="14" fill="#fff" stroke="#0071E3" stroke-width="2"/><text x="585" y="245" text-anchor="middle" font-size="22" fill="#0071E3">执行动作块</text>
+      <line x1="670" y1="238" x2="710" y2="238" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+      <rect x="720" y="200" width="180" height="76" rx="14" fill="#0071E3"/><text x="810" y="236" text-anchor="middle" font-size="22" fill="#fff" font-weight="600">相机给一张真画面</text><text x="810" y="261" text-anchor="middle" font-size="18" fill="#CFE4FA">写进 KV cache</text>
+      <line x1="910" y1="238" x2="950" y2="238" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+      <rect x="960" y="200" width="150" height="76" rx="14" fill="#F0F6FE"/><text x="1035" y="245" text-anchor="middle" font-size="22" fill="#0071E3" font-weight="600">想象下 1.6 秒</text>
+      <text x="1150" y="246" font-size="23" font-weight="600" fill="#0071E3">每 1.6 秒被现实校正一次</text>
+    </g>
+
+    <rect x="300" y="330" width="1250" height="64" rx="14" fill="#F5F5F7"/>
+    <text x="326" y="370" font-size="23" fill="#1D1D1F">机器人执行完一个动作块，相机就免费给一张真画面 —— 把它塞进缓存，<tspan fill="#0071E3" font-weight="600">丢掉自己想象的那几帧</tspan>。</text>
+    <text x="300" y="450" font-size="22" fill="#8E8E93">只有「既生成视频、又真的去控制机器人」的模型才做得到这一步。UniPi 做不到，纯视频生成模型也做不到。</text>
+  </svg></div>
+</section>
+
+<!-- ===== 21 推理例子 上 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="推理走一遍（上）：两条时间轴">
+  <div class="kicker"><b>04</b>DreamZero · 自绘 · DROID 配置：视频 5 FPS、动作 15 Hz、H = 24</div>
+  <h1>走一遍：<span class="thin">指令是</span>「把马克笔放进杯子」</h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <text x="0" y="46" font-size="22" font-weight="600" fill="#6E6E73">机器人控制器</text>
+    <text x="0" y="74" font-size="19" fill="#A1A1A6">15 Hz 连续执行</text>
+    <rect x="260" y="20" width="400" height="66" rx="12" fill="#F5F5F7"/><text x="460" y="60" text-anchor="middle" font-size="22" fill="#1D1D1F">执行第 0 块 · 1.6 秒</text>
+    <rect x="668" y="20" width="400" height="66" rx="12" fill="#F5F5F7"/><text x="868" y="60" text-anchor="middle" font-size="22" fill="#1D1D1F">执行第 1 块 · 1.6 秒</text>
+    <rect x="1076" y="20" width="400" height="66" rx="12" fill="#F5F5F7"/><text x="1276" y="60" text-anchor="middle" font-size="22" fill="#1D1D1F">执行第 2 块 · 1.6 秒</text>
+
+    <text x="0" y="156" font-size="22" font-weight="600" fill="#0071E3">模型</text>
+    <text x="0" y="184" font-size="19" fill="#7FB0EA">每 1.6 秒醒一次</text>
+    <rect x="400" y="130" width="230" height="66" rx="12" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="515" y="170" text-anchor="middle" font-size="21" fill="#0071E3" font-weight="600">算第 1 块 ≈0.6 s</text>
+    <rect x="808" y="130" width="230" height="66" rx="12" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="923" y="170" text-anchor="middle" font-size="21" fill="#0071E3" font-weight="600">算第 2 块 ≈0.6 s</text>
+    <rect x="1216" y="130" width="230" height="66" rx="12" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="1331" y="170" text-anchor="middle" font-size="21" fill="#0071E3" font-weight="600">算第 3 块 ≈0.6 s</text>
+    <text x="260" y="238" font-size="21" fill="#8E8E93">约束不是「推理要多快」，而是「推理要在当前这一块用完之前算完」—— 0.6 秒 &lt; 1.6 秒，绰绰有余。</text>
+
+    <line x1="0" y1="286" x2="1600" y2="286" stroke="#E5E5EA" stroke-width="1.5"/>
+    <text x="0" y="336" font-size="22" font-weight="600" fill="#6E6E73" letter-spacing="2">第一次调用做三件事</text>
+
+    <rect x="0" y="366" width="500" height="150" rx="16" fill="#F5F5F7"/>
+    <text x="30" y="404" font-size="20" fill="#0071E3" class="mono">01</text>
+    <text x="30" y="440" font-size="24" font-weight="600" fill="#1D1D1F">看一眼现场</text>
+    <text x="30" y="474" font-size="20" fill="#6E6E73">三个相机拼成一帧过 VAE，什么都不预测，</text>
+    <text x="30" y="500" font-size="20" fill="#6E6E73">只把「笔在左、杯子在右」写进 KV cache</text>
+
+    <rect x="530" y="366" width="500" height="150" rx="16" fill="#F5F5F7"/>
+    <text x="560" y="404" font-size="20" fill="#0071E3" class="mono">02</text>
+    <text x="560" y="440" font-size="24" font-weight="600" fill="#1D1D1F">从两团噪声一起去噪</text>
+    <text x="560" y="474" font-size="20" fill="#6E6E73">一团是未来画面的 latent，一团是 24 步动作；</text>
+    <text x="560" y="500" font-size="20" fill="#6E6E73">16 步循环，靠缓存复用只真算 8 次</text>
+
+    <rect x="1060" y="366" width="500" height="150" rx="16" fill="#F0F6FE"/>
+    <text x="1090" y="404" font-size="20" fill="#0071E3" class="mono">03</text>
+    <text x="1090" y="440" font-size="24" font-weight="600" fill="#0071E3">同一次前向吐出两个答案</text>
+    <text x="1090" y="474" font-size="20" fill="#5793DC">「接下来画面会变成什么样」＋「关节该怎么转」</text>
+    <text x="1090" y="500" font-size="20" fill="#5793DC">所以两者天然一致</text>
+  </svg></div>
+</section>
+
+<!-- ===== 22 推理例子 下 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="推理走一遍（下）：缓存里永远只有真画面">
+  <div class="kicker"><b>04</b>DreamZero · 自绘 · 第二轮：手偏右了两厘米</div>
+  <h1>缓存里<span class="acc">永远只有真实画面</span>，<span class="thin">想象永远被丢掉</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <rect x="0" y="16" width="770" height="180" rx="16" fill="#F5F5F7"/>
+    <text x="30" y="58" font-size="22" font-weight="600" fill="#6E6E73">上一轮模型想象的是</text>
+    <text x="30" y="98" font-size="26" fill="#1D1D1F">手精准对准了马克笔</text>
+    <text x="30" y="146" font-size="22" font-weight="600" fill="#D0342C">现实是</text>
+    <text x="30" y="180" font-size="26" fill="#1D1D1F">手偏右了两厘米</text>
+
+    <rect x="830" y="16" width="770" height="180" rx="16" fill="#F0F6FE"/>
+    <text x="860" y="58" font-size="22" font-weight="600" fill="#0071E3">这一刻发生了什么</text>
+    <text x="860" y="98" font-size="24" fill="#1D1D1F">把<tspan font-weight="600">现实</tspan>写进记忆，而想象的那几帧<tspan font-weight="600" fill="#0071E3">从来没进过记忆</tspan></text>
+    <text x="860" y="146" font-size="24" fill="#1D1D1F">下一轮模型看到的历史是「手偏右两厘米」，</text>
+    <text x="860" y="180" font-size="24" fill="#1D1D1F">于是这一轮的想象变成：向左微调、张开夹爪、下降、闭合</text>
+
+    <line x1="0" y1="232" x2="1600" y2="232" stroke="#E5E5EA" stroke-width="1.5"/>
+
+    <g font-size="21">
+      <text x="0" y="282" font-size="20" fill="#A1A1A6" letter-spacing="2">轮次</text>
+      <text x="230" y="282" font-size="20" fill="#A1A1A6" letter-spacing="2">KV CACHE 里有什么</text>
+      <text x="1130" y="282" font-size="20" fill="#A1A1A6" letter-spacing="2">想象的那几帧</text>
+      <line x1="0" y1="298" x2="1420" y2="298" stroke="#D2D2D7" stroke-width="2"/>
+      <text x="0" y="338" fill="#6E6E73" class="mono">t = 0</text><text x="230" y="338" fill="#1D1D1F">首帧（真）</text><text x="1130" y="338" fill="#D0342C">丢</text>
+      <line x1="0" y1="356" x2="1420" y2="356" stroke="#E5E5EA"/>
+      <text x="0" y="396" fill="#6E6E73" class="mono">t = 1</text><text x="230" y="396" fill="#1D1D1F">首帧（真）＋ 真实帧 1</text><text x="1130" y="396" fill="#D0342C">丢</text>
+      <line x1="0" y1="414" x2="1420" y2="414" stroke="#E5E5EA"/>
+      <text x="0" y="454" fill="#6E6E73" class="mono">t = 2</text><text x="230" y="454" fill="#1D1D1F">首帧 ＋ 真实帧 1 ＋ 真实帧 2</text><text x="1130" y="454" fill="#D0342C">丢</text>
+      <line x1="0" y1="472" x2="1420" y2="472" stroke="#E5E5EA"/>
+      <text x="0" y="512" fill="#0071E3" class="mono">…</text><text x="230" y="512" fill="#0071E3" font-weight="600">永远只有真实画面</text><text x="1130" y="512" fill="#D0342C" font-weight="600">永远丢</text>
+    </g>
+
+    <rect x="1440" y="262" width="160" height="260" rx="14" fill="#FBF3F2"/>
+    <text x="1520" y="306" text-anchor="middle" font-size="20" font-weight="600" fill="#B05550">两种情况</text>
+    <text x="1520" y="332" text-anchor="middle" font-size="20" font-weight="600" fill="#B05550">会清空记忆</text>
+    <text x="1520" y="382" text-anchor="middle" font-size="20" fill="#6E6E73">缓存写满</text>
+    <text x="1520" y="412" text-anchor="middle" font-size="19" fill="#A1A1A6">约 6.6 秒</text>
+    <text x="1520" y="462" text-anchor="middle" font-size="20" fill="#6E6E73">指令被改了</text>
+    <text x="1520" y="492" text-anchor="middle" font-size="19" fill="#A1A1A6">手上抓着什么全忘</text>
+  </svg></div>
+</section>
+
+<!-- ===== 23 加速 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="38 倍加速">
+  <div class="kicker"><b>04</b>DreamZero · 论文表 1 · 单卡朴素实现是 5.7 秒一块</div>
+  <h1>从 5.7 秒压到 <span class="acc">150 毫秒</span></h1>
+  <div class="tblwrap"><table class="tbl num compact">
+    <tr><th>做了什么</th><th>H100 × 2</th><th>GB200 × 2</th><th>这一层解决的问题</th></tr>
+    <tr><td>朴素实现</td><td class="dim">1×</td><td class="dim">1.1×</td><td class="dim">16 步去噪 · 14B · 串行执行</td></tr>
+    <tr><td>CFG 并行</td><td>1.9×</td><td>1.8×</td><td>条件和无条件分两张卡，单步 −47%</td></tr>
+    <tr><td>DiT caching</td><td>5.5×</td><td>5.4×</td><td>相邻速度差不多就复用，16 步 → 4 步</td></tr>
+    <tr><td>编译 + CUDA Graphs</td><td>8.9×</td><td>10.9×</td><td>去掉 Python 调度开销</td></tr>
+    <tr><td>cuDNN 注意力 + 调度上卡</td><td>9.6×</td><td>14.8×</td><td>算子和调度器都搬到 GPU</td></tr>
+    <tr><td>NVFP4 量化</td><td class="dim">—</td><td>16.6×</td><td>Blackwell 独有</td></tr>
+    <tr class="hi"><td>DreamZero-Flash</td><td class="dim">—</td><td class="acc">38×</td><td>去噪从 4 步压到 1 步 · 7 Hz</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== 24 Flash ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="Flash：训练时把视频推到高噪声端">
+  <div class="kicker"><b>04</b>DreamZero · 论文图 15 · 收桌任务：4 步 83% · 1 步 52% · Flash 1 步 74%</div>
+  <h1>训练时把视频推到<span class="acc">高噪声那一端</span>，<span class="thin">动作照样去噪到干净</span></h1>
+  <div class="fig card"><img src="media/dz_flash.png" alt=""></div>
+</section>
+
+<!-- ===== 25 数据规模 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="数据：500 小时怎么采的">
+  <div class="kicker"><b>04</b>DreamZero · 论文图 6 · 左：每段多长 · 右：每段几个子任务</div>
+  <h1>500 小时，<span class="thin">平均一段</span><span class="acc">4.4 分钟、42 个子任务</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/dz_stats1.png" alt=""></div>
+    <div class="fig card"><img src="media/dz_stats2.png" alt=""></div>
+  </div>
+</section>
+
+<!-- ===== 26 采集机制 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="自绘：采满 50 段就下架">
+  <div class="kicker"><b>04</b>DreamZero · 自绘 · 采集流程见论文附录 F</div>
+  <h1>长尾不是设计出来的，<span class="thin">是</span><span class="acc">机制长出来的</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 540" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <rect x="0" y="30" width="350" height="150" rx="16" fill="#F5F5F7"/>
+    <text x="26" y="70" font-size="20" class="mono" fill="#0071E3">01</text>
+    <text x="26" y="108" font-size="25" font-weight="600" fill="#1D1D1F">一张打印的任务清单</text>
+    <text x="26" y="146" font-size="20" fill="#6E6E73">遥操作员每天按区域领任务</text>
+    <line x1="366" y1="105" x2="406" y2="105" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+
+    <rect x="416" y="30" width="350" height="150" rx="16" fill="#F5F5F7"/>
+    <text x="442" y="70" font-size="20" class="mono" fill="#0071E3">02</text>
+    <text x="442" y="108" font-size="25" font-weight="600" fill="#1D1D1F">一段连做三个任务</text>
+    <text x="442" y="146" font-size="20" fill="#6E6E73">收拾桌子、擦桌面、整理调料，凑 5 分钟</text>
+    <line x1="782" y1="105" x2="822" y2="105" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+
+    <rect x="832" y="30" width="350" height="150" rx="16" fill="#F0F6FE"/>
+    <text x="858" y="70" font-size="20" class="mono" fill="#0071E3">03</text>
+    <text x="858" y="108" font-size="25" font-weight="600" fill="#0071E3">采满 50 段就下架</text>
+    <text x="858" y="146" font-size="20" fill="#5793DC">这个任务从清单上永久废除</text>
+    <line x1="1198" y1="105" x2="1238" y2="105" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+
+    <rect x="1248" y="30" width="350" height="150" rx="16" fill="#F0F6FE"/>
+    <text x="1274" y="70" font-size="20" class="mono" fill="#0071E3">04</text>
+    <text x="1274" y="108" font-size="25" font-weight="600" fill="#0071E3">被迫去提新任务</text>
+    <text x="1274" y="146" font-size="20" fill="#5793DC">老任务不断消失，分布只能往外长</text>
+
+    <line x1="0" y1="232" x2="1600" y2="232" stroke="#E5E5EA" stroke-width="1.5"/>
+
+    <g>
+      <text x="80" y="308" font-size="62" font-weight="600" fill="#0071E3" class="mono">22</text>
+      <text x="80" y="346" font-size="21" fill="#6E6E73">个真实场景</text>
+      <text x="80" y="374" font-size="19" fill="#A1A1A6">家、餐厅、超市、咖啡店、办公室、仓库、酒店、零售店</text>
+
+      <text x="640" y="308" font-size="62" font-weight="600" fill="#0071E3" class="mono">30.5 万</text>
+      <text x="640" y="346" font-size="21" fill="#6E6E73">个子任务</text>
+      <text x="640" y="374" font-size="19" fill="#A1A1A6">7,193 段，每段平均 42.4 个</text>
+
+      <text x="1160" y="308" font-size="62" font-weight="600" fill="#0071E3" class="mono">244</text>
+      <text x="1160" y="346" font-size="21" fill="#6E6E73">种技能</text>
+      <text x="1160" y="374" font-size="19" fill="#A1A1A6">尾巴上很多只有十几个样本</text>
+    </g>
+
+    <rect x="80" y="424" width="1440" height="64" rx="14" fill="#F5F5F7"/>
+    <text x="106" y="464" font-size="23" fill="#1D1D1F">对比一下：DROID、Bridge 这些常规数据集是「一段轨迹 = 一个任务」，几十秒；这里是<tspan fill="#0071E3" font-weight="600">一段 4.4 分钟塞 42 个子任务</tspan>。</text>
+  </svg></div>
+</section>
+
+<!-- ===== 27 技能长尾 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="技能分布是一条长尾">
+  <div class="kicker"><b>04</b>DreamZero · 论文图 7 · 纵轴对数坐标 · 操作 12.5 万 · 导航 6.6 万 · 转向 5.8 万 · 躯干升降 4.6 万</div>
+  <h1>头部是搬和放，<span class="thin">尾巴上很多技能只有十几个样本</span></h1>
+  <div class="fig card"><img src="media/dz_skilldist.png" alt=""></div>
+</section>
+
+<!-- ===== 28 seen 结果 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="见过的任务：从零训的 VLA 接近 0">
+  <div class="kicker"><b>04</b>DreamZero · 论文图 8 · 评测点和采集点不在同一个城市：未见环境 + 未见物体 · 80 次 rollout</div>
+  <h1>同样的数据，<span class="thin">从零训的 VLA</span> <span class="acc">接近 0</span></h1>
+  <div class="fig card"><img src="media/dz_seen.png" alt=""></div>
+</section>
+
+<!-- ===== 29 unseen 结果 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="训练里没有的任务">
+  <div class="kicker"><b>04</b>DreamZero · 论文图 9 · 指标是任务进度，不是成功率</div>
+  <h1>解鞋带、握手、熨衣服 —— <span class="thin">训练里一次都没有</span></h1>
+  <div class="fig card"><img src="media/dz_unseen.png" alt=""></div>
+</section>
+
+<!-- ===== 30 消融 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="消融：范式问题不是容量问题">
+  <div class="kicker"><b>04</b>DreamZero · 论文表 4 · PnP-Easy · 5 万步 batch 32 · 标准误 4–6%</div>
+  <h1>放大模型救不了 VLA，<span class="thin">因为这是</span><span class="acc">范式问题</span></h1>
+  <div class="tblwrap"><table class="tbl num">
+    <tr><th>对照</th><th>左</th><th>右</th><th>说明</th></tr>
+    <tr><td>数据：重复 vs 多样</td><td>33%</td><td class="acc">50%</td><td>同样是 500 小时</td></tr>
+    <tr><td>规模：DreamZero 5B vs 14B</td><td>21%</td><td class="acc">50%</td><td>小模型的视觉幻觉会传到动作上</td></tr>
+    <tr class="bad"><td>范式：VLA 5B vs 14B</td><td>0%</td><td>0%</td><td>放大到 32B 初始化仍然是 0</td></tr>
+    <tr><td>架构：双向 vs 自回归</td><td>50%</td><td>50%</td><td>进度一样，但自回归快 3–4 倍</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== 31 跨本体 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="12 分钟人类视频值 16 个点">
+  <div class="kicker"><b>04</b>DreamZero · 论文表 2 · 9 个未见任务 · 作者自己称这是 early signal</div>
+  <h1>12 分钟人类第一视角视频，<span class="acc">值 16 个点</span></h1>
+  <div class="stats" style="grid-template-rows:1.55fr 1fr">
+    <div class="stat dim"><div class="n">38.3<small>%</small></div><div class="l">基线 · 什么都不加</div></div>
+    <div class="stat"><div class="n">54.3<small>%</small></div><div class="l"><b>+ 12 分钟人类第一视角视频</b><br>72 段，1:1 混合继续训 1 万步</div></div>
+    <div class="stat"><div class="n">55.4<small>%</small></div><div class="l"><b>+ 20 分钟另一台机器人的视频</b><br>同样只有 72 段</div></div>
+    <div class="stat text" style="grid-column:span 3"><div class="n">这些数据<span class="acc">只用视频损失，一个动作标签都没有</span> —— 而人类视频比机器人数据多好几个数量级</div></div>
+  </div>
+</section>
+
+<!-- ===== 32 失败分析 ===== -->
+<section class="slide" data-sec="04 DreamZero" data-title="失败几乎都是想象错了">
+  <div class="kicker"><b>04</b>DreamZero · 论文图 5 · 上排是真机执行，下排是模型同时生成的画面</div>
+  <h1>失败几乎都是<span class="acc">想象错了</span>，<span class="thin">机器人忠实地执行了它</span></h1>
+  <div class="fig card"><img src="media/dz_joint.png" alt=""></div>
+</section>
+
+<!-- ===== 33 divider 05 LingBot-VA ===== -->
+<section class="slide divider" data-sec="05 LingBot-VA" data-title="过渡：LingBot-VA">
+  <div class="num">05</div>
+  <div class="word">LingBot-VA</div>
+</section>
+
+<!-- ===== 34 交错序列 ===== -->
+<section class="slide" data-sec="05 LingBot-VA" data-title="交错序列：一帧视频配四个动作">
+  <div class="kicker"><b>05</b>LingBot-VA · 蚂蚁 Robbyant · 2026-01-29 · arXiv 2601.21998 · 论文图 2</div>
+  <h1>一条序列：<span class="thin">视频一帧、动作四个，</span><span class="acc">交替往下写</span></h1>
+  <div class="fig card"><img src="media/lva_framework.png" alt=""></div>
+</section>
+
+<!-- ===== 35 双流 MoT ===== -->
+<section class="slide" data-sec="05 LingBot-VA" data-title="自绘：双流 Mixture-of-Transformers">
+  <div class="kicker"><b>05</b>LingBot-VA · 自绘 · 维度取自论文 3.3 节</div>
+  <h1>在一个房间里开会，<span class="thin">开完</span><span class="acc">各回各的办公室</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 540" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <text x="330" y="30" text-anchor="middle" font-size="22" font-weight="600" fill="#6E6E73">视频流 · 3072 维 · 5B</text>
+    <text x="1150" y="30" text-anchor="middle" font-size="22" font-weight="600" fill="#0071E3">动作流 · 768 维 · 350M</text>
+
+    <rect x="180" y="56" width="300" height="60" rx="12" fill="#F5F5F7"/><text x="330" y="94" text-anchor="middle" font-size="22" fill="#1D1D1F">各自的 LayerNorm</text>
+    <rect x="1000" y="56" width="300" height="60" rx="12" fill="#F0F6FE"/><text x="1150" y="94" text-anchor="middle" font-size="22" fill="#0071E3">各自的 LayerNorm</text>
+
+    <rect x="180" y="136" width="300" height="60" rx="12" fill="#F5F5F7"/><text x="330" y="174" text-anchor="middle" font-size="22" fill="#1D1D1F">各自的 QKV 投影</text>
+    <rect x="1000" y="136" width="300" height="60" rx="12" fill="#F0F6FE"/><text x="1150" y="174" text-anchor="middle" font-size="22" fill="#0071E3">各自的 QKV 投影</text>
+
+    <line x1="330" y1="200" x2="330" y2="240" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+    <line x1="1150" y1="200" x2="1150" y2="240" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+
+    <rect x="180" y="248" width="1120" height="86" rx="16" fill="#0071E3"/>
+    <text x="740" y="286" text-anchor="middle" font-size="27" font-weight="600" fill="#fff">联合自注意力 —— 唯一共享的地方</text>
+    <text x="740" y="318" text-anchor="middle" font-size="21" fill="#CFE4FA">动作先投影到 3072 维进来开会，视频看得见动作，动作看得见未来画面</text>
+
+    <line x1="330" y1="334" x2="330" y2="374" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+    <line x1="1150" y1="334" x2="1150" y2="374" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+
+    <rect x="180" y="382" width="300" height="60" rx="12" fill="#F5F5F7"/><text x="330" y="420" text-anchor="middle" font-size="22" fill="#1D1D1F">各自的 FFN</text>
+    <rect x="1000" y="382" width="300" height="60" rx="12" fill="#F0F6FE"/><text x="1150" y="420" text-anchor="middle" font-size="22" fill="#0071E3">各自的 FFN</text>
+
+    <text x="330" y="490" text-anchor="middle" font-size="21" fill="#8E8E93">输出未来画面的 latent</text>
+    <text x="1150" y="490" text-anchor="middle" font-size="21" fill="#8E8E93">输出 30 维动作</text>
+
+    <text x="0" y="262" font-size="20" fill="#A1A1A6">为什么动作流</text>
+    <text x="0" y="290" font-size="20" fill="#A1A1A6">只要四分之一宽：</text>
+    <text x="0" y="326" font-size="20" fill="#A1A1A6">动作的分布本来</text>
+    <text x="0" y="354" font-size="20" fill="#A1A1A6">就比画面简单得多</text>
+  </svg></div>
+</section>
+
+<!-- ===== 36 因果 mask ===== -->
+<section class="slide" data-sec="05 LingBot-VA" data-title="因果 mask：块内双向，块间因果">
+  <div class="kicker"><b>05</b>LingBot-VA · 论文图 3 · 黄 = 视频，绿 = 动作，带 (s) 的是要预测的加噪目标</div>
+  <h1>块内双向并行，<span class="thin">块与块之间</span><span class="acc">严格因果</span></h1>
+  <div class="fig card"><img src="media/lva_mask.png" alt=""></div>
+</section>
+
+<!-- ===== 37 同步 vs 异步 ===== -->
+<section class="slide" data-sec="05 LingBot-VA" data-title="同步与异步">
+  <div class="kicker"><b>05</b>LingBot-VA · 论文图 4 · A / B 是时间轴，B-1 / B-2 是同一时刻 KV cache 里有什么</div>
+  <h1>异步的代价：<span class="acc">当下的真实画面还不存在</span></h1>
+  <div class="fig card"><img src="media/lva_async.png" alt=""></div>
+</section>
+
+<!-- ===== 38 朴素异步会崩 ===== -->
+<section class="slide" data-sec="05 LingBot-VA" data-title="朴素异步崩 52 个点">
+  <div class="kicker"><b>05</b>LingBot-VA · 论文表 3 · RoboTwin 2.0 Easy</div>
+  <h1>填进去的那一帧从哪算来的，<span class="thin">差</span><span class="acc">52 个点</span></h1>
+  <div class="tblwrap fit"><table class="tbl num">
+    <tr><th>方案</th><th>缓存里的画面来自</th><th>全部任务</th><th>长程任务</th></tr>
+    <tr><td>同步 · 机器人干等</td><td>只有真实观测</td><td class="acc">92.9</td><td class="dim">—</td></tr>
+    <tr class="bad"><td>朴素异步</td><td>上一轮的陈旧预测</td><td>74.3</td><td>32.9</td></tr>
+    <tr><td>前向动力学接地的异步</td><td>用最新真观测当场重算</td><td class="acc">90.4</td><td class="acc">85.6</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== 39 记忆 ===== -->
+<section class="slide" data-sec="05 LingBot-VA" data-title="记忆：擦盘子要正好六下">
+  <div class="kicker"><b>05</b>LingBot-VA · 论文图 9 · KV cache 存的是整条历史，不是最近几帧</div>
+  <h1>擦盘子必须<span class="acc">正好六下</span>：100% <span class="thin">对</span> 47%</h1>
+  <div class="fig card"><img src="media/lva_memory.png" alt=""></div>
+</section>
+
+<!-- ===== 40 两种 scaling ===== -->
+<section class="slide" data-sec="05 LingBot-VA" data-title="两种 scaling">
+  <div class="kicker"><b>05</b>LingBot-VA · 和 DreamZero 对着看</div>
+  <h1>一个往<span class="thin">数据质量</span>走，<span class="thin">一个往</span><span class="acc">数据规模</span>走</h1>
+  <div class="tblwrap"><table class="tbl left compact">
+    <tr><th>　</th><th>DreamZero</th><th>LingBot-VA</th></tr>
+    <tr><td>数据</td><td>自采 500 小时</td><td>聚合六个公开源 + 内部，约 16,000 小时</td></tr>
+    <tr><td>本体</td><td>两种本体分开预训练</td><td>统一成 30 维动作，跨本体一起训</td></tr>
+    <tr><td>动作表示</td><td>相对关节位置</td><td>绝对末端位姿 —— 所以动作历史就是本体轨迹，能喂给视频预测</td></tr>
+    <tr><td>记忆</td><td>6.6 秒</td><td>KV cache 存整条历史</td></tr>
+    <tr><td>主场</td><td>真机零样本做未见动作</td><td>benchmark 屠榜 · 50 条演示换新平台 · RoboTwin 92.9 / LIBERO 98.5</td></tr>
+    <tr class="hi"><td>推理显存</td><td>45 GB 起，要 7 Hz 得两块 GB200</td><td>约 24 GB，单张 4090 能跑</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== 41 divider 06 VA 2.0 ===== -->
+<section class="slide divider" data-sec="06 VA 2.0" data-title="过渡：VA 2.0">
+  <div class="num">06</div>
+  <div class="word">VA <span class="acc">2.0</span></div>
+</section>
+
+<!-- ===== 42 VA2 framework ===== -->
+<section class="slide" data-sec="06 VA 2.0" data-title="VA 2.0：从零原生预训练">
+  <div class="kicker"><b>06</b>VA 2.0 · LingBot-VA 2.0 · 2026-07-09 · arXiv 2607.08639 · 论文图 2</div>
+  <h1>不再改装视频模型，<span class="acc">从零原生预训练</span></h1>
+  <div class="fig card"><img src="media/lva2_framework.png" alt=""></div>
+</section>
+
+<!-- ===== 43 tokenizer ===== -->
+<section class="slide" data-sec="06 VA 2.0" data-title="语义 tokenizer + latent action">
+  <div class="kicker"><b>06</b>VA 2.0 · 论文图 3 · 左边蓝色是视觉 tokenizer，右边绿色是 latent action · 这就是架构图里那个 SemVAE</div>
+  <h1>让没有标注的网络视频，<span class="thin">也带上</span><span class="acc">动作监督</span></h1>
+  <div class="fig card"><img src="media/lva2_tokenizer.png" alt=""></div>
+</section>
+
+<!-- ===== 44 MCP 训练 ===== -->
+<section class="slide" data-sec="06 VA 2.0" data-title="训练：多 chunk 预测">
+  <div class="kicker"><b>06</b>VA 2.0 · 论文图 4 · FM Loss = flow matching · 蓝色那三块是训练时的辅助监督，推理时可拆可留</div>
+  <h1>只监督下一块，<span class="thin">模型会</span><span class="acc">抄外观</span></h1>
+  <div class="fig card"><img src="media/lva2_mcp.png" alt=""></div>
+</section>
+
+<!-- ===== 45 planner ===== -->
+<section class="slide" data-sec="06 VA 2.0" data-title="分层 planner">
+  <div class="kicker"><b>06</b>VA 2.0 · 论文图 5 · planner 输出是固定四个字段的 JSON</div>
+  <h1>planner 在后台跑 2 Hz，<span class="thin">和执行回路</span><span class="acc">异步解耦</span></h1>
+  <div class="fig card"><img src="media/lva2_planner.png" alt=""></div>
+</section>
+
+<!-- ===== 46 数据 ===== -->
+<section class="slide" data-sec="06 VA 2.0" data-title="数据：三阶段课程 + 三个特点">
+  <div class="kicker"><b>06</b>VA 2.0 · 论文 Data Recipe 一节 · 自绘 · 三阶段课程 → 具身那一阶段有什么 → 三个特点</div>
+  <h1>人手的 22 个关节，<span class="thin">压成</span><span class="acc">一个夹爪开合度</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 660" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <text x="0" y="18" font-size="19" fill="#A1A1A6" font-weight="500" letter-spacing="2">三阶段课程</text>
+
+    <rect x="0" y="36" width="400" height="86" rx="16" fill="#F5F5F7"/>
+    <text x="200" y="74" text-anchor="middle" font-size="24" font-weight="600" fill="#1D1D1F">阶段一 · 通用文生图</text>
+    <text x="200" y="103" text-anchor="middle" font-size="19" fill="#6E6E73">LingBot-Video 的图像语料</text>
+    <line x1="410" y1="79" x2="450" y2="79" stroke="#8E8E93" stroke-width="2.5" marker-end="url(#ar)"/>
+
+    <rect x="460" y="36" width="400" height="86" rx="16" fill="#F5F5F7"/>
+    <text x="660" y="74" text-anchor="middle" font-size="24" font-weight="600" fill="#1D1D1F">阶段二 · 通用文生视频</text>
+    <text x="660" y="103" text-anchor="middle" font-size="19" fill="#6E6E73">LingBot-Video 的视频语料</text>
+    <line x1="870" y1="79" x2="910" y2="79" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+
+    <rect x="920" y="36" width="680" height="86" rx="16" fill="#0071E3"/>
+    <text x="1260" y="74" text-anchor="middle" font-size="24" font-weight="600" fill="#fff">阶段三 · 具身 video-action 适配</text>
+    <text x="1260" y="103" text-anchor="middle" font-size="19" fill="#CFE4FA">下面这三块全在这一阶段</text>
+
+    <path d="M1260 130 L1260 158" stroke="#0071E3" stroke-width="2.5"/>
+    <path d="M60 158 L1540 158" stroke="#0071E3" stroke-width="2.5"/>
+    <path d="M250 158 L250 186" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+    <path d="M800 158 L800 186" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+    <path d="M1350 158 L1350 186" stroke="#0071E3" stroke-width="2.5" marker-end="url(#arB)"/>
+
+    <rect x="0" y="196" width="500" height="132" rx="16" fill="#F0F6FE"/>
+    <text x="24" y="232" font-size="22" font-weight="600" fill="#0071E3">机器人数据</text>
+    <text x="24" y="264" font-size="19" fill="#1D1D1F">AgiBot · RoboMind · InternData-A1</text>
+    <text x="24" y="290" font-size="19" fill="#1D1D1F">OXE（含 DROID）· UMI 系列 · RoboCOIN</text>
+    <text x="24" y="316" font-size="19" fill="#5793DC">＋ 数千小时内部演示</text>
+
+    <rect x="550" y="196" width="500" height="132" rx="16" fill="#F0F6FE"/>
+    <text x="574" y="232" font-size="22" font-weight="600" fill="#0071E3">人类第一视角</text>
+    <text x="574" y="264" font-size="19" fill="#1D1D1F">数千小时 · <tspan font-weight="600">6.5 万段</tspan> · <tspan font-weight="600">600+</tspan> 操作者</text>
+    <text x="574" y="290" font-size="19" fill="#1D1D1F"><tspan font-weight="600">3000+</tspan> 个场景-任务组合</text>
+    <text x="574" y="316" font-size="19" fill="#5793DC">厨房 · 餐桌 · 梳妆台 · 办公桌 · 工具台</text>
+
+    <rect x="1100" y="196" width="500" height="132" rx="16" fill="#F0F6FE"/>
+    <text x="1124" y="232" font-size="22" font-weight="600" fill="#0071E3">In-context 数据</text>
+    <text x="1124" y="264" font-size="19" fill="#1D1D1F"><tspan font-weight="600">5 万+</tspan> 样本 · <tspan font-weight="600">5000+</tspan> 个任务</text>
+    <text x="1124" y="290" font-size="19" fill="#1D1D1F">拿机器人视频反过来生成人类视频</text>
+    <text x="1124" y="316" font-size="19" fill="#5793DC">VLM 按语义保持和物理合理打分筛一遍</text>
+
+    <line x1="0" y1="382" x2="1600" y2="382" stroke="#E5E5EA" stroke-width="1.5"/>
+    <text x="0" y="424" font-size="19" fill="#A1A1A6" font-weight="500" letter-spacing="2">三个特点</text>
+
+    <text x="0" y="482" font-size="20" class="mono" fill="#0071E3">01</text>
+    <text x="0" y="520" font-size="25" font-weight="600" fill="#1D1D1F">细粒度标注</text>
+    <text x="0" y="556" font-size="19" fill="#6E6E73">每条长轨迹切成原子动作片段，</text>
+    <text x="0" y="582" font-size="19" fill="#6E6E73">每段用 Qwen3.5-397B 配一句语言提示</text>
+    <text x="0" y="608" font-size="19" fill="#6E6E73">＋ 一个全局任务指令</text>
+
+    <text x="550" y="482" font-size="20" class="mono" fill="#0071E3">02</text>
+    <text x="550" y="520" font-size="25" font-weight="600" fill="#1D1D1F">人手每帧标什么</text>
+    <text x="550" y="556" font-size="19" fill="#6E6E73">双手在世界坐标系下的</text>
+    <text x="550" y="582" font-size="19" fill="#6E6E73">6 自由度根位姿 ＋</text>
+    <text x="550" y="608" font-size="19" fill="#6E6E73">每只手 22 个手指关节角</text>
+
+    <rect x="1080" y="446" width="520" height="184" rx="16" fill="#F0F6FE"/>
+    <text x="1104" y="482" font-size="20" class="mono" fill="#0071E3">03</text>
+    <text x="1104" y="520" font-size="25" font-weight="600" fill="#0071E3">怎么对齐到机器人</text>
+    <text x="1104" y="556" font-size="19" fill="#1D1D1F">两只手的 6-DoF 轨迹原样保留，</text>
+    <text x="1104" y="582" font-size="19" fill="#1D1D1F">22 维手指关节压成</text>
+    <text x="1104" y="608" font-size="19" fill="#0071E3" font-weight="600">左右各一个标量的夹爪开合度</text>
+  </svg></div>
+</section>
+
+<!-- ===== 47 实验 ===== -->
+<section class="slide" data-sec="06 VA 2.0" data-title="实验：真机四个任务">
+  <div class="kicker"><b>06</b>VA 2.0 · 论文图 6 · 内部真机 benchmark · 蓝 = VA 2.0，米 = VA 1.0，绿 = π0.5 · 左成功率，右进度分</div>
+  <h1>一个 checkpoint 跑四个任务，<span class="thin">每个只给</span><span class="acc">20 条演示</span></h1>
+  <div class="fig card"><img src="media/lva2_bar.png" alt=""></div>
+</section>
+
+<!-- ===== 48 三家对比 ===== -->
+<section class="slide" data-sec="06 VA 2.0" data-title="三家怎么比">
+  <div class="kicker"><b>06</b>VA 2.0 · 三家没有公共榜单，下面按维度对齐，不是同一场比赛</div>
+  <h1>设计上是第一梯队，<span class="thin">证据上</span><span class="acc">还不是</span></h1>
+  <div class="tblwrap"><table class="tbl left compact">
+    <tr><th>　</th><th>DreamZero</th><th>LingBot-VA 2.0</th><th>Cosmos 3</th></tr>
+    <tr><td>规模</td><td>14B 稠密</td><td>15.3B 总 / 2.5B 激活</td><td>16B / 64B</td></tr>
+    <tr><td>latent action</td><td class="no">没有</td><td class="ok">有</td><td class="no">没有</td></tr>
+    <tr><td>分层 planner</td><td class="no">没有</td><td class="ok">有，2 Hz</td><td class="no">没有</td></tr>
+    <tr><td>能问 what-if</td><td class="no">不能（共享 timestep）</td><td class="no">不能（前向动力学只内部用）</td><td class="ok">能</td></tr>
+    <tr><td>第三方榜单</td><td class="ok">曾经双榜第一</td><td class="no">从没上过</td><td class="ok">双榜第一</td></tr>
+    <tr><td>零样本证据</td><td class="ok">10 个未见动词 · 80 次 rollout</td><td>4 个内部真机任务</td><td>RoboLab 120 个任务</td></tr>
+    <tr><td>开源</td><td class="ok">代码 + 权重</td><td class="no">什么都没有</td><td class="ok">权重 + 数据</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== 49 反方 ===== -->
+<section class="slide" data-sec="07 悬案" data-title="反方：Fast-WAM">
+  <div class="kicker"><b>07</b>悬案 · Fast-WAM · 2026-03 · 同骨干同配方的受控消融</div>
+  <h1>值钱的是<span class="acc">训练时那个目标</span>，<span class="thin">推理时想不想象几乎不重要</span></h1>
+  <div class="tblwrap"><table class="tbl num">
+    <tr><th>变体</th><th>RoboTwin</th><th>LIBERO</th><th>延迟</th></tr>
+    <tr><td>推理时完全不想象</td><td>91.8</td><td>97.6</td><td class="acc">190 ms</td></tr>
+    <tr><td>联合去噪（DreamZero 那样）</td><td>90.6</td><td>98.5</td><td>580 ms</td></tr>
+    <tr><td>先生成视频再反推（UniPi 那样）</td><td>91.3</td><td>98.0</td><td>810 ms</td></tr>
+    <tr class="bad"><td>去掉训练时的视频目标</td><td>83.8</td><td>93.5</td><td>190 ms</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== 50 控制不需要清晰画面 ===== -->
+<section class="slide" data-sec="07 悬案" data-title="控制不需要清晰画面">
+  <div class="kicker"><b>07</b>悬案 · VPP 论文图 5 · 上排完整去噪 30 步，下排只去噪 1 步</div>
+  <h1>控制需要的是<span class="acc">往哪动</span>，<span class="thin">不是长什么样</span></h1>
+  <div class="fig card"><img src="media/vpp_fig5.png" alt=""></div>
+</section>
+
+<!-- ===== 51 三条路 ===== -->
+<section class="slide" data-sec="07 悬案" data-title="三条路撞上同一个结论">
+  <div class="kicker"><b>07</b>悬案 · 三条互不相干的技术路线</div>
+  <h1>三条不同的路，<span class="thin">撞上</span><span class="acc">同一个结论</span></h1>
+  <div class="bigline">
+    <div class="row"><span class="thin">VPP：</span>只取去噪一步的中间特征，画面糊得看不清 <span class="thin">— 140 毫秒</span></div>
+    <div class="row"><span class="thin">DreamZero-Flash：</span>训练时就让视频停在 80% 噪声 <span class="thin">— 150 毫秒</span></div>
+    <div class="row"><span class="thin">LingBot-VA：</span>视频只去噪到一半就拿去出动作 <span class="thin">— 步数减半</span></div>
+    <div class="row small">代价是：那段你想截下来给 VLM 看一眼的「未来」，本身就是模糊的。想看清楚，就得付完整去噪的延迟。</div>
+  </div>
+</section>
+
+<!-- ===== 52 局限 ===== -->
+<section class="slide" data-sec="08 局限" data-title="局限">
+  <div class="kicker"><b>08</b>局限</div>
+  <h1>作者说的 <span class="thin">·</span> 我读出来的</h1>
+  <div class="two">
+    <div class="col"><div class="h2">论文里写了的</div>
+      <div class="li">WAM 还没有 scaling law，人类视频只试了 12 分钟</div>
+      <div class="li">7 Hz 要两块 GB200，比消费级卡上 20 Hz 的 VLA 贵得多</div>
+      <div class="li">只是 System 1：视觉记忆 6.6 秒，长程任务还需要一个规划器</div>
+      <div class="li">亚厘米精度的插孔、装配，模仿学习本身就做不了</div>
+    </div>
+    <div class="col"><div class="h2">我读出来的</div>
+      <div class="li"><b>指标是任务进度不是成功率</b>：DROID 上进度 49% 对应成功率只有 22.5%</div>
+      <div class="li"><b>核心数据集没开源</b>，「多样 50% vs 重复 33%」这个对照没法独立验证</div>
+      <div class="li"><b>模型没有任何机制知道自己画错了</b>，执行完全信任想象</div>
+      <div class="li"><b>两篇都只是「说」自己对</b>：DreamZero 只测零样本，Fast-WAM 只测分布内</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 53 总图再看 ===== -->
+<section class="slide" data-sec="09 小结" data-title="总图再看一遍">
+  <div class="kicker"><b>09</b>小结 · 同第 6 页</div>
+  <h1>回到这张图</h1>
+  <div class="diagbox pad" id="recap"></div>
+</section>
+
+<!-- ===== 54 收尾 ===== -->
+<section class="slide end" data-sec="收尾" data-title="收尾">
+  <h1>World Action Model</h1>
+  <div class="big"><b>想象在一个动作块之内是动作的来源，在块与块之间被现实取代；<br>而它最大的价值，其实在训练的时候就已经兑现了。</b></div>
+  <div class="big" style="margin-top:60px">可lip</div>
+</section>
+
+</div>
+<div id="nav-hot"></div>
+<div id="nav-btn"><div class="b" id="nb-prev">‹</div><span class="pg" id="nb-pg">1 / 1</span><div class="b" id="nb-next">›</div><div class="b" id="nb-list">☰</div></div>
+<div id="nav-panel"></div>
+<div id="hud"></div>
+<script>
+(function(){
+  // 第 53 页的总图是第 6 页那张 SVG 的副本，改第 6 页就够
+  const src=document.querySelector('.slide[data-title="总图：动作在哪进出"] .diagbox svg');
+  const dst=document.getElementById('recap');
+  if(src&&dst) dst.appendChild(src.cloneNode(true));
+})();
+(function(){
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const hud=document.getElementById('hud');
+  let cur=-1, showCounter=false;
+  function fit(){ const s=Math.min(innerWidth/1920, innerHeight/1080); stage.style.transform=`translate(-50%,-50%) scale(${s})`; if(cur>=0) fitFigs(slides[cur]); }
+  function fitFigs(sl){
+    sl.querySelectorAll(':scope > .fig.card, :scope > .fig.plain').forEach(f=>{
+      const img=f.querySelector('img,video'); if(!img) return;
+      const nw=img.naturalWidth||img.videoWidth, nh=img.naturalHeight||img.videoHeight; if(!nw||!nh) return;
+      f.style.flex=''; f.style.width=''; f.style.height=''; f.style.margin='';
+      const W=f.clientWidth, H=f.clientHeight; if(!W||!H) return;
+      const pad=f.classList.contains('card')?60:0, ar=nw/nh;
+      let w=W, h=(W-pad)/ar+pad; if(h>H){ h=H; w=(H-pad)*ar+pad; }
+      f.style.flex='0 0 auto'; f.style.width=Math.round(w)+'px'; f.style.height=Math.round(h)+'px'; f.style.margin='auto';
+    });
+    sl.querySelectorAll(':scope > .fig2').forEach(row=>{
+      const cards=[...row.querySelectorAll(':scope > .fig.card')]; if(!cards.length) return;
+      cards.forEach(f=>{ f.style.flex=''; f.style.width=''; f.style.height=''; f.style.alignSelf=''; });
+      row.style.justifyContent='';
+      const H=row.clientHeight; if(!H) return;
+      const sizes=cards.map(f=>{ const img=f.querySelector('img'); if(!img||!img.naturalWidth) return null;
+        const W=f.clientWidth, pad=60, ar=img.naturalWidth/img.naturalHeight; let w=W, h=(W-pad)/ar+pad; if(h>H){ h=H; w=(H-pad)*ar+pad; } return [w,h]; });
+      if(sizes.some(x=>!x)) return;
+      cards.forEach((f,i)=>{ f.style.flex='0 0 auto'; f.style.width=Math.round(sizes[i][0])+'px'; f.style.height=Math.round(sizes[i][1])+'px'; f.style.alignSelf='center'; });
+      row.style.justifyContent='center';
+    });
+  }
+  document.querySelectorAll('.slide > .fig img, .slide > .fig2 > .fig img').forEach(img=>img.addEventListener('load',()=>{ const sl=img.closest('.slide'); if(sl.classList.contains('active')) fitFigs(sl); }));
+  function show(n){
+    n=Math.max(0,Math.min(slides.length-1,n)); if(n===cur) return;
+    slides.forEach((s,k)=>{ const on=k===n; s.classList.toggle('active',on); s.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(e){} v.play().catch(()=>{}); } else { v.pause(); } }); });
+    cur=n; history.replaceState(null,'','#'+(n+1)); updateHud(); fitFigs(slides[n]);
+  }
+  const navBtn=document.getElementById('nav-btn'), panel=document.getElementById('nav-panel'), pg=document.getElementById('nb-pg');
+  (function buildNav(){
+    let html='', lastSec=null;
+    slides.forEach((sl,k)=>{
+      const sec=sl.dataset.sec||''; const h=sl.querySelector('h1');
+      let title=sl.dataset.title||(h?h.textContent.trim():''); if(!title) title=sec;
+      if(sec!==lastSec){ html+=`<div class="sec-title">${sec||'—'}</div>`; lastSec=sec; }
+      html+=`<div class="it" data-k="${k}"><span class="k">${k+1}</span><span>${title}</span></div>`;
+    });
+    panel.innerHTML=html;
+  })();
+  function toggleNav(force){ const on=(force===undefined)?!panel.classList.contains('open'):force; panel.classList.toggle('open',on); navBtn.classList.toggle('open',on); }
+  document.getElementById('nb-list').addEventListener('click',e=>{ e.stopPropagation(); toggleNav(); });
+  document.getElementById('nb-prev').addEventListener('click',e=>{ e.stopPropagation(); prev(); });
+  document.getElementById('nb-next').addEventListener('click',e=>{ e.stopPropagation(); next(); });
+  navBtn.addEventListener('click',e=>{ e.stopPropagation(); });
+  panel.addEventListener('click',e=>{ e.stopPropagation(); const it=e.target.closest('.it'); if(!it) return; show(parseInt(it.dataset.k,10)); toggleNav(false); });
+  function updateHud(){ pg.textContent=`${cur+1} / ${slides.length}`; hud.textContent = showCounter ? `${cur+1} / ${slides.length}` : '← → 翻页 · F 全屏 · C 页码 · 左上角选页'; panel.querySelectorAll('.it').forEach((el,k)=>el.classList.toggle('cur',k===cur)); }
+  function next(){ show(cur+1); } function prev(){ show(cur-1); }
+  let buf='', bt=null;
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if(e.key==='Escape'){ toggleNav(false); }
+    else if(e.key==='g'||e.key==='G'){ toggleNav(); }
+    else if(e.key==='Home'){ show(0); } else if(e.key==='End'){ show(slides.length-1); }
+    else if(e.key==='f'||e.key==='F'){ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }
+    else if(e.key==='c'||e.key==='C'){ showCounter=!showCounter; hud.classList.toggle('show',showCounter); updateHud(); }
+    else if(/^[0-9]$/.test(e.key)){ buf=(buf+e.key).slice(-2); clearTimeout(bt); bt=setTimeout(()=>{ const k=parseInt(buf,10); if(k>=1&&k<=slides.length) show(k-1); buf=''; },500); }
+  });
+  addEventListener('click',e=>{ if(e.target.closest('a,#nav-panel,#nav-btn,#nav-hot')) return; if(panel.classList.contains('open')){ toggleNav(false); return; } const x=e.clientX/innerWidth; if(x<0.2) prev(); else next(); });
+  addEventListener('resize',fit); fit();
+  const h=parseInt((location.hash||'#1').slice(1),10); show(isNaN(h)?0:h-1);
+  if(/[?&]nav=1/.test(location.search)) toggleNav(true);
+  hud.classList.add('show'); setTimeout(()=>{ if(!showCounter) hud.classList.remove('show'); },4000);
+})();
+</script>
+</body>
+</html>
