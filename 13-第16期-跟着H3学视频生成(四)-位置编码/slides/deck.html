@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>跟着 H3 学视频生成 ④ 位置编码</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --ink:#141412; --mut:#75736c; --line:#e6e2d9; --bg:#ffffff; --panel:#faf9f5;
+  --vid:#D85A30; --vidbg:#FAECE7; --vidtx:#712B13;
+  --aud:#1D9E75; --audbg:#E1F5EE; --audtx:#085041;
+  --txm:#7F77DD; --txbg:#EEEDFE;  --txtx:#3C3489;
+  --gr:#F1EFE8;  --grln:#B4B2A9;  --grtx:#444441;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#fff;overflow:hidden}
+body{font-family:"PingFang SC","SF Pro SC",-apple-system,"Helvetica Neue","Microsoft YaHei",sans-serif;color:var(--ink)}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform:translate(-50%,-50%);transform-origin:center;background:#fff}
+.slide{position:absolute;inset:0;padding:58px 84px 48px;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .35s}
+.slide.act{opacity:1;pointer-events:auto}
+.kick{display:none}
+h1{font-size:46px;font-weight:600;line-height:1.25;margin-bottom:26px}
+h1 .thin{font-weight:400;color:var(--mut)}
+.frag{opacity:0;transform:translateY(14px);transition:opacity .5s,transform .5s}
+.frag.on{opacity:1;transform:none}
+#pg{position:absolute;right:26px;bottom:18px;font-size:14px;color:var(--mut)}
+.note{font-size:17px;color:var(--mut);line-height:1.7}
+.big{font-size:22px;line-height:1.75}
+.rowc{display:flex;align-items:center;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 26px}
+.chip{display:inline-block;border-radius:10px;padding:8px 16px;font-size:18px;border:1px solid var(--line);background:var(--panel)}
+.arrow{font-size:26px;color:var(--mut)}
+.tagv{background:var(--vidbg);color:var(--vidtx);border:1px solid var(--vid)}
+.taga{background:var(--audbg);color:var(--audtx);border:1px solid var(--aud)}
+.tagt{background:var(--txbg);color:var(--txtx);border:1px solid var(--txm)}
+.tagg{background:var(--gr);color:var(--grtx);border:1px solid var(--grln)}
+svg text{font-family:inherit}
+.code{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;font-family:"SF Mono",Menlo,Consolas,monospace;line-height:1.8;white-space:pre;color:#2a2a26}
+.fbox{border:1.6px solid var(--ink);border-radius:14px;padding:16px 22px;text-align:center;background:#fff}
+.fbox small{display:block;color:var(--mut);font-size:15px;margin-top:4px}
+.dim{border-color:var(--line);color:var(--mut)}
+/* ---- 页码跳转条 ---- */
+#nav{position:absolute;left:14px;top:10px;z-index:99;display:flex;gap:4px;opacity:.15;transition:opacity .2s}
+#nav:hover{opacity:1}
+#nav button{width:27px;height:27px;border:1px solid var(--line);background:#fff;border-radius:7px;font-size:13px;color:var(--mut);cursor:pointer;font-family:inherit}
+#nav button.cur{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* ---- 打乱顺序示意 ---- */
+.tokrow{display:flex;gap:8px;justify-content:center}
+.tok{width:64px;height:52px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;border:1.4px solid}
+/* ---- 部分旋转 ---- */
+.chan{display:flex;height:74px;border-radius:12px;overflow:hidden;border:1.6px solid var(--line);width:920px}
+.chan div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;gap:3px}
+.chan small{font-size:14px;opacity:.75}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- ============ 0 封面 ============ -->
+<section class="slide">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+    <div style="font-size:26px;color:var(--mut);letter-spacing:3px">跟着 H3 学视频生成 · 第四期</div>
+    <h1 style="font-size:88px;margin:0">位置编码</h1>
+  </div>
+</section>
+
+<!-- ============ 1 attention 不包含顺序信息 ============ -->
+<section class="slide">
+  <div class="kick">位置编码 ①</div>
+  <h1>attention 不包含顺序信息</h1>
+  <div class="note" style="margin-top:-10px;margin-bottom:20px;font-size:18px">attention 打分是「每行对每行」，这个操作本身<b style="color:var(--ink)">不带顺序</b>——</div>
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:center">
+    <div class="tokrow">
+      <div class="tok" style="background:var(--vidbg);border-color:var(--vid);color:var(--vidtx)">帧1</div>
+      <div class="tok" style="background:var(--vidbg);border-color:var(--vid);color:var(--vidtx)">帧2</div>
+      <div class="tok" style="background:var(--vidbg);border-color:var(--vid);color:var(--vidtx)">帧3</div>
+      <div class="tok" style="background:var(--audbg);border-color:var(--aud);color:var(--audtx)">音1</div>
+      <div class="tok" style="background:var(--txbg);border-color:var(--txm);color:var(--txtx)">猫</div>
+      <div class="tok" style="background:var(--txbg);border-color:var(--txm);color:var(--txtx)">追</div>
+      <div class="tok" style="background:var(--txbg);border-color:var(--txm);color:var(--txtx)">狗</div>
+    </div>
+    <div class="arrow frag">⇅ 任意打乱顺序</div>
+    <div class="tokrow frag">
+      <div class="tok" style="background:var(--txbg);border-color:var(--txm);color:var(--txtx)">狗</div>
+      <div class="tok" style="background:var(--vidbg);border-color:var(--vid);color:var(--vidtx)">帧3</div>
+      <div class="tok" style="background:var(--txbg);border-color:var(--txm);color:var(--txtx)">追</div>
+      <div class="tok" style="background:var(--audbg);border-color:var(--aud);color:var(--audtx)">音1</div>
+      <div class="tok" style="background:var(--txbg);border-color:var(--txm);color:var(--txtx)">猫</div>
+      <div class="tok" style="background:var(--vidbg);border-color:var(--vid);color:var(--vidtx)">帧1</div>
+      <div class="tok" style="background:var(--vidbg);border-color:var(--vid);color:var(--vidtx)">帧2</div>
+    </div>
+    <div class="note frag" style="font-size:18px">每一对的注意力分数<b style="color:var(--ink)">完全不变</b>：「猫追狗」与「狗追猫」无法区分 · 第 1 帧与第 37 帧对调，输出不变</div>
+  </div>
+  <div class="rowc frag" style="justify-content:center;margin-top:18px">
+    <span class="chip tagv" style="font-size:19px"><b>必须把位置信息写进每一行的向量 —— 这就是位置编码</b></span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px">
+    <div class="card frag" style="padding:14px 20px"><b style="font-size:18px">绝对位置编码</b><br><span class="note" style="font-size:15.5px">每个位置配一个位置向量，加进 token（Transformer 原始做法）· 编码的是「在第几格」</span></div>
+    <div class="card frag" style="padding:14px 20px;border:2px solid var(--vid)"><b style="font-size:18px;color:var(--vidtx)">相对位置编码</b><br><span class="note" style="font-size:15.5px">让注意力分数直接依赖「两行隔多远」· 编码的是「隔几格」——语言和视频真正需要的关系</span></div>
+  </div>
+  <div class="rowc frag" style="justify-content:center;margin-top:12px">
+    <span class="chip tagg" style="font-size:17px">当前主流选相对 · <b>RoPE = 用旋转实现的相对位置编码</b> —— 下一页</span>
+  </div>
+</section>
+
+<!-- ============ 2 RoPE：按位置旋转向量 ============ -->
+<section class="slide">
+  <div class="kick">位置编码 ②</div>
+  <h1>RoPE<span class="thin"> · 按位置旋转向量</span></h1>
+  <svg width="1112" height="470" viewBox="0 0 1112 470">
+    <g id="dials">
+      <circle cx="170" cy="84" r="56" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.5"/>
+      <line x1="170" y1="84" x2="170" y2="34" stroke="#D85A30" stroke-width="3.6" stroke-linecap="round"/>
+      <text x="170" y="164" text-anchor="middle" font-size="15" fill="#75736c">位置 0 · 旋转 0°</text>
+      <circle cx="430" cy="84" r="56" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.5"/>
+      <line x1="430" y1="84" x2="455" y2="41" stroke="#D85A30" stroke-width="3.6" stroke-linecap="round"/>
+      <text x="430" y="164" text-anchor="middle" font-size="15" fill="#75736c">位置 1 · 旋转 30°</text>
+      <circle cx="690" cy="84" r="56" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.5"/>
+      <line x1="690" y1="84" x2="733" y2="59" stroke="#D85A30" stroke-width="3.6" stroke-linecap="round"/>
+      <text x="690" y="164" text-anchor="middle" font-size="15" fill="#75736c">位置 2 · 旋转 60°</text>
+      <circle cx="950" cy="84" r="56" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.5"/>
+      <line x1="950" y1="84" x2="1000" y2="84" stroke="#D85A30" stroke-width="3.6" stroke-linecap="round"/>
+      <text x="950" y="164" text-anchor="middle" font-size="15" fill="#75736c">位置 3 · 旋转 90°</text>
+      <text x="556" y="196" text-anchor="middle" font-size="14.5" fill="#444441">p = 第几个位置 · θ = 每挪一格转的角度（此处示意 30°）· 总转角 = p·θ</text>
+    </g>
+    <g class="frag">
+      <circle cx="180" cy="318" r="62" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.5"/>
+      <line x1="180" y1="318" x2="209" y2="268" stroke="#D85A30" stroke-width="3.6" stroke-linecap="round"/>
+      <text x="219" y="262" font-size="15" fill="#712B13" font-weight="600">q · 指向 α+p₁θ</text>
+      <line x1="180" y1="318" x2="242" y2="318" stroke="#1D9E75" stroke-width="3.6" stroke-linecap="round"/>
+      <text x="250" y="323" font-size="15" fill="#085041" font-weight="600">k · 指向 β+p₂θ</text>
+      <path d="M197,289 A34 34 0 0 1 214,318" fill="none" stroke="#7F77DD" stroke-width="2.4" stroke-dasharray="5 4"/>
+      <text x="236" y="288" font-size="14" fill="#3C3489" font-weight="600">夹角</text>
+      <text x="180" y="412" text-anchor="middle" font-size="15.5" fill="#444441">内积 = 只看两根针的夹角</text>
+    </g>
+    <g class="frag">
+      <text x="404" y="240" font-size="15" fill="#444441">① 针长为 1 时：<tspan font-family="SF Mono,Menlo,monospace" font-size="16.5" fill="#141412">q·k = cos(夹角)</tspan></text>
+      <text x="404" y="270" font-size="15" fill="#444441">② <tspan font-family="SF Mono,Menlo,monospace" font-size="16.5" fill="#712B13">q 指向 α+p₁θ</tspan>　<tspan font-family="SF Mono,Menlo,monospace" font-size="16.5" fill="#085041">k 指向 β+p₂θ</tspan></text>
+      <text x="424" y="290" font-size="13.5" fill="#75736c">α、β = 内容角 · p₁θ、p₂θ = 位置转的角</text>
+      <text x="404" y="318" font-size="15" fill="#444441">③ 代入，夹角 = 指向相减：</text>
+      <text x="424" y="346" font-size="16.5" font-family="SF Mono,Menlo,monospace" fill="#141412">q·k = cos( (α+p₁θ) − (β+p₂θ) )</text>
+      <text x="453" y="372" font-size="16.5" font-family="SF Mono,Menlo,monospace" fill="#141412">= cos( (α−β) + (p₁−p₂)·θ )</text>
+      <text x="404" y="402" font-size="15" fill="#444441">④ 分数只依赖 <tspan font-weight="600">内容差 (α−β)</tspan> 和 <tspan font-weight="600">位置差 (p₁−p₂)</tspan></text>
+      <text x="424" y="426" font-size="15" font-weight="600" fill="#712B13">绝对位置 p₁、p₂ 消失 —— 这就是「相对」位置编码</text>
+    </g>
+    <g class="frag">
+      <circle cx="790" cy="310" r="52" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.5"/>
+      <line x1="790" y1="310" x2="842" y2="310" stroke="#D85A30" stroke-width="3.2" stroke-linecap="round"/>
+      <line x1="790" y1="310" x2="816" y2="355" stroke="#1D9E75" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M818,310 A28 28 0 0 1 804,334" fill="none" stroke="#7F77DD" stroke-width="2.2" stroke-dasharray="5 4"/>
+      <text x="790" y="386" text-anchor="middle" font-size="14.5" fill="#75736c">位置 3 · 位置 5</text>
+      <text x="876" y="320" text-anchor="middle" font-size="26" fill="#141412">=</text>
+      <circle cx="960" cy="310" r="52" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.5"/>
+      <line x1="960" y1="310" x2="934" y2="355" stroke="#D85A30" stroke-width="3.2" stroke-linecap="round"/>
+      <line x1="960" y1="310" x2="908" y2="310" stroke="#1D9E75" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M946,334 A28 28 0 0 1 932,310" fill="none" stroke="#7F77DD" stroke-width="2.2" stroke-dasharray="5 4"/>
+      <text x="960" y="386" text-anchor="middle" font-size="14.5" fill="#75736c">位置 103 · 位置 105</text>
+      <text x="876" y="412" text-anchor="middle" font-size="15.5" fill="#444441">夹角相同 → 分数相同</text>
+    </g>
+  </svg>
+  <div class="rowc frag" style="justify-content:center;gap:10px;margin-top:4px">
+    <span class="chip tagv" style="font-size:16px"><b>RoPE 的优势</b>：纯旋转，零参数</span>
+    <span class="chip tagv" style="font-size:16px">同一对关系放在序列任何位置，分数相同</span>
+    <span class="chip tagv" style="font-size:16px">序列变长，规则不变</span>
+    <span class="chip tagg" style="font-size:16px">以上在一对维度上推导 · 128 维的做法见下页</span>
+  </div>
+</section>
+
+<!-- ============ 3 例子：一个 token = 64 个向量对 ============ -->
+<section class="slide">
+  <div class="kick">位置编码 ② · 例子</div>
+  <h1>一个 token = 64 个向量对</h1>
+  <div style="display:flex;gap:10px;justify-content:center;align-items:flex-start;margin-top:-6px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="tok" style="width:56px;height:48px;background:var(--txbg);border-color:var(--txm);color:var(--txtx);font-size:20px">今</div><span class="note" style="font-size:13px">位置 0</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="tok" style="width:56px;height:48px;background:var(--vidbg);border-color:var(--vid);color:var(--vidtx);font-size:20px;border-width:2px">天</div><span class="note" style="font-size:13px">位置 1</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="tok" style="width:56px;height:48px;background:var(--vidbg);border-color:var(--vid);color:var(--vidtx);font-size:20px;border-width:2px">天</div><span class="note" style="font-size:13px">位置 2</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="tok" style="width:56px;height:48px;background:var(--txbg);border-color:var(--txm);color:var(--txtx);font-size:20px">气</div><span class="note" style="font-size:13px">位置 3</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="tok" style="width:56px;height:48px;background:var(--txbg);border-color:var(--txm);color:var(--txtx);font-size:20px">真</div><span class="note" style="font-size:13px">位置 4</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="tok" style="width:56px;height:48px;background:var(--txbg);border-color:var(--txm);color:var(--txtx);font-size:20px">好</div><span class="note" style="font-size:13px">位置 5</span></div>
+    <span class="chip frag" style="font-size:16px;margin-left:14px;border:1.6px solid var(--vid);color:var(--vidtx);align-self:center">两个「天」的 128 个数完全相同<br>无位置编码 → attention 无法区分</span>
+  </div>
+  <div class="note frag" style="text-align:center;margin-top:10px;font-size:16px">128 维两两分组 = <b style="color:var(--ink)">64 个向量对</b> · 每对是平面上一个箭头，各有自己的转速 θᵢ（示意取 3 对）</div>
+  <svg width="1112" height="280" viewBox="0 0 1120 282" class="frag">
+    <text x="300" y="20" text-anchor="middle" font-size="14.5" fill="#444441">转速快的对 · 57°/格</text>
+    <text x="560" y="20" text-anchor="middle" font-size="14.5" fill="#444441">中速的对 · 5.7°/格</text>
+    <text x="820" y="20" text-anchor="middle" font-size="14.5" fill="#444441">转速慢的对 · 0.057°/格</text>
+    <text x="120" y="88" text-anchor="middle" font-size="15" fill="#712B13" font-weight="600">天 @ 位置1</text>
+    <circle cx="300" cy="84" r="40" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.4"/>
+    <line x1="300" y1="84" x2="332" y2="63" stroke="#D85A30" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="560" cy="84" r="40" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.4"/>
+    <line x1="560" y1="84" x2="564" y2="46" stroke="#D85A30" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="820" cy="84" r="40" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.4"/>
+    <line x1="820" y1="84" x2="820" y2="46" stroke="#D85A30" stroke-width="3" stroke-linecap="round"/>
+    <text x="120" y="200" text-anchor="middle" font-size="15" fill="#712B13" font-weight="600">天 @ 位置2</text>
+    <circle cx="300" cy="196" r="40" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.4"/>
+    <line x1="300" y1="196" x2="335" y2="212" stroke="#D85A30" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="560" cy="196" r="40" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.4"/>
+    <line x1="560" y1="196" x2="568" y2="159" stroke="#D85A30" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="820" cy="196" r="40" fill="var(--panel)" stroke="#B4B2A9" stroke-width="1.4"/>
+    <line x1="820" y1="196" x2="820" y2="158" stroke="#D85A30" stroke-width="3" stroke-linecap="round"/>
+    <text x="300" y="266" text-anchor="middle" font-size="14.5" fill="#712B13" font-weight="600">两行差 57° → 近距离一目了然</text>
+    <text x="560" y="266" text-anchor="middle" font-size="14.5" fill="#444441">差 5.7°</text>
+    <text x="820" y="266" text-anchor="middle" font-size="14.5" fill="#75736c">几乎重合 → 对近距离不敏感</text>
+    <text x="1000" y="140" text-anchor="middle" font-size="14.5" fill="#444441">同一个字</text>
+    <text x="1000" y="160" text-anchor="middle" font-size="14.5" fill="#444441">转过的角度不同</text>
+    <text x="1000" y="180" text-anchor="middle" font-size="14.5" fill="#712B13" font-weight="600">→ 两行可区分</text>
+  </svg>
+  <div class="rowc frag" style="justify-content:center;gap:10px">
+    <span class="chip tagg" style="font-size:15.5px">快对：1 格就差很多 → 管近距离 · 但十几格就绕回一圈</span>
+    <span class="chip tagg" style="font-size:15.5px">慢对：上万格不绕回 → 管远距离 · 但近处几乎不动</span>
+    <span class="chip tagv" style="font-size:15.5px"><b>64 对从快到慢 → 近中远全覆盖 · 总分 = 64 个 cos 相加</b></span>
+  </div>
+</section>
+
+<!-- ============ 4 RoPE 的计算 ============ -->
+<section class="slide">
+  <div class="kick">位置编码 ② · 深入</div>
+  <h1>RoPE 的计算</h1>
+  <div style="flex:1;display:flex;gap:30px;align-items:center">
+    <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+      <div class="card frag" style="padding:16px 20px">
+        <div style="font-size:18px;font-weight:600;margin-bottom:8px">① 维度两两配对</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span class="chip tagt" style="font-size:14px;padding:5px 10px">d₀ d₁</span>
+          <span class="chip tagt" style="font-size:14px;padding:5px 10px">d₂ d₃</span>
+          <span class="chip tagt" style="font-size:14px;padding:5px 10px">d₄ d₅</span>
+          <span style="color:var(--mut)">…</span>
+          <span class="chip tagt" style="font-size:14px;padding:5px 10px">d₁₂₆ d₁₂₇</span>
+          <span class="note" style="font-size:15px">128 维 → 64 对 · 每对 = 平面上一个点</span>
+        </div>
+      </div>
+      <div class="card frag" style="padding:16px 20px">
+        <div style="font-size:18px;font-weight:600;margin-bottom:8px">② 每对做二维旋转（角度 = 位置 p × 转速 θᵢ）</div>
+        <div class="code" style="font-size:16.5px;padding:12px 16px">x₁' = x₁·cos(p·θᵢ) − x₂·sin(p·θᵢ)
+x₂' = x₁·sin(p·θᵢ) + x₂·cos(p·θᵢ)</div>
+        <div class="note" style="font-size:15px;margin-top:6px">纯三角函数 · 没有可学习参数</div>
+      </div>
+      <div class="card frag" style="padding:16px 20px">
+        <div style="font-size:18px;font-weight:600;margin-bottom:8px">③ 64 对转速不同</div>
+        <div class="code" style="font-size:16.5px;padding:12px 16px">θᵢ = 10000^(−2i/d)</div>
+        <div class="note" style="font-size:15px;margin-top:6px">i 小 → 转得快 → 对近距离敏感 · i 大 → 转得慢 → 负责远距离</div>
+      </div>
+    </div>
+    <div style="flex:1.05;display:flex;flex-direction:column;gap:14px">
+      <div class="code frag" style="font-size:16px">freqs = 1 / 10000**(arange(0, d, 2) / d)
+<span style="color:#8b887e"># 64 个转速，前快后慢</span>
+
+ang = pos * freqs
+<span style="color:#8b887e"># pos = 这一行排第几（0,1,2,…）</span>
+<span style="color:#8b887e"># 每对的角度 = 位置 × 各自转速</span>
+
+x1, x2 = x[..., 0::2], x[..., 1::2]
+<span style="color:#8b887e"># 拆成 64 对</span>
+
+x_rot = cat([x1*cos(ang) − x2*sin(ang),
+             x1*sin(ang) + x2*cos(ang)])
+<span style="color:#8b887e"># 逐对旋转</span></div>
+      <div class="rowc" style="gap:10px;flex-wrap:wrap">
+        <span class="chip tagg frag" style="font-size:16.5px">只旋转 Q 和 K · V 不转</span>
+        <span class="chip tagg frag" style="font-size:16.5px">q·k 打分时角度相减：p₂θ − p₁θ → 绝对位置消掉，只剩位置差</span>
+        <span class="chip tagv frag" style="font-size:16.5px">以上 = 一维 RoPE：位置是<b>一个数</b>（第几个 token）</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4 视频的位置是三个数 ============ -->
+<section class="slide">
+  <div class="kick">位置编码 ③ · 视频模型</div>
+  <h1>视频的位置是三个数</h1>
+  <div style="flex:1;display:flex;gap:26px;align-items:center">
+    <div class="card" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:14px;padding:26px 22px">
+      <div style="font-size:19px;font-weight:600">文本</div>
+      <div class="tokrow">
+        <div class="tok" style="width:52px;height:44px;background:var(--txbg);border-color:var(--txm);color:var(--txtx)">0</div>
+        <div class="tok" style="width:52px;height:44px;background:var(--txbg);border-color:var(--txm);color:var(--txtx)">1</div>
+        <div class="tok" style="width:52px;height:44px;background:var(--txbg);border-color:var(--txm);color:var(--txtx)">2</div>
+        <div class="tok" style="width:52px;height:44px;background:var(--txbg);border-color:var(--txm);color:var(--txtx)">3</div>
+        <div class="tok" style="width:52px;height:44px;background:var(--txbg);border-color:var(--txm);color:var(--txtx)">4</div>
+      </div>
+      <div class="note" style="text-align:center">位置 = <b style="color:var(--ink)">一个数</b>（第几个 token）<br>→ 一维 RoPE</div>
+    </div>
+    <div class="card frag" style="flex:1.2;display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 22px">
+      <div style="font-size:19px;font-weight:600">视频</div>
+      <svg width="330" height="200" viewBox="0 0 330 200">
+        <rect x="108" y="14" width="150" height="100" rx="4" fill="#FBFAF6" stroke="#B4B2A9"/>
+        <text x="114" y="30" font-size="12" fill="#75736c">t=0</text>
+        <rect x="86" y="32" width="150" height="100" rx="4" fill="#FDF6F2" stroke="#B4B2A9"/>
+        <text x="92" y="48" font-size="12" fill="#75736c">t=1</text>
+        <rect x="64" y="50" width="150" height="100" rx="4" fill="#fff" stroke="#D85A30" stroke-width="1.6"/>
+        <text x="70" y="66" font-size="12" fill="#712B13">t=2</text>
+        <g stroke="#e6e2d9" stroke-width="1">
+          <line x1="64" y1="75" x2="214" y2="75"/><line x1="64" y1="100" x2="214" y2="100"/><line x1="64" y1="125" x2="214" y2="125"/>
+          <line x1="89" y1="50" x2="89" y2="150"/><line x1="114" y1="50" x2="114" y2="150"/><line x1="139" y1="50" x2="139" y2="150"/><line x1="164" y1="50" x2="164" y2="150"/><line x1="189" y1="50" x2="189" y2="150"/>
+        </g>
+        <rect x="164" y="75" width="25" height="25" fill="var(--vidbg)" stroke="var(--vid)" stroke-width="1.8"/>
+        <line x1="189" y1="87" x2="236" y2="87" stroke="#75736c" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <text x="240" y="82" font-size="14" fill="#712B13">(t=2,</text>
+        <text x="240" y="98" font-size="14" fill="#712B13">h=1, w=4)</text>
+      </svg>
+      <div class="note" style="text-align:center">位置 = <b style="color:var(--ink)">三个数</b>：第几帧 t · 第几行 h · 第几列 w</div>
+    </div>
+  </div>
+  <div class="frag" style="display:flex;justify-content:center;margin-top:4px">
+    <div class="chan" style="width:760px;height:60px">
+      <div style="background:var(--txbg);color:var(--txtx)">维度 ⅓<small>按 t 旋转</small></div>
+      <div style="background:var(--txbg);color:var(--txtx)">维度 ⅓<small>按 h 旋转</small></div>
+      <div style="background:var(--txbg);color:var(--txtx)">维度 ⅓<small>按 w 旋转</small></div>
+    </div>
+  </div>
+  <div class="rowc frag" style="justify-content:center;margin-top:14px">
+    <span class="chip tagg" style="font-size:18px">每个注意力头的维度分三份，三个轴各转各的 = <b>3D RoPE</b> · 视频模型通用做法（Wan 同款）</span>
+    <span class="chip tagv" style="font-size:18px">H3 也用 3D RoPE · 另加两个特殊设计——下两页</span>
+  </div>
+</section>
+
+<!-- ============ 4 统一时间轴 ============ -->
+<section class="slide">
+  <div class="kick">位置编码 ④ · H3 特殊设计 ①</div>
+  <h1>统一时间轴</h1>
+  <div class="note" style="margin-top:-12px">H3 特殊设计 ①：文本、条件、音频、视频<b>全排进同一根 t 轴</b>，1 格 = 1/40 秒 · 一条公式：<b>t = 512 + 时刻(秒) × 40</b>　→　视频第 k 帧 = 512 + k·5/3 · 音频第 n 格 = 512 + n</div>
+  <svg width="1112" height="300" viewBox="0 0 1120 300" style="margin-top:10px">
+    <defs><marker id="arX" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#141412" stroke-width="1.6" stroke-linecap="round"/></marker></defs>
+    <rect x="16" y="52" width="112" height="36" rx="6" fill="#F1EFE8" stroke="#B4B2A9"/>
+    <text x="72" y="68" text-anchor="middle" font-size="12.5" fill="#444441">文本行</text>
+    <text x="72" y="82" text-anchor="middle" font-size="12.5" fill="#444441">t = 0…511</text>
+    <text x="60" y="149" text-anchor="middle" font-size="14.5" fill="#712B13" font-weight="600">视频帧</text>
+    <text x="60" y="212" text-anchor="middle" font-size="14.5" fill="#085041" font-weight="600">音频格</text>
+    <g class="frag"><rect x="134.0" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="172.3" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="210.7" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="249.0" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="287.3" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="325.7" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="364.0" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="402.3" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="440.7" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="479.0" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="517.3" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="555.7" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="594.0" y="128" width="12" height="30" rx="3" fill="var(--vidbg)" stroke="#712B13" stroke-width="2.4"/>
+      <rect x="632.3" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="670.7" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="709.0" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="747.3" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="785.7" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="824.0" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="862.3" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="900.7" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="939.0" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="977.3" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="1015.7" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/>
+      <rect x="1054.0" y="128" width="12" height="30" rx="3" fill="#F0997B" stroke="#D85A30" stroke-width="1"/></g>
+    <g class="frag"><rect x="136" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="159" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="182" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="205" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="228" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="251" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="274" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="297" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="320" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="343" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="366" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="389" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="412" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="435" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="458" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="481" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="504" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="527" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="550" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="573" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="596" y="196" width="8" height="22" fill="var(--audbg)" stroke="#085041" stroke-width="2.2"/>
+      <rect x="619" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="642" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="665" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="688" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="711" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="734" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="757" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="780" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="803" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="826" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="849" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="872" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="895" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="918" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="941" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="964" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="987" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="1010" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="1033" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/>
+      <rect x="1056" y="196" width="8" height="22" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1"/></g>
+    <g class="frag">
+      <line x1="600" y1="112" x2="600" y2="232" stroke="#7F77DD" stroke-width="2" stroke-dasharray="6 4"/>
+      <text x="600" y="104" text-anchor="middle" font-size="15" fill="#3C3489" font-weight="600">t = 532</text>
+      <text x="612" y="176" font-size="13.5" fill="#444441"><tspan fill="#712B13">视频第 12 帧（0.5s）</tspan>与<tspan fill="#085041">音频第 20 格（0.5s）</tspan>→ 都 = 512 + 20 = 532</text>
+      <text x="612" y="192" font-size="13.5" fill="#3C3489" font-weight="600">同一时刻 → 同一坐标 → 角度差 0</text>
+    </g>
+    <g class="frag">
+      <rect x="133" y="52" width="14" height="36" rx="3" fill="#fff" stroke="#D85A30" stroke-width="1.8" stroke-dasharray="4 3"/>
+      <text x="154" y="70" font-size="13.5" fill="#712B13" font-weight="600">条件行 · 钉 512 = 第 1 帧坐标</text>
+      <line x1="140" y1="88" x2="140" y2="126" stroke="#D85A30" stroke-width="1.4" stroke-dasharray="4 3"/>
+    </g>
+    <line x1="120" y1="250" x2="1084" y2="250" stroke="#141412" stroke-width="1.6" marker-end="url(#arX)"/>
+    <line x1="140" y1="245" x2="140" y2="255" stroke="#141412" stroke-width="1.3"/>
+    <line x1="324" y1="245" x2="324" y2="255" stroke="#141412" stroke-width="1.3"/>
+    <line x1="600" y1="245" x2="600" y2="255" stroke="#141412" stroke-width="1.3"/>
+    <line x1="784" y1="245" x2="784" y2="255" stroke="#141412" stroke-width="1.3"/>
+    <line x1="1060" y1="245" x2="1060" y2="255" stroke="#141412" stroke-width="1.3"/>
+    <text x="140" y="272" text-anchor="middle" font-size="14" fill="#75736c">512 · 0s</text>
+    <text x="324" y="272" text-anchor="middle" font-size="14" fill="#75736c">520</text>
+    <text x="600" y="272" text-anchor="middle" font-size="14" fill="#3C3489" font-weight="600">532 · 0.5s</text>
+    <text x="784" y="272" text-anchor="middle" font-size="14" fill="#75736c">540</text>
+    <text x="1060" y="272" text-anchor="middle" font-size="14" fill="#75736c">552 · 1s</text>
+    <text x="1084" y="294" text-anchor="end" font-size="14" fill="#75736c">旋转时间 t（1 格 = 1/40 秒 · 示例：生成 1 秒有声视频）</text>
+  </svg>
+  <div class="note" style="font-size:13.5px;margin-top:2px">实际进模型的是 VAE 压缩后的 latent 帧：第 1 个占 1.67 格、其后各占 6.67 格——对齐关系不变</div>
+  <div class="rowc frag" style="gap:12px;margin-top:8px;justify-content:center">
+    <span class="chip tagg" style="font-size:16px">同一时刻 → 同一坐标 → 音画同步由位置编码直接提供</span>
+    <span class="chip tagg" style="font-size:16px">条件行坐标 = 第 1 帧坐标 → 位置上硬锚定</span>
+    <span class="chip tagg" style="font-size:16px">左右声道位于 w 轴两端 → 编码空间方位</span>
+  </div>
+  </section>
+
+<!-- ============ 4 留 32 维不转 ============ -->
+<section class="slide">
+  <div class="kick">位置编码 ⑤ · H3 特殊设计 ②</div>
+  <h1>留 32 维不转</h1>
+  <div style="display:flex;justify-content:center;margin-top:4px">
+    <div class="chan">
+      <div style="background:var(--txbg);color:var(--txtx)">t 轴 32 维<small>⟳ 按第几帧转</small></div>
+      <div style="background:var(--txbg);color:var(--txtx)">h 轴 32 维<small>⟳ 按第几行转</small></div>
+      <div style="background:var(--txbg);color:var(--txtx)">w 轴 32 维<small>⟳ 按第几列转</small></div>
+      <div style="background:var(--gr);color:var(--grtx)">不转 32 维<small>直通 · 不含位置信息</small></div>
+    </div>
+  </div>
+  <div style="flex:1;display:flex;gap:34px;align-items:center;margin-top:8px">
+    <div class="card frag" style="flex:1">
+      <div style="font-size:20px;font-weight:600;margin-bottom:10px">旋转的维：分数随距离变化</div>
+      <div style="font-family:'SF Mono',Menlo,monospace;font-size:18px;line-height:2">内容相同的两行：<br>隔 0 格 → +1.0<br>隔 3 格 → &nbsp;0.0<br>隔 6 格 → −1.0（抑制！）</div>
+    </div>
+    <div class="card frag" style="flex:1">
+      <div style="font-size:20px;font-weight:600;margin-bottom:10px">直通的维：匹配不受距离影响</div>
+      <div class="big">第 1 帧的脸 ↔ 第 37 帧的脸<br>prompt 的「猫」 ↔ 画面里的猫</div>
+    </div>
+  </div>
+  <div class="note frag" style="text-align:center;font-size:19px"><b>拼成一条长序列 → 大量「距离远、但必须强关联」的行对 → 必须保留直通维</b>（Wan 128 维全转：文本不在坐标轴上，无此问题——两处设计相互配套）</div>
+</section>
+
+<!-- ============ 5 四期串起来 ============ -->
+<section class="slide">
+  <div class="kick">总结</div>
+  <h1>四期串起来</h1>
+  <div style="flex:1;display:flex;gap:20px;align-items:center">
+    <div class="card frag" style="flex:1;border-top:5px solid var(--grln)">
+      <div style="font-size:15px;color:var(--mut)">第一期</div>
+      <div style="font-size:21px;font-weight:600">Flow Matching<br>训练方法</div>
+      <div class="note" style="margin-top:8px">由 (x_t, t) 预测速度 v = x₁ − ε<br>自监督 · 无需标注</div>
+    </div>
+    <div class="card frag" style="flex:1;border-top:5px solid var(--txm)">
+      <div style="font-size:15px;color:var(--mut)">第二期</div>
+      <div style="font-size:21px;font-weight:600">信息流<br>序列结构</div>
+      <div class="note" style="margin-top:8px">四种原料 → 39,230 行一条序列<br>50 层一套权重 · 零专门模块</div>
+    </div>
+    <div class="card frag" style="flex:1;border-top:5px solid var(--aud)">
+      <div style="font-size:15px;color:var(--mut)">第三期</div>
+      <div style="font-size:21px;font-weight:600">AdaLN<br>模态与阶段区分</div>
+      <div class="note" style="margin-top:8px">（噪声水平 × 模态）二维参数表<br>13B 可预计算</div>
+    </div>
+    <div class="card frag" style="flex:1;border-top:5px solid var(--vid)">
+      <div style="font-size:15px;color:var(--mut)">第四期 · 本期</div>
+      <div style="font-size:21px;font-weight:600">位置编码<br>时空定位</div>
+      <div class="note" style="margin-top:8px">(t, h, w) 三维旋转 · 统一时间轴<br>32 维直通</div>
+    </div>
+  </div>
+  <div class="card frag" style="text-align:center;font-size:22px;border-width:2px">
+    H3 的任务与模态区分不依赖专用模块，由每行的三个标签决定：<b style="color:var(--txtx)">模态 tag</b> · <b style="color:var(--vidtx)">噪声水平 t</b> · <b style="color:var(--audtx)">时空坐标</b>
+  </div>
+</section>
+
+</div>
+<div id="pg">1 / 9</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const slides=[...document.querySelectorAll('.slide')];
+let cur=-1;
+
+const nav=document.createElement('div');nav.id='nav';
+slides.forEach((_,i)=>{
+  const b=document.createElement('button');b.textContent=i+1;
+  b.addEventListener('click',e=>{e.stopPropagation();show(i);});
+  nav.appendChild(b);
+});
+document.body.appendChild(nav);
+
+function applyOn(f,on){
+  if(f.dataset.on)document.querySelectorAll(f.dataset.on).forEach(el=>el.classList.toggle('on',on));
+}
+function show(i){
+  if(i===cur)return;
+  slides.forEach((s,j)=>s.classList.toggle('act',j===i));
+  cur=i;
+  $('#pg').textContent=(i+1)+' / '+slides.length;
+  [...nav.children].forEach((b,j)=>b.classList.toggle('cur',j===i));
+}
+function fragsOf(s){return [...s.querySelectorAll('.frag')];}
+function next(){
+  const f=fragsOf(slides[cur]).find(x=>!x.classList.contains('on'));
+  if(f){f.classList.add('on');applyOn(f,true);return;}
+  if(cur<slides.length-1)show(cur+1);
+}
+function prev(){
+  const on=fragsOf(slides[cur]).filter(x=>x.classList.contains('on'));
+  if(on.length){const f=on[on.length-1];f.classList.remove('on');applyOn(f,false);return;}
+  if(cur>0){show(cur-1);fragsOf(slides[cur]).forEach(x=>{x.classList.add('on');applyOn(x,true);});}
+}
+addEventListener('keydown',e=>{
+  if(['ArrowRight',' ','PageDown','ArrowDown','Enter'].includes(e.key)){e.preventDefault();next();}
+  else if(['ArrowLeft','PageUp','ArrowUp'].includes(e.key)){e.preventDefault();prev();}
+  else if(e.key==='Home')show(0);
+  else if(e.key==='End')show(slides.length-1);
+});
+addEventListener('click',e=>{
+  if(e.target.closest('input,button,a,select'))return;
+  next();
+});
+function fit(){
+  const s=Math.min(innerWidth/1280,innerHeight/720);
+  $('#stage').style.transform=`translate(-50%,-50%) scale(${s})`;
+}
+addEventListener('resize',fit);
+fit();show(0);
+</script>
+</body>
+</html>

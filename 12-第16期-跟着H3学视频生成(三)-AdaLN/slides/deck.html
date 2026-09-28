@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>跟着 H3 学视频生成 ③ AdaLN</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --ink:#141412; --mut:#75736c; --line:#e6e2d9; --bg:#ffffff; --panel:#faf9f5;
+  --vid:#D85A30; --vidbg:#FAECE7; --vidtx:#712B13;
+  --aud:#1D9E75; --audbg:#E1F5EE; --audtx:#085041;
+  --txm:#7F77DD; --txbg:#EEEDFE;  --txtx:#3C3489;
+  --gr:#F1EFE8;  --grln:#B4B2A9;  --grtx:#444441;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#fff;overflow:hidden}
+body{font-family:"PingFang SC","SF Pro SC",-apple-system,"Helvetica Neue","Microsoft YaHei",sans-serif;color:var(--ink)}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform:translate(-50%,-50%);transform-origin:center;background:#fff}
+.slide{position:absolute;inset:0;padding:58px 84px 48px;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .35s}
+.slide.act{opacity:1;pointer-events:auto}
+.kick{display:none}
+h1{font-size:46px;font-weight:600;line-height:1.25;margin-bottom:26px}
+h1 .thin{font-weight:400;color:var(--mut)}
+.frag{opacity:0;transform:translateY(14px);transition:opacity .5s,transform .5s}
+.frag.on{opacity:1;transform:none}
+#pg{position:absolute;right:26px;bottom:18px;font-size:14px;color:var(--mut)}
+.note{font-size:17px;color:var(--mut);line-height:1.7}
+.big{font-size:22px;line-height:1.75}
+.rowc{display:flex;align-items:center;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 26px}
+.chip{display:inline-block;border-radius:10px;padding:8px 16px;font-size:18px;border:1px solid var(--line);background:var(--panel)}
+.arrow{font-size:26px;color:var(--mut)}
+.tagv{background:var(--vidbg);color:var(--vidtx);border:1px solid var(--vid)}
+.taga{background:var(--audbg);color:var(--audtx);border:1px solid var(--aud)}
+.tagt{background:var(--txbg);color:var(--txtx);border:1px solid var(--txm)}
+.tagc{background:#fff;color:var(--vidtx);border:1.6px dashed var(--vid)}
+.tagg{background:var(--gr);color:var(--grtx);border:1px solid var(--grln)}
+.code{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 28px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:17.5px;line-height:1.85;white-space:pre;color:#2a2a26}
+svg text{font-family:inherit}
+.fbox{border:1.6px solid var(--ink);border-radius:14px;padding:16px 22px;text-align:center;background:#fff}
+.fbox small{display:block;color:var(--mut);font-size:15px;margin-top:4px}
+.dim{border-color:var(--line);color:var(--mut)}
+/* ---- 页码跳转条 ---- */
+#nav{position:absolute;left:14px;top:10px;z-index:99;display:flex;gap:4px;opacity:.15;transition:opacity .2s}
+#nav:hover{opacity:1}
+#nav button{width:27px;height:27px;border:1px solid var(--line);background:#fff;border-radius:7px;font-size:13px;color:var(--mut);cursor:pointer;font-family:inherit}
+#nav button.cur{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* ---- 二维参数表 ---- */
+.adt{display:grid;grid-template-columns:150px repeat(3,168px);gap:8px;font-size:17.5px}
+.adt>div{border-radius:10px;padding:12px 10px;text-align:center;border:1px solid var(--line);background:var(--panel)}
+.adt .hd{font-weight:600}
+.adt .cell{transition:all .4s}
+#c2.on{background:var(--audbg);border-color:var(--aud);color:var(--audtx);font-weight:600}
+#c3.on{background:var(--vidbg);border-color:var(--vid);color:var(--vidtx);font-weight:600}
+#c6.on{background:#fff;border:1.8px dashed var(--vid);color:var(--vidtx);font-weight:600}
+/* ---- 13B 缓存动画 ---- */
+#adabar{position:relative;height:345px}
+.bpart{position:absolute;height:86px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform 1s ease;font-size:19px}
+#adabar.on #badaln{transform:translateY(178px)}
+#cachebox{position:absolute;left:604px;top:196px;width:352px;height:110px;border:1.8px dashed var(--vid);border-radius:16px;opacity:0;transition:opacity .5s}
+#cachelab{position:absolute;left:84px;top:216px;width:490px;font-size:17px;color:var(--mut);opacity:0;transition:opacity .6s .4s;line-height:1.65}
+#adabar.on #cachebox{opacity:1}
+#adabar.on #cachelab{opacity:1}
+.srclab{position:absolute;font-size:15px;color:var(--mut)}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- ============ 0 封面 ============ -->
+<section class="slide">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+    <div style="font-size:26px;color:var(--mut);letter-spacing:3px">跟着 H3 学视频生成 · 第三期</div>
+    <h1 style="font-size:88px;margin:0">AdaLN</h1>
+  </div>
+</section>
+
+<!-- ============ 1 LayerNorm 的作用 ============ -->
+<section class="slide">
+  <div class="kick">AdaLN 前置</div>
+  <h1>LayerNorm 的作用</h1>
+  <div style="flex:1;display:flex;gap:22px;align-items:stretch">
+    <div class="card frag" style="flex:1;display:flex;flex-direction:column;justify-content:center">
+      <div style="font-size:20px;font-weight:600;margin-bottom:10px">问题：数值逐层漂移</div>
+      <div class="big" style="font-size:19px;line-height:1.8">网络几十层连算<br>数值范围越走越偏<br>过大 / 过小 → 训练不稳定</div>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;align-items:center;gap:10px"><span class="note" style="width:52px">层 1</span><div style="width:22%;height:10px;border-radius:5px;background:var(--grln)"></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span class="note" style="width:52px">层 25</span><div style="width:55%;height:10px;border-radius:5px;background:var(--grln)"></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><span class="note" style="width:52px">层 50</span><div style="width:96%;height:10px;border-radius:5px;background:var(--vid)"></div></div>
+      </div>
+      <div class="note" style="margin-top:6px">数值范围（示意）</div>
+    </div>
+    <div class="card frag" style="flex:1;border:2px solid var(--ink);display:flex;flex-direction:column;justify-content:center">
+      <div style="font-size:20px;font-weight:600;margin-bottom:10px">LayerNorm：拉回标准范围</div>
+      <div class="code" style="font-size:19px;padding:16px 20px;text-align:center">(x − 均值) ÷ 标准差</div>
+      <div class="big" style="font-size:19px;margin-top:12px">每个 token 向量各自做一次<br>→ 均值 0 · 方差 1<br>每层输入回到同一量级，训练稳定</div>
+    </div>
+    <div class="card frag" style="flex:1;display:flex;flex-direction:column;justify-content:center">
+      <div style="font-size:20px;font-weight:600;margin-bottom:10px">补偿：scale 和 shift</div>
+      <div class="big" style="font-size:19px;line-height:1.8">统一刻度抹掉了幅度信息<br><b>× scale</b>：缩放回需要的幅度<br><b>+ shift</b>：平移到需要的位置<br>两个都是可学习参数</div>
+    </div>
+  </div>
+  <div class="rowc frag" style="justify-content:center">
+    <span class="chip tagg" style="font-size:18px">归一化管训练稳定 · scale / shift 管表达能力 · 普通 Transformer 里这两个是<b>固定常数</b></span>
+  </div>
+</section>
+
+<!-- ============ 2 AdaLN：三个调制参数 ============ -->
+<section class="slide">
+  <div class="kick">AdaLN ①</div>
+  <h1>AdaLN：三个调制参数</h1>
+  <div style="display:flex;justify-content:center;gap:14px;align-items:center;margin-top:10px">
+    <div class="fbox" style="width:170px">RMSNorm<small>归一化</small></div><div class="arrow">→</div>
+    <div class="fbox frag" style="width:210px;border-color:var(--vid);color:var(--vidtx)">×(1+scale) + shift<small>输入调制</small></div><div class="arrow frag">→</div>
+    <div class="fbox" style="width:190px">attention / FFN<small>共享权重计算</small></div><div class="arrow">→</div>
+    <div class="fbox frag" style="width:180px;border-color:var(--vid);color:var(--vidtx)">× gate<small>新信息的采纳比例</small></div><div class="arrow frag">→</div>
+    <div class="fbox dim" style="width:150px">+ 残差<small>原有信息 + 新信息</small></div>
+  </div>
+  <div style="flex:1;display:flex;gap:34px;align-items:center">
+    <div class="card frag" style="flex:1.15">
+      <div style="font-size:20px;font-weight:600;margin-bottom:6px">gate：残差结构里的门控</div>
+      <svg width="100%" viewBox="0 0 480 268">
+        <defs><marker id="arG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#141412" stroke-width="1.6" stroke-linecap="round"/></marker></defs>
+        <line x1="12" y1="130" x2="50" y2="130" stroke="#141412" stroke-width="1.8" marker-end="url(#arG)"/>
+        <text x="30" y="116" text-anchor="middle" font-size="14" fill="#75736c">输入</text>
+        <circle cx="58" cy="130" r="4" fill="#141412"/>
+        <path d="M58,130 L58,74 L400,74 L400,106" fill="none" stroke="#141412" stroke-width="1.8" marker-end="url(#arG)"/>
+        <text x="228" y="64" text-anchor="middle" font-size="14" fill="#75736c">原有信息 · 直通</text>
+        <path d="M58,130 L58,186 L90,186" fill="none" stroke="#141412" stroke-width="1.8" marker-end="url(#arG)"/>
+        <rect x="96" y="160" width="122" height="52" rx="10" fill="#fff" stroke="#141412" stroke-width="1.6"/>
+        <text x="157" y="182" text-anchor="middle" font-size="14.5" fill="#141412">attention / FFN</text>
+        <text x="157" y="201" text-anchor="middle" font-size="12.5" fill="#75736c">新算出的信息</text>
+        <line x1="218" y1="186" x2="256" y2="186" stroke="#141412" stroke-width="1.8" marker-end="url(#arG)"/>
+        <path d="M262,168 L262,204 L288,186 Z" fill="#FAECE7" stroke="#D85A30" stroke-width="1.8"/>
+        <path d="M314,168 L314,204 L288,186 Z" fill="#FAECE7" stroke="#D85A30" stroke-width="1.8"/>
+        <text x="288" y="228" text-anchor="middle" font-size="15" font-weight="600" fill="#712B13">× gate</text>
+        <text x="288" y="246" text-anchor="middle" font-size="12.5" fill="#75736c">控制这条支路通过多少</text>
+        <path d="M314,186 L400,186 L400,154" fill="none" stroke="#141412" stroke-width="1.8" marker-end="url(#arG)"/>
+        <circle cx="400" cy="130" r="17" fill="#fff" stroke="#141412" stroke-width="1.8"/>
+        <line x1="392" y1="130" x2="408" y2="130" stroke="#141412" stroke-width="1.8"/>
+        <line x1="400" y1="122" x2="400" y2="138" stroke="#141412" stroke-width="1.8"/>
+        <line x1="417" y1="130" x2="460" y2="130" stroke="#141412" stroke-width="1.8" marker-end="url(#arG)"/>
+        <text x="440" y="116" text-anchor="middle" font-size="14" fill="#75736c">输出</text>
+        <text x="240" y="264" text-anchor="middle" font-size="13" fill="#444441">gate 大 → 新信息大量进入 · gate 小 → 基本保留原样</text>
+      </svg>
+    </div>
+    <div class="card frag" style="flex:1">
+      <div style="font-size:20px;font-weight:600;margin-bottom:6px">调制参数随 t 变（Ada = 自适应）</div>
+      <svg width="100%" viewBox="0 0 480 288">
+        <defs><marker id="arT" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#141412" stroke-width="1.6" stroke-linecap="round"/></marker></defs>
+        <line x1="64" y1="206" x2="446" y2="206" stroke="#141412" stroke-width="1.5" marker-end="url(#arT)"/>
+        <line x1="70" y1="201" x2="70" y2="211" stroke="#141412" stroke-width="1.3"/>
+        <line x1="424" y1="201" x2="424" y2="211" stroke="#141412" stroke-width="1.3"/>
+        <text x="70" y="226" text-anchor="middle" font-size="13.5" fill="#75736c">t = 0</text>
+        <text x="424" y="226" text-anchor="middle" font-size="13.5" fill="#75736c">t = 1</text>
+        <path d="M70,52 C180,60 300,140 424,178" fill="none" stroke="#D85A30" stroke-width="3.2" stroke-linecap="round"/>
+        <path d="M70,136 C170,98 290,158 424,106" fill="none" stroke="#7F77DD" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M70,168 C180,180 300,130 424,144" fill="none" stroke="#1D9E75" stroke-width="2.6" stroke-linecap="round"/>
+        <g font-size="13.5">
+          <line x1="332" y1="38" x2="354" y2="38" stroke="#D85A30" stroke-width="3.2"/><text x="360" y="43" fill="#712B13">gate</text>
+          <line x1="332" y1="58" x2="354" y2="58" stroke="#7F77DD" stroke-width="2.6"/><text x="360" y="63" fill="#3C3489">scale</text>
+          <line x1="332" y1="78" x2="354" y2="78" stroke="#1D9E75" stroke-width="2.6"/><text x="360" y="83" fill="#085041">shift</text>
+        </g>
+        <g>
+          <rect x="46" y="238" width="46" height="32" rx="4" fill="#c9c6bd"/>
+          <rect x="50" y="242" width="8" height="8" fill="#8a8880"/><rect x="63" y="246" width="7" height="7" fill="#e6e2d9"/><rect x="76" y="241" width="8" height="8" fill="#75736c"/><rect x="54" y="256" width="7" height="7" fill="#e6e2d9"/><rect x="68" y="258" width="8" height="8" fill="#8a8880"/><rect x="82" y="254" width="7" height="7" fill="#b4b2a9"/>
+          <text x="102" y="258" font-size="13" fill="#75736c">噪声多 · 大幅修改</text>
+        </g>
+        <g>
+          <rect x="378" y="238" width="46" height="32" rx="4" fill="#A9BED7"/>
+          <circle cx="414" cy="246" r="5" fill="#E4B07E"/>
+          <path d="M378,270 L378,261 Q393,250 404,259 Q415,252 424,257 L424,270 Z" fill="#7C9F68"/>
+          <text x="370" y="258" text-anchor="end" font-size="13" fill="#75736c">接近成品 · 小幅修正</text>
+        </g>
+      </svg>
+      <div class="note" style="font-size:14.5px;text-align:center;margin-top:4px">由 t 的嵌入经线性层生成 · 每子层 3 个 × 2 个子层 = <b style="color:var(--ink)">6 组</b> · <b style="color:var(--ink)">t 不拼进序列</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3 二维参数表 ============ -->
+<section class="slide">
+  <div class="kick">AdaLN ② · H3 独有</div>
+  <h1>二维参数表</h1>
+  <div class="note" style="margin-top:-12px;margin-bottom:10px">行 = <b>本步</b>序列里出现的噪声水平：视频 t · 音频 t · 参考帧 0.999（不是总步数 8——每步生成一张新表）<br>列 = 模态 · 每格 6 组参数 =（scale · shift · gate）× attention 和 FFN 两个子层</div>
+  <div style="display:flex;gap:44px;flex:1;align-items:center">
+    <div class="adt">
+      <div class="hd" style="background:#fff;border-color:#fff"></div>
+      <div class="hd" style="background:var(--vidbg);color:var(--vidtx);border-color:var(--vid)">视频 tag=0</div>
+      <div class="hd" style="background:var(--txbg);color:var(--txtx);border-color:var(--txm)">文本 tag=1</div>
+      <div class="hd" style="background:var(--audbg);color:var(--audtx);border-color:var(--aud)">音频 tag=2</div>
+      <div class="hd">t=0.31 · 行0</div><div class="cell">格 0</div><div class="cell">格 1</div><div class="cell" id="c2">格 2</div>
+      <div class="hd">t=0.55 · 行1</div><div class="cell" id="c3">格 3</div><div class="cell">格 4</div><div class="cell">格 5</div>
+      <div class="hd">t=0.999 · 行2</div><div class="cell" id="c6">格 6</div><div class="cell">格 7</div><div class="cell">格 8</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:13px">
+      <div class="card frag" style="padding:14px 16px">
+        <svg width="100%" viewBox="0 0 440 118">
+          <defs><marker id="arL" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#75736c" stroke-width="1.7" stroke-linecap="round"/></marker></defs>
+          <line x1="4" y1="40" x2="26" y2="40" stroke="#75736c" stroke-width="1.6" marker-end="url(#arL)"/>
+          <rect x="30" y="18" width="74" height="44" rx="9" fill="var(--vidbg)" stroke="var(--vid)" stroke-width="1.7"/>
+          <text x="67" y="37" text-anchor="middle" font-size="13.5" fill="#712B13">归一化①</text>
+          <text x="67" y="53" text-anchor="middle" font-size="11" fill="#712B13">领 3 个参数</text>
+          <line x1="104" y1="40" x2="126" y2="40" stroke="#75736c" stroke-width="1.6" marker-end="url(#arL)"/>
+          <rect x="130" y="18" width="78" height="44" rx="9" fill="#fff" stroke="#141412" stroke-width="1.5"/>
+          <text x="169" y="45" text-anchor="middle" font-size="13.5" fill="#141412">attention</text>
+          <line x1="208" y1="40" x2="228" y2="40" stroke="#75736c" stroke-width="1.6" marker-end="url(#arL)"/>
+          <circle cx="242" cy="40" r="11" fill="#fff" stroke="#141412" stroke-width="1.5"/>
+          <line x1="236" y1="40" x2="248" y2="40" stroke="#141412" stroke-width="1.5"/>
+          <line x1="242" y1="34" x2="242" y2="46" stroke="#141412" stroke-width="1.5"/>
+          <line x1="253" y1="40" x2="273" y2="40" stroke="#75736c" stroke-width="1.6" marker-end="url(#arL)"/>
+          <rect x="277" y="18" width="74" height="44" rx="9" fill="var(--vidbg)" stroke="var(--vid)" stroke-width="1.7"/>
+          <text x="314" y="37" text-anchor="middle" font-size="13.5" fill="#712B13">归一化②</text>
+          <text x="314" y="53" text-anchor="middle" font-size="11" fill="#712B13">领 3 个参数</text>
+          <line x1="351" y1="40" x2="371" y2="40" stroke="#75736c" stroke-width="1.6" marker-end="url(#arL)"/>
+          <rect x="375" y="18" width="52" height="44" rx="9" fill="#fff" stroke="#141412" stroke-width="1.5"/>
+          <text x="401" y="45" text-anchor="middle" font-size="13.5" fill="#141412">FFN</text>
+          <text x="220" y="95" text-anchor="middle" font-size="13" fill="#444441">attention 前一个 · attention 后 / FFN 前一个 —— 3 × 2 = <tspan font-weight="600">6 组</tspan></text>
+          <text x="220" y="113" text-anchor="middle" font-size="12.5" fill="#75736c">每行按自己的（噪声水平, 模态）到表里取这 6 组</text>
+        </svg>
+      </div>
+      <div class="chip taga frag" data-on="#c2" style="font-size:18px">目标音频行 → 取（0.31, 音频）格</div>
+      <div class="chip tagv frag" data-on="#c3" style="font-size:18px">目标视频行 → 取（0.55, 视频）格</div>
+      <div class="chip tagc frag" data-on="#c6" style="font-size:18px">参考帧 → 取（0.999, 视频）格</div>
+      <div class="card frag" style="font-size:18px;border:2px solid var(--vid)"><b style="color:var(--vidtx)">条件 vs 目标：只差一个格子</b><br><span class="note">同权重 · 同模态 · 仅调制参数不同 → 条件行被保留，目标行被去噪</span></div>
+    </div>
+  </div>
+  <div class="rowc frag" style="justify-content:center">
+    <span class="chip tagv" style="font-size:18px"><b>50 层里唯一区分「每行是什么」的机制，就是这张表</b> · 9 个格子，服务 39,230 行</span>
+  </div>
+</section>
+
+<!-- ============ 4 13B 可预计算 ============ -->
+<section class="slide">
+  <div class="kick">AdaLN ③ · 推理红利</div>
+  <h1>13B 可预计算</h1>
+  <div class="note" style="margin-top:-10px">生成调制参数的层：Linear(2688 → 96,768) × 50 层 ≈ <b>13B</b>（96,768 = 6 组 × 5376 维 × 3 模态 · 占 33B 的四成）</div>
+  <div id="adabar">
+    <div style="position:absolute;left:60px;top:0;width:920px;height:132px;border:1.8px dashed var(--grln);border-radius:16px"></div>
+    <div class="srclab" style="left:84px;top:12px">推理显存（常驻）</div>
+    <div class="bpart" id="bcore" style="left:84px;top:38px;width:496px;background:#2c2c2a;color:#fff">core 19.3B<small style="font-size:15px;opacity:.8">attention + FFN，每步都要算</small></div>
+    <div class="bpart" id="badaln" style="left:604px;top:38px;width:352px;background:var(--vidbg);border:1.6px solid var(--vid);color:var(--vidtx)">AdaLN 13B<small style="font-size:15px">输入只有 t，与画面内容无关</small></div>
+    <div id="cachebox"></div>
+    <div class="srclab" style="left:626px;top:314px;color:var(--vidtx)">调制向量缓存 · 几百 MB</div>
+    <div id="cachelab">8 步的 t 推理前全部已知：<br>开始前一次算完所有调制参数 →<br>13B 权重不需要进显存</div>
+  </div>
+  <div class="rowc" style="justify-content:center">
+    <span class="chip frag" data-on="#adabar" style="font-size:19px">全部调制参数<b>预计算 · 推理只查表，不计算</b></span>
+    <span class="chip frag" style="font-size:19px">结果完全相同，纯工程优化</span>
+    <span class="chip frag" style="font-size:19px">训练无法预计算：t 随机采样，每步都要算</span>
+  </div>
+</section>
+
+<!-- ============ 5 本期带走 ============ -->
+<section class="slide">
+  <div class="kick">总结</div>
+  <h1>本期带走</h1>
+  <div style="flex:1;display:flex;gap:24px;align-items:center">
+    <div class="card frag" style="flex:1;border-top:5px solid var(--grln)">
+      <div style="font-size:23px;font-weight:600">LayerNorm</div>
+      <div class="big" style="margin-top:8px;font-size:20px">归一化管训练稳定<br>scale / shift 管表达能力</div>
+    </div>
+    <div class="card frag" style="flex:1;border-top:5px solid var(--txm)">
+      <div style="font-size:23px;font-weight:600">AdaLN</div>
+      <div class="big" style="margin-top:8px;font-size:20px">参数由 t 生成，随阶段变<br>（噪声水平 × 模态）二维表<br>= 50 层里唯一区分每行的机制</div>
+    </div>
+    <div class="card frag" style="flex:1;border-top:5px solid var(--vid)">
+      <div style="font-size:23px;font-weight:600">13B 预计算</div>
+      <div class="big" style="margin-top:8px;font-size:20px">输入只有 t · 8 步提前算完<br>推理只查表，显存只留 19.3B 核心</div>
+    </div>
+  </div>
+  <div class="card frag" style="text-align:center;font-size:22px;border-width:2px">
+    下期 · <b>位置编码</b>：attention 本身不包含顺序信息 —— H3 用 (t, h, w) 三维坐标解决
+  </div>
+</section>
+
+</div>
+<div id="pg">1 / 6</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const slides=[...document.querySelectorAll('.slide')];
+let cur=-1;
+
+const nav=document.createElement('div');nav.id='nav';
+slides.forEach((_,i)=>{
+  const b=document.createElement('button');b.textContent=i+1;
+  b.addEventListener('click',e=>{e.stopPropagation();show(i);});
+  nav.appendChild(b);
+});
+document.body.appendChild(nav);
+
+function applyOn(f,on){
+  if(f.dataset.on)document.querySelectorAll(f.dataset.on).forEach(el=>el.classList.toggle('on',on));
+}
+function show(i){
+  if(i===cur)return;
+  slides.forEach((s,j)=>s.classList.toggle('act',j===i));
+  cur=i;
+  $('#pg').textContent=(i+1)+' / '+slides.length;
+  [...nav.children].forEach((b,j)=>b.classList.toggle('cur',j===i));
+}
+function fragsOf(s){return [...s.querySelectorAll('.frag')];}
+function next(){
+  const f=fragsOf(slides[cur]).find(x=>!x.classList.contains('on'));
+  if(f){f.classList.add('on');applyOn(f,true);return;}
+  if(cur<slides.length-1)show(cur+1);
+}
+function prev(){
+  const on=fragsOf(slides[cur]).filter(x=>x.classList.contains('on'));
+  if(on.length){const f=on[on.length-1];f.classList.remove('on');applyOn(f,false);return;}
+  if(cur>0){show(cur-1);fragsOf(slides[cur]).forEach(x=>{x.classList.add('on');applyOn(x,true);});}
+}
+addEventListener('keydown',e=>{
+  if(['ArrowRight',' ','PageDown','ArrowDown','Enter'].includes(e.key)){e.preventDefault();next();}
+  else if(['ArrowLeft','PageUp','ArrowUp'].includes(e.key)){e.preventDefault();prev();}
+  else if(e.key==='Home')show(0);
+  else if(e.key==='End')show(slides.length-1);
+});
+addEventListener('click',e=>{
+  if(e.target.closest('input,button,a,select'))return;
+  next();
+});
+function fit(){
+  const s=Math.min(innerWidth/1280,innerHeight/720);
+  $('#stage').style.transform=`translate(-50%,-50%) scale(${s})`;
+}
+addEventListener('resize',fit);
+fit();show(0);
+</script>
+</body>
+</html>

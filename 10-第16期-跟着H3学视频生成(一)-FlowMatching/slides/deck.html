@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>跟着 H3 学视频生成 ① Flow Matching</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --ink:#141412; --mut:#75736c; --line:#e6e2d9; --bg:#ffffff; --panel:#faf9f5;
+  --vid:#D85A30; --vidbg:#FAECE7; --vidtx:#712B13;
+  --aud:#1D9E75; --audbg:#E1F5EE; --audtx:#085041;
+  --txm:#7F77DD; --txbg:#EEEDFE;  --txtx:#3C3489;
+  --gr:#F1EFE8;  --grln:#B4B2A9;  --grtx:#444441;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#fff;overflow:hidden}
+body{font-family:"PingFang SC","SF Pro SC",-apple-system,"Helvetica Neue","Microsoft YaHei",sans-serif;color:var(--ink)}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform:translate(-50%,-50%);transform-origin:center;background:#fff}
+.slide{position:absolute;inset:0;padding:58px 84px 48px;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .35s}
+.slide.act{opacity:1;pointer-events:auto}
+.kick{display:none}
+h1{font-size:46px;font-weight:600;line-height:1.25;margin-bottom:26px}
+h1 .thin{font-weight:400;color:var(--mut)}
+.frag{opacity:0;transform:translateY(14px);transition:opacity .5s,transform .5s}
+.frag.on{opacity:1;transform:none}
+#pg{position:absolute;right:26px;bottom:18px;font-size:14px;color:var(--mut)}
+.note{font-size:17px;color:var(--mut);line-height:1.7}
+.big{font-size:22px;line-height:1.75}
+.accent{color:var(--vid)}
+.rowc{display:flex;align-items:center;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 26px}
+.chip{display:inline-block;border-radius:10px;padding:8px 16px;font-size:18px;border:1px solid var(--line);background:var(--panel)}
+.arrow{font-size:26px;color:var(--mut)}
+.tagv{background:var(--vidbg);color:var(--vidtx);border:1px solid var(--vid)}
+.taga{background:var(--audbg);color:var(--audtx);border:1px solid var(--aud)}
+.tagt{background:var(--txbg);color:var(--txtx);border:1px solid var(--txm)}
+.tagg{background:var(--gr);color:var(--grtx);border:1px solid var(--grln)}
+.kbdhint{position:absolute;left:84px;bottom:20px;font-size:14.5px;color:var(--mut)}
+svg text{font-family:inherit}
+.gridnum{display:grid;grid-template-columns:repeat(3,56px);grid-auto-rows:52px;border-radius:10px;overflow:hidden;border:1.6px solid;font-family:"SF Mono",Menlo,monospace}
+.gridnum div{display:flex;align-items:center;justify-content:center;font-size:17px;border:.5px solid rgba(0,0,0,.08)}
+.glabel{font-size:16.5px;color:var(--mut);text-align:center;margin-top:8px}
+.op{font-size:30px;color:var(--mut);padding:0 6px}
+/* ---- 分布映射 ---- */
+#distsvg circle{fill:#3b3a36;transition:transform 1.35s cubic-bezier(.25,.7,.25,1)}
+#distsvg.on circle{transform:none!important}
+/* ---- 无数直线 ---- */
+#fmlines{opacity:0;transition:opacity .6s}
+#fmlines.on{opacity:1}
+#fmjump{opacity:0;transition:opacity .5s}
+#fmjump.on{opacity:1}
+#fmpath path{stroke-dasharray:220;stroke-dashoffset:220}
+#fmpath.on path{animation:dash .38s ease forwards}
+#fmpath.on path:nth-of-type(2){animation-delay:.32s}
+#fmpath.on path:nth-of-type(3){animation-delay:.64s}
+#fmpath.on path:nth-of-type(4){animation-delay:.96s}
+#fmpath.on path:nth-of-type(5){animation-delay:1.28s}
+#fmpath circle{opacity:0;transition:opacity .25s}
+#fmpath.on circle:nth-of-type(1){opacity:1;transition-delay:.32s}
+#fmpath.on circle:nth-of-type(2){opacity:1;transition-delay:.64s}
+#fmpath.on circle:nth-of-type(3){opacity:1;transition-delay:.96s}
+#fmpath.on circle:nth-of-type(4){opacity:1;transition-delay:1.28s}
+@keyframes dash{to{stroke-dashoffset:0}}
+/* generic flow boxes */
+.fbox{border:1.6px solid var(--ink);border-radius:14px;padding:16px 22px;text-align:center;background:#fff}
+.fbox small{display:block;color:var(--mut);font-size:15px;margin-top:4px}
+.dim{border-color:var(--line);color:var(--mut)}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- ============ 0 封面 ============ -->
+<section class="slide">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+    <div style="font-size:26px;color:var(--mut);letter-spacing:3px">跟着 H3 学视频生成 · 第一期</div>
+    <h1 style="font-size:88px;margin:0">Flow Matching</h1>
+    <div style="font-size:24px;color:var(--mut)">视频模型是怎么「练」出来的</div>
+  </div>
+</section>
+
+<!-- ============ 1 分布映射 ============ -->
+<section class="slide" data-init="dist">
+  <div class="kick">地基 · 生成原理</div>
+  <h1>分布映射</h1>
+  <svg id="distsvg" width="1120" height="410" viewBox="0 0 1120 410">
+    <line x1="100" y1="332" x2="440" y2="332" stroke="#B4B2A9" stroke-width="1.5"/>
+    <path d="M 130,330 C 195,330 200,168 265,168 C 330,168 335,330 400,330 Z" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="1.5"/>
+    <path id="blob" d="M 900,70 C 985,55 1060,100 1075,170 C 1088,225 1050,255 1010,268 C 1040,305 1005,352 950,345 C 915,372 845,368 818,330 C 765,325 735,285 752,240 C 725,205 742,150 790,132 C 810,92 855,78 900,70 Z" fill="#FBFAF6" stroke="#888780" stroke-width="1.5"/>
+    <g id="dots"></g>
+    <line x1="470" y1="212" x2="670" y2="212" stroke="#141412" stroke-width="2.2" marker-end="url(#ar0)"/>
+    <text x="570" y="188" text-anchor="middle" font-size="21" fill="#141412" font-weight="600">学一个映射 f</text>
+    <text x="265" y="372" text-anchor="middle" font-size="19" fill="#75736c">随机噪声分布（简单）</text>
+    <text x="912" y="398" text-anchor="middle" font-size="19" fill="#75736c">真实视频分布（极复杂）</text>
+    <defs><marker id="ar0" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#141412" stroke-width="1.6" stroke-linecap="round"/></marker></defs>
+  </svg>
+  <div class="rowc" style="margin-top:6px">
+    <span class="chip frag" data-on="#distsvg">抽一个点 → 沿 f 走 → 一段新视频</span>
+    <span class="chip frag">GAN · Diffusion · Flow：同一件事</span>
+  </div>
+</section>
+
+<!-- ============ 3 十年三代（新增：前因后果） ============ -->
+<section class="slide">
+  <div class="kick">地基 · Flow Matching 从哪来</div>
+  <h1>十年三代</h1>
+  <div style="flex:1;display:flex;gap:22px;align-items:center">
+    <div class="card frag" style="flex:1;border-top:5px solid var(--grln)">
+      <div style="font-size:15px;color:var(--mut)">2014</div>
+      <div style="font-size:26px;font-weight:600;margin:4px 0 10px">GAN</div>
+      <div class="big" style="font-size:19px">两个网络互相对抗：<br>一个造假 · 一个挑错</div>
+      <div class="note" style="margin-top:10px">效果惊艳<br><b style="color:var(--ink)">但打架式训练，极不稳定</b></div>
+    </div>
+    <div class="arrow frag">→</div>
+    <div class="card frag" style="flex:1;border-top:5px solid var(--txm)">
+      <div style="font-size:15px;color:var(--mut)">2020</div>
+      <div style="font-size:26px;font-weight:600;margin:4px 0 10px">Diffusion</div>
+      <div class="big" style="font-size:19px">把好图逐步加噪成雪花，<br>再学着一步步擦回来</div>
+      <div class="note" style="margin-top:10px">训练稳了<br><b style="color:var(--ink)">但路是绕的，上千步才出图</b></div>
+    </div>
+    <div class="arrow frag">→</div>
+    <div class="card frag" style="flex:1;border-top:5px solid var(--vid)">
+      <div style="font-size:15px;color:var(--mut)">2022</div>
+      <div style="font-size:26px;font-weight:600;margin:4px 0 10px;color:var(--vidtx)">Flow Matching</div>
+      <div class="big" style="font-size:19px">一个字：<b style="color:var(--vid)">直</b><br>噪声到画面，走直线</div>
+      <div class="note" style="margin-top:10px">公式最简单 · 训练最稳<br><b style="color:var(--ink)">几步就能走完</b></div>
+    </div>
+  </div>
+  <div class="rowc frag" style="justify-content:center">
+    <span class="chip tagv" style="font-size:18px">SD3 · Flux · 可灵 · Wan · H3 —— 当前主流全是它</span>
+  </div>
+</section>
+
+<!-- ============ 4 一条直线（互动滑块） ============ -->
+<section class="slide" data-init="noise">
+  <div class="kick">FLOW MATCHING</div>
+  <h1>一条直线</h1>
+  <div style="flex:1;display:flex;gap:56px;align-items:center;justify-content:center">
+    <div>
+      <canvas id="mixcv" style="border-radius:14px;border:1px solid var(--line)"></canvas>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:16px">
+        <span class="note" style="white-space:nowrap">t=0 纯噪声 ε</span>
+        <input id="mixsl" type="range" min="0" max="100" value="100" style="flex:1;accent-color:#D85A30">
+        <span class="note" style="white-space:nowrap">t=1 画面 x₁</span>
+      </div>
+    </div>
+    <div style="width:400px">
+      <div id="mixf" class="card" style="font-family:'SF Mono',Menlo,monospace;font-size:22px;text-align:center">x_t = 1.00·x₁ + 0.00·ε</div>
+      <button id="mixbtn" class="chip" style="margin-top:16px;cursor:pointer;font-size:17px">换一份噪声 ε（重抽）</button>
+      <div class="note frag" style="margin-top:20px">ε：随机数表 · x₁：真实画面<br>往左拧 = 一步步加噪（<b style="color:var(--ink)">前向过程</b>）</div>
+      <div class="card frag" style="margin-top:14px;padding:14px 18px;font-size:18px;line-height:1.7">把 t 当时间：ε 出发 → 走到 x₁，总时间 1<br>路程 = 终点 − 起点 = x₁ − ε<br><b>速度 = 路程 ÷ 总时间 1 = x₁ − ε</b></div>
+      <div class="note frag" style="margin-top:14px"><b style="color:var(--ink)">训练</b>：随机停，猜速度<br><b style="color:var(--ink)">推理</b>：从 0 出发，照速度拧到 1</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5 速度即差 ============ -->
+<section class="slide">
+  <div class="kick">FLOW MATCHING</div>
+  <h1>速度即差</h1>
+  <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:2px">
+    <div><div class="gridnum" style="border-color:var(--aud);background:var(--audbg);color:var(--audtx)">
+      <div>200</div><div>190</div><div>180</div><div>60</div><div>50</div><div>40</div><div>30</div><div>120</div><div>210</div>
+    </div><div class="glabel">清晰画面 x₁</div></div>
+    <div class="op frag">−</div>
+    <div class="frag"><div class="gridnum" style="border-color:var(--vid);background:var(--vidbg);color:var(--vidtx)">
+      <div>50</div><div>170</div><div>90</div><div>140</div><div>30</div><div>200</div><div>80</div><div>60</div><div>110</div>
+    </div><div class="glabel">噪声 ε</div></div>
+    <div class="op frag">=</div>
+    <div class="frag"><div class="gridnum" style="border-color:var(--txm);background:var(--txbg);color:var(--txtx)">
+      <div>150</div><div>20</div><div>90</div><div>-80</div><div>20</div><div>-160</div><div>-50</div><div>60</div><div>100</div>
+    </div><div class="glabel">速度 v = x₁ − ε</div></div>
+    <div class="note frag" style="width:200px;margin-left:18px">速度 = 终点 − 起点<br>匀速 · 处处相同<br><br>正 = 变亮 · 负 = 变暗</div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:26px">
+    <div class="frag"><div class="gridnum" style="border:1.8px dashed var(--txm);background:#fff;color:var(--txtx)">
+      <div>130</div><div>35</div><div>80</div><div>-60</div><div>10</div><div>-140</div><div>-70</div><div>55</div><div>120</div>
+    </div><div class="glabel">模型(x_t, t) 猜的 v̂</div></div>
+    <div class="op frag" style="font-size:19px">对比</div>
+    <div class="frag"><div class="gridnum" style="border-color:var(--txm);background:var(--txbg);color:var(--txtx)">
+      <div>150</div><div>20</div><div>90</div><div>-80</div><div>20</div><div>-160</div><div>-50</div><div>60</div><div>100</div>
+    </div><div class="glabel">真答案 v</div></div>
+    <div class="op frag">→</div>
+    <div class="frag"><div class="gridnum" style="border-color:var(--grln);background:var(--gr);color:var(--grtx)">
+      <div>400</div><div>225</div><div>100</div><div>400</div><div>100</div><div>400</div><div>400</div><div>25</div><div>400</div>
+    </div><div class="glabel">逐格（真−猜）²</div></div>
+    <div class="frag" style="margin-left:16px"><div class="card" style="text-align:center;font-size:20px">9 格平均<br><b>≈ 272 = loss</b></div><div class="glabel">训练 = 让它变小</div></div>
+  </div>
+  <div class="note frag" style="text-align:center;margin-top:14px">x_t − ε = t·v，是「已走的路程」· 速度永远 = x₁ − ε</div>
+</section>
+
+<!-- ============ 6 亿万道题（新增：更直观的训练例子） ============ -->
+<section class="slide">
+  <div class="kick">FLOW MATCHING · 训练即刷题</div>
+  <h1>亿万道题</h1>
+  <div class="rowc" style="justify-content:center;gap:14px;margin-top:6px">
+    <div class="fbox frag" style="width:180px">抽一张真图 x₁<small>随便一帧视频</small></div>
+    <div class="fbox frag" style="width:180px">抽一份噪声 ε<small>一表随机数</small></div>
+    <div class="fbox frag" style="width:180px">抽一个时刻 t<small>0 到 1 随机停</small></div>
+    <div class="arrow frag">→</div>
+    <div class="fbox frag" style="width:220px;border-width:2.4px">题目：(x_t, t)<small>x_t = t·x₁ + (1−t)·ε</small></div>
+  </div>
+  <div style="flex:1;display:flex;gap:34px;align-items:center;margin-top:8px">
+    <div class="card frag" style="flex:1">
+      <div style="font-size:20px;font-weight:600;margin-bottom:10px">学生作答</div>
+      <div class="big">模型只看 (x_t, t)<br>答：「该往哪走」→ v̂</div>
+    </div>
+    <div class="card frag" style="flex:1;border:2px solid var(--vid)">
+      <div style="font-size:20px;font-weight:600;margin-bottom:10px;color:var(--vidtx)">答案免费</div>
+      <div class="big">v = x₁ − ε<br>两样都是出题时自己抽的<br><b>出题那一刻答案已知</b></div>
+    </div>
+  </div>
+  <div class="rowc frag" style="justify-content:center;gap:14px">
+    <span class="chip tagg">不用人工标注 = 自监督</span>
+    <span class="chip tagg">一张图 × 不同 ε × 不同 t = 无穷题库</span>
+    <span class="chip tagv">刷亿万道，练熟一件事：猜速度</span>
+  </div>
+</section>
+
+<!-- ============ 7 无数直线 ============ -->
+<section class="slide">
+  <h1>无数直线</h1>
+  <svg width="1112" height="430" viewBox="0 0 1112 430">
+    <defs><marker id="ar5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#B4B2A9" stroke-width="1.6" stroke-linecap="round"/></marker></defs>
+    <g id="fmlines" stroke="#D8D4CA" stroke-width="1.5">
+      <line x1="140" y1="100" x2="980" y2="315"/>
+      <line x1="140" y1="100" x2="980" y2="145"/>
+      <line x1="140" y1="180" x2="980" y2="380"/>
+      <line x1="140" y1="180" x2="980" y2="80"/>
+      <line x1="140" y1="260" x2="980" y2="145"/>
+      <line x1="140" y1="260" x2="980" y2="380"/>
+      <line x1="140" y1="340" x2="980" y2="80"/>
+      <line x1="140" y1="340" x2="980" y2="250"/>
+    </g>
+    <g id="fmjump">
+      <line x1="152" y1="258" x2="952" y2="238" stroke="#B4B2A9" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#ar5)"/>
+      <text x="940" y="220" text-anchor="end" font-size="15" fill="#75736c">✗ 落在平均，谁都不是</text>
+    </g>
+    <g id="fmpath" fill="none" stroke="#D85A30" stroke-width="3" stroke-linecap="round">
+      <path d="M140,260 L310,252"/>
+      <path d="M310,252 L480,238"/>
+      <path d="M480,238 L650,212"/>
+      <path d="M650,212 L815,178"/>
+      <path d="M815,178 L980,145"/>
+      <circle cx="310" cy="252" r="5.5" fill="#D85A30" stroke="none"/>
+      <circle cx="480" cy="238" r="5.5" fill="#D85A30" stroke="none"/>
+      <circle cx="650" cy="212" r="5.5" fill="#D85A30" stroke="none"/>
+      <circle cx="815" cy="178" r="5.5" fill="#D85A30" stroke="none"/>
+    </g>
+    <circle cx="140" cy="100" r="7" fill="#B4B2A9"/>
+    <circle cx="140" cy="180" r="7" fill="#B4B2A9"/>
+    <circle cx="140" cy="260" r="7" fill="#8a8880"/>
+    <circle cx="140" cy="340" r="7" fill="#B4B2A9"/>
+    <rect x="971" y="71" width="18" height="18" rx="4" fill="#FAECE7" stroke="#D85A30" stroke-width="1.4"/>
+    <rect x="971" y="136" width="18" height="18" rx="4" fill="#FAECE7" stroke="#D85A30" stroke-width="1.4"/>
+    <rect x="971" y="241" width="18" height="18" rx="4" fill="#FAECE7" stroke="#D85A30" stroke-width="1.4"/>
+    <rect x="971" y="306" width="18" height="18" rx="4" fill="#FAECE7" stroke="#D85A30" stroke-width="1.4"/>
+    <rect x="971" y="371" width="18" height="18" rx="4" fill="#FAECE7" stroke="#D85A30" stroke-width="1.4"/>
+    <text x="140" y="392" text-anchor="middle" font-size="15" fill="#75736c">噪声 ε</text>
+    <text x="980" y="418" text-anchor="middle" font-size="15" fill="#75736c">不同的画面 x₁</text>
+  </svg>
+  <div class="rowc" style="gap:10px;margin-top:6px">
+    <span class="chip frag" data-on="#fmlines" style="font-size:17px">训练：每条路都是匀速直线</span>
+    <span class="chip frag" data-on="#fmjump" style="font-size:17px">一步走完？落在平均上</span>
+    <span class="chip frag" data-on="#fmpath" style="font-size:17px">每步重新问：(x_t, t) 该搭哪条线</span>
+    <span class="chip frag" style="font-size:17px"><b>弯路 = 无数段直线的拼接</b></span>
+  </div>
+</section>
+
+<!-- ============ 8 训练与推理 ============ -->
+<section class="slide">
+  <div class="kick">FLOW MATCHING</div>
+  <h1>训练推理</h1>
+  <div style="flex:1;display:flex;gap:36px">
+    <div class="card" style="flex:1">
+      <div style="font-size:23px;font-weight:600;margin-bottom:16px">训练（重复亿万次）</div>
+      <div class="big frag">① 抽 x₁ · ε · t</div>
+      <div class="big frag">② 混出 x_t</div>
+      <div class="big frag">③ 预测 v̂</div>
+      <div class="big frag">④ MSE，反向传播</div>
+    </div>
+    <div class="card" style="flex:1">
+      <div style="font-size:23px;font-weight:600;margin-bottom:16px">推理（生成一条视频）</div>
+      <div class="big frag">① 纯噪声起步</div>
+      <div class="big frag">② 要方向 → 挪一小步</div>
+      <div class="big frag">③ 8 步 → 解码</div>
+      <div class="note frag">为什么不是 1 步？模型给的是<b style="color:var(--ink)">所有可能画面的平均方向</b>，每挪一步都要重新问路</div>
+      <div style="margin-top:18px" class="frag">
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="note">t=0</span>
+          <div style="flex:1;display:flex;gap:5px">
+            <div style="flex:1;height:10px;border-radius:5px;background:var(--vid)"></div><div style="flex:1;height:10px;border-radius:5px;background:var(--vid);opacity:.85"></div><div style="flex:1;height:10px;border-radius:5px;background:var(--vid);opacity:.7"></div><div style="flex:1;height:10px;border-radius:5px;background:var(--vid);opacity:.55"></div><div style="flex:1;height:10px;border-radius:5px;background:var(--vid);opacity:.45"></div><div style="flex:1;height:10px;border-radius:5px;background:var(--vid);opacity:.35"></div><div style="flex:1;height:10px;border-radius:5px;background:var(--vid);opacity:.25"></div><div style="flex:1;height:10px;border-radius:5px;background:var(--vid);opacity:.15"></div>
+          </div>
+          <span class="note">t=1</span>
+        </div>
+        <div class="note" style="margin-top:8px;text-align:center">每步 = 一次完整 forward</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 9 本期带走 + 下期预告 ============ -->
+<section class="slide">
+  <div class="kick">总结</div>
+  <h1>本期带走</h1>
+  <div style="flex:1;display:flex;gap:24px;align-items:center">
+    <div class="card frag" style="flex:1;border-top:5px solid var(--grln)">
+      <div style="font-size:23px;font-weight:600">生成 = 映射</div>
+      <div class="big" style="margin-top:8px">简单噪声分布<br>→ 真实视频分布</div>
+    </div>
+    <div class="card frag" style="flex:1;border-top:5px solid var(--txm)">
+      <div style="font-size:23px;font-weight:600">训练 = 猜速度</div>
+      <div class="big" style="margin-top:8px">看 (x_t, t) 猜 v<br>答案 v = x₁ − ε，免费</div>
+    </div>
+    <div class="card frag" style="flex:1;border-top:5px solid var(--vid)">
+      <div style="font-size:23px;font-weight:600">推理 = 问路</div>
+      <div class="big" style="margin-top:8px">纯噪声出发<br>一步一问，8 步到图</div>
+    </div>
+  </div>
+  <div class="card frag" style="text-align:center;font-size:22px;border-width:2px">
+    下期 · <b>VAE 与潜空间</b>：5 秒视频 ≈ 3.8 亿个数，模型为什么必须先把它压小 100 倍
+  </div>
+</section>
+
+</div>
+<div id="pg">1 / 9</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const slides=[...document.querySelectorAll('.slide')];
+let cur=-1; const entered=new Set();
+const INIT={};
+
+INIT.dist=()=>{
+  const NS='http://www.w3.org/2000/svg';
+  const blobD=$('#blob').getAttribute('d');
+  const p=new Path2D(blobD);
+  const cv=document.createElement('canvas');cv.width=1120;cv.height=410;
+  const cx=cv.getContext('2d');
+  const pts=[];let guard=0;
+  while(pts.length<170&&guard++<30000){
+    const x=720+Math.random()*380,y=40+Math.random()*340;
+    if(cx.isPointInPath(p,x,y))pts.push([x,y]);
+  }
+  const g=$('#dots');
+  const rnd=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};
+  pts.forEach(([ex,ey])=>{
+    let sx=265+rnd()*42, sy=252+rnd()*34;
+    sy=Math.min(sy,326);
+    const c=document.createElementNS(NS,'circle');
+    c.setAttribute('cx',ex);c.setAttribute('cy',ey);c.setAttribute('r',2.6);
+    c.style.transform=`translate(${sx-ex}px,${sy-ey}px)`;
+    c.style.transitionDelay=(Math.random()*0.5)+'s';
+    g.appendChild(c);
+  });
+};
+
+INIT.noise=()=>{
+  const W=560,H=340;
+  const c=$('#mixcv');c.width=W;c.height=H;
+  c.style.width='560px';c.style.height='340px';
+  const ctx=c.getContext('2d');
+  const oc=document.createElement('canvas');oc.width=W;oc.height=H;
+  const o=oc.getContext('2d');
+  o.fillStyle='#A9BED7';o.fillRect(0,0,W,H);
+  o.fillStyle='#E4B07E';o.beginPath();o.arc(432,84,46,0,7);o.fill();
+  o.fillStyle='#7C9F68';o.beginPath();o.ellipse(180,300,255,150,0,0,7);o.fill();
+  o.fillStyle='#69914F';o.beginPath();o.ellipse(430,320,290,160,0,0,7);o.fill();
+  o.fillStyle='#5E7FA6';o.fillRect(0,H-52,W,52);
+  const scene=o.getImageData(0,0,W,H).data;
+  let noise;
+  const remake=()=>{noise=new Uint8ClampedArray(scene.length);
+    for(let i=0;i<noise.length;i+=4){noise[i]=Math.random()*255;noise[i+1]=Math.random()*255;noise[i+2]=Math.random()*255;noise[i+3]=255;}};
+  remake();
+  const img=ctx.createImageData(W,H);
+  const draw=t=>{const d=img.data;
+    for(let i=0;i<d.length;i+=4){d[i]=t*scene[i]+(1-t)*noise[i];d[i+1]=t*scene[i+1]+(1-t)*noise[i+1];d[i+2]=t*scene[i+2]+(1-t)*noise[i+2];d[i+3]=255;}
+    ctx.putImageData(img,0,0);
+    $('#mixf').innerHTML=`x<sub>t</sub> = <b>${t.toFixed(2)}</b>·x₁ + <b>${(1-t).toFixed(2)}</b>·ε`;
+  };
+  const sl=$('#mixsl');
+  sl.addEventListener('input',()=>draw(sl.value/100));
+  $('#mixbtn').addEventListener('click',e=>{e.stopPropagation();remake();draw(sl.value/100);});
+  draw(sl.value/100);
+};
+
+function applyOn(f,on){
+  if(f.dataset.on)document.querySelectorAll(f.dataset.on).forEach(el=>el.classList.toggle('on',on));
+}
+function show(i){
+  if(i===cur)return;
+  slides.forEach((s,j)=>s.classList.toggle('act',j===i));
+  cur=i;
+  $('#pg').textContent=(i+1)+' / '+slides.length;
+  const s=slides[i];
+  if(!entered.has(i)){entered.add(i);
+    const init=s.dataset.init;
+    if(init&&INIT[init])INIT[init]();
+  }
+}
+function fragsOf(s){return [...s.querySelectorAll('.frag')];}
+function next(){
+  const f=fragsOf(slides[cur]).find(x=>!x.classList.contains('on'));
+  if(f){f.classList.add('on');applyOn(f,true);return;}
+  if(cur<slides.length-1)show(cur+1);
+}
+function prev(){
+  const on=fragsOf(slides[cur]).filter(x=>x.classList.contains('on'));
+  if(on.length){const f=on[on.length-1];f.classList.remove('on');applyOn(f,false);return;}
+  if(cur>0){show(cur-1);fragsOf(slides[cur]).forEach(x=>{x.classList.add('on');applyOn(x,true);});}
+}
+addEventListener('keydown',e=>{
+  if(['ArrowRight',' ','PageDown','ArrowDown','Enter'].includes(e.key)){e.preventDefault();next();}
+  else if(['ArrowLeft','PageUp','ArrowUp'].includes(e.key)){e.preventDefault();prev();}
+  else if(e.key==='Home')show(0);
+  else if(e.key==='End')show(slides.length-1);
+});
+addEventListener('click',e=>{
+  if(e.target.closest('input,button,a,select'))return;
+  next();
+});
+function fit(){
+  const s=Math.min(innerWidth/1280,innerHeight/720);
+  $('#stage').style.transform=`translate(-50%,-50%) scale(${s})`;
+}
+addEventListener('resize',fit);
+fit();show(0);
+</script>
+</body>
+</html>

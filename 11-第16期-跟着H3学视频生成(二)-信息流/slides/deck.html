@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>跟着 H3 学视频生成 ② 信息流</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --ink:#141412; --mut:#75736c; --line:#e6e2d9; --bg:#ffffff; --panel:#faf9f5;
+  --vid:#D85A30; --vidbg:#FAECE7; --vidtx:#712B13;
+  --aud:#1D9E75; --audbg:#E1F5EE; --audtx:#085041;
+  --txm:#7F77DD; --txbg:#EEEDFE;  --txtx:#3C3489;
+  --gr:#F1EFE8;  --grln:#B4B2A9;  --grtx:#444441;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#fff;overflow:hidden}
+body{font-family:"PingFang SC","SF Pro SC",-apple-system,"Helvetica Neue","Microsoft YaHei",sans-serif;color:var(--ink)}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform:translate(-50%,-50%);transform-origin:center;background:#fff}
+.slide{position:absolute;inset:0;padding:58px 84px 48px;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .35s}
+.slide.act{opacity:1;pointer-events:auto}
+.kick{display:none}
+h1{font-size:46px;font-weight:600;line-height:1.25;margin-bottom:26px}
+h1 .thin{font-weight:400;color:var(--mut)}
+.frag{opacity:0;transform:translateY(14px);transition:opacity .5s,transform .5s}
+.frag.on{opacity:1;transform:none}
+#pg{position:absolute;right:26px;bottom:18px;font-size:14px;color:var(--mut)}
+.note{font-size:17px;color:var(--mut);line-height:1.7}
+.big{font-size:22px;line-height:1.75}
+.rowc{display:flex;align-items:center;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 26px}
+.chip{display:inline-block;border-radius:10px;padding:8px 16px;font-size:18px;border:1px solid var(--line);background:var(--panel)}
+.arrow{font-size:26px;color:var(--mut)}
+.tagv{background:var(--vidbg);color:var(--vidtx);border:1px solid var(--vid)}
+.taga{background:var(--audbg);color:var(--audtx);border:1px solid var(--aud)}
+.tagt{background:var(--txbg);color:var(--txtx);border:1px solid var(--txm)}
+.tagc{background:#fff;color:var(--vidtx);border:1.6px dashed var(--vid)}
+.tagg{background:var(--gr);color:var(--grtx);border:1px solid var(--grln)}
+.code{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 28px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:17.5px;line-height:1.85;white-space:pre;color:#2a2a26}
+.code .cm{color:#8b887e}.code .n{color:#993C1D}
+table.tb{border-collapse:collapse;font-size:18px}
+table.tb th,table.tb td{border:1px solid var(--line);padding:10px 16px;text-align:left}
+table.tb th{background:var(--panel);font-weight:600;font-size:16.5px}
+table.tb .chip{white-space:nowrap}
+svg text{font-family:inherit}
+.fbox{border:1.6px solid var(--ink);border-radius:14px;padding:16px 22px;text-align:center;background:#fff}
+.fbox small{display:block;color:var(--mut);font-size:15px;margin-top:4px}
+.dim{border-color:var(--line);color:var(--mut)}
+/* ---- 缝合动画 ---- */
+#sewwrap{position:relative;height:330px;margin-top:6px}
+.srcbox{position:absolute;top:0;height:60px;border-radius:12px;border:1.6px dashed var(--grln);display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--mut);background:#fff}
+.seg{position:absolute;top:238px;height:58px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16.5px;transition:transform 1.05s cubic-bezier(.22,.75,.25,1)}
+#sewwrap.on .seg{transform:none!important}
+.srclab{position:absolute;font-size:15px;color:var(--mut)}
+/* ---- 注意力弧线 ---- */
+#attsvg path.arc{fill:none;stroke-width:2.6;stroke-dasharray:900;stroke-dashoffset:900;opacity:0}
+#attsvg path.arc.on{opacity:1;animation:dash 1.1s ease forwards}
+@keyframes dash{to{stroke-dashoffset:0}}
+.capline{display:flex;gap:10px;align-items:baseline;font-size:19.5px;margin-bottom:9px}
+.capline b{font-weight:600}
+/* ---- 全景图 ---- */
+#ovsvg g.stage{opacity:0;transition:opacity .7s}
+#ovsvg g.stage.on{opacity:1}
+#ovsvg g.always{opacity:1}
+/* ---- Wan 条件拼接 ---- */
+#wconcat{opacity:.14;transition:opacity .6s}
+#wconcat.on{opacity:1}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- ============ 0 封面 ============ -->
+<section class="slide">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+    <div style="font-size:26px;color:var(--mut);letter-spacing:3px">跟着 H3 学视频生成 · 第二期</div>
+    <h1 style="font-size:80px;margin:0">H3 模型信息流</h1>
+  </div>
+</section>
+
+<!-- ============ 1 H3 总览 ============ -->
+<section class="slide">
+  <div class="kick">H3 · 总览</div>
+  <h1>H3 是什么</h1>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">
+    <div class="card" style="text-align:center"><div style="font-size:42px;font-weight:700">33B</div><div class="note">单流 transformer<br>50 层，一套权重</div></div>
+    <div class="card" style="text-align:center"><div style="font-size:42px;font-weight:700">视频+音频</div><div class="note">一次生成<br>768p·24fps + 32kHz 立体声</div></div>
+    <div class="card" style="text-align:center"><div style="font-size:42px;font-weight:700">4–15s</div><div class="note">任意时长 · 六种画幅<br>同一个模型</div></div>
+  </div>
+  <div class="rowc frag" style="justify-content:center;gap:16px;margin-top:20px">
+    <div class="fbox" style="padding:10px 26px">FL2VA<small>文生 · 首帧 / 尾帧</small></div>
+    <div class="fbox" style="padding:10px 26px">Ref2VA<small>参考驱动 · 视频编辑（≤12 个参考）</small></div>
+    <span class="note">开源两个 ckpt：<b style="color:var(--ink)">结构相同，只有权重不同</b></span>
+  </div>
+  <div class="card frag" style="margin-top:20px;border:2px solid var(--vid);display:flex;align-items:center;justify-content:center;gap:26px;padding:18px">
+    <div style="text-align:center"><div style="font-size:30px;font-weight:700;color:var(--vidtx)">#1</div><div class="note">视频编辑</div></div>
+    <div style="text-align:center"><div style="font-size:30px;font-weight:700">#2</div><div class="note">文生视频</div></div>
+    <div style="text-align:center"><div style="font-size:30px;font-weight:700">#3</div><div class="note">图生视频</div></div>
+    <div style="border-left:1px solid var(--line);padding-left:26px" class="note">Artificial Analysis · 2026-08<br><b style="color:var(--ink)">开源权重里断层领先</b></div>
+  </div>
+  <div class="note frag" style="text-align:center;margin-top:16px">无论文 · 今天讲的一切来自扒它的开源代码</div>
+</section>
+
+<!-- ============ 2 什么是条件 ============ -->
+<section class="slide">
+  <div class="kick">地基 · 条件</div>
+  <h1>什么是「条件」</h1>
+  <div class="note" style="margin-top:-10px;margin-bottom:18px;font-size:18px">生成不会凭空来——你给模型的每一样"要求"，都叫<b style="color:var(--ink)">条件（condition）</b>：</div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="rowc frag"><span class="chip tagt" style="width:230px;text-align:center">一句话</span><span class="arrow">→</span><b style="font-size:20px">文生视频</b><span class="note" style="margin-left:auto">FL2VA</span></div>
+    <div class="rowc frag"><span class="chip tagc" style="width:230px;text-align:center">一张首帧图</span><span class="arrow">→</span><b style="font-size:20px">图生视频</b><span class="note" style="margin-left:auto">FL2VA</span></div>
+    <div class="rowc frag"><span class="chip tagc" style="width:230px;text-align:center">首帧 + 尾帧</span><span class="arrow">→</span><b style="font-size:20px">首尾帧过渡</b><span class="note" style="margin-left:auto">FL2VA</span></div>
+    <div class="rowc frag"><span class="chip tagc" style="width:230px;text-align:center">几张人物 / 物品参考图</span><span class="arrow">→</span><b style="font-size:20px">参考驱动</b><span class="note" style="margin-left:auto">Ref2VA</span></div>
+    <div class="rowc frag"><span class="chip tagc" style="width:230px;text-align:center">一段要改的源视频</span><span class="arrow">→</span><b style="font-size:20px">视频编辑</b><span class="note" style="margin-left:auto">Ref2VA</span></div>
+  </div>
+  <div style="display:flex;gap:18px;margin-top:26px">
+    <div class="card frag" style="flex:1;font-size:19px;line-height:1.7">接上期：Flow Matching 把噪声一步步走成"一张画面"<br><b>条件决定的是——走到哪一张</b></div>
+    <div class="card frag" style="flex:1;font-size:19px;line-height:1.7;border:2px solid var(--vid)">模型怎么"吃"条件？各家做法完全不同<br><b style="color:var(--vidtx)">这正是 H3 最特别的地方</b></div>
+  </div>
+</section>
+
+<!-- ============ 3 Wan2.2 的信息流 ============ -->
+<section class="slide">
+  <div class="kick">之前的做法</div>
+  <h1>之前：两条流，一座桥</h1>
+  <div style="flex:1;display:flex;gap:30px;align-items:center">
+    <div class="card" style="flex:1.25;display:flex;flex-direction:column;gap:10px;padding:18px 24px">
+      <div style="font-size:21px;font-weight:600">Wan2.2 的信息流</div>
+      <div id="wconcat">
+        <div style="display:flex;gap:6px;align-items:center;justify-content:center">
+          <span class="chip tagv" style="font-size:14.5px;padding:5px 10px">视频噪声 16</span>
+          <span style="font-size:18px;color:var(--mut)">⊕</span>
+          <span class="chip tagg" style="font-size:14.5px;padding:5px 10px">mask 4</span>
+          <span style="font-size:18px;color:var(--mut)">⊕</span>
+          <span class="chip tagc" style="font-size:14.5px;padding:5px 10px">条件帧 VAE 16<small style="font-size:12px">（首帧+补黑帧）</small></span>
+        </div>
+        <div class="note" style="text-align:center;font-size:15px;margin-top:4px">↓ <b style="color:var(--vidtx)">通道拼接成 36</b> · 进模型前焊死，条件从此没有独立身份</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <div class="fbox" style="flex:1.6;border-color:var(--vid);background:var(--vidbg);color:var(--vidtx);padding:8px 6px">视频流（36 通道）<small>主角 · 一直被加工</small></div>
+        <div class="fbox" style="flex:1;border-color:var(--txm);background:var(--txbg);color:var(--txtx);padding:8px 6px">文本流<small>T5 编码一次 · 之后不变</small></div>
+      </div>
+      <div class="note" style="text-align:center;margin:-2px 0">↓ 两条流始终分开 · 每层靠一座桥交互</div>
+      <div style="border:1.8px dashed var(--grln);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px">
+        <div class="fbox" style="padding:7px">① self-attention<small>视频自己看自己</small></div>
+        <div class="fbox" style="padding:7px;border-color:var(--txm)">② cross-attention<small>桥：视频拿自己当 Q，去文本里查 K/V</small></div>
+        <div class="note" style="text-align:center">× 每一层都这样</div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:13px">
+      <div class="card frag" style="padding:16px 20px"><b style="font-size:19px">桥每层都有，不稀疏</b><br><span class="note">源码：WanAttentionBlock 里 self_attn、cross_attn 并列，× num_layers 层层如此</span></div>
+      <div class="card frag" style="padding:16px 20px"><b style="font-size:19px">桥是单向的</b><br><span class="note">context 进主干前编码一次，每一层原样复用——视频读文本，<b style="color:var(--ink)">文本从头到尾不被更新</b></span></div>
+      <div class="card frag" data-on="#wconcat" style="padding:16px 20px"><b style="font-size:19px">条件帧？通道拼接，不是 token</b><br><span class="note">首帧过 VAE + 补黑帧 + mask，叠进输入通道：16 → <b style="color:var(--ink)">16+4+16=36</b>——<b style="color:var(--ink)">attention 够不着它</b>，只能靠视频 token 二手传</span></div>
+      <div class="card frag" style="padding:16px 20px"><b style="font-size:19px">好处：文本 K/V 可缓存，省算力</b><br><span class="note">代价：条件进不了创作；每加一种条件 = 重新发明一次注入方式</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3 H3：拼成一条 ============ -->
+<section class="slide">
+  <div class="kick">H3 的做法</div>
+  <h1>H3：拼成一条</h1>
+  <div id="sewwrap">
+    <div class="srcbox" style="left:120px;width:220px;border-color:var(--txm);color:var(--txtx)">文本 (1, 512, 5376)</div>
+    <div class="srcbox" style="left:420px;width:380px;border-color:var(--vid);color:var(--vidtx)">视频·条件+目标 (1, 38304, 5376)</div>
+    <div class="srcbox" style="left:846px;width:154px;border-color:var(--aud);color:var(--audtx)">音频 (1, 414, 5376)</div>
+    <div class="seg" style="left:120px;width:180px;background:var(--txbg);color:var(--txtx);border:1px solid var(--txm);transform:translate(20px,-238px)">文本 512</div>
+    <div class="seg" style="left:304px;width:48px;background:#fff;color:var(--vidtx);border:1.7px dashed var(--vid);transform:translate(136px,-238px)">条件</div>
+    <div class="seg" style="left:356px;width:80px;background:var(--audbg);color:var(--audtx);border:1px solid var(--aud);transform:translate(524px,-238px)">音频</div>
+    <div class="seg" style="left:440px;width:560px;background:var(--vidbg);color:var(--vidtx);border:1px solid var(--vid);transform:translate(20px,-238px)">目标视频 37,296</div>
+    <div class="srclab" style="left:120px;top:70px">context_embedder + refiner</div>
+    <div class="srclab" style="left:420px;top:70px">proj_in</div>
+    <div class="srclab" style="left:846px;top:70px">audio_proj_in</div>
+    <div class="srclab" style="left:120px;top:306px">zeros(1, 39230, 5376).index_copy(...)</div>
+  </div>
+  <div class="rowc" style="justify-content:center;margin-top:2px">
+    <span class="chip frag" data-on="#sewwrap" style="font-size:19px"><b>S = 39,230 × 5376</b> —— 四种东西，一条序列</span>
+    <span class="chip frag" style="font-size:19px">此后<b>不再区分模态</b> · 一套 QKV · 零 cross-attention</span>
+  </div>
+</section>
+
+<!-- ============ 4 一图走完 ============ -->
+<section class="slide">
+  <h1>一图走完<span class="thin"> · 首帧图 + 一句话 → 5 秒有声视频</span></h1>
+  <svg id="ovsvg" width="1112" height="455" viewBox="0 0 1120 490">
+    <defs>
+      <marker id="oar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#75736c" stroke-width="1.7" stroke-linecap="round"/></marker>
+      <marker id="oarv" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#D85A30" stroke-width="1.7" stroke-linecap="round"/></marker>
+    </defs>
+    <g class="always" id="g_src">
+      <rect x="45" y="6" width="210" height="42" rx="10" fill="#EEEDFE" stroke="#7F77DD"/>
+      <text x="150" y="33" text-anchor="middle" font-size="17" fill="#3C3489">一句话 prompt</text>
+      <rect x="315" y="6" width="210" height="42" rx="10" fill="#fff" stroke="#D85A30" stroke-width="1.6" stroke-dasharray="6 4"/>
+      <text x="420" y="33" text-anchor="middle" font-size="17" fill="#712B13">首帧图</text>
+      <rect x="585" y="6" width="210" height="42" rx="10" fill="#E1F5EE" stroke="#1D9E75"/>
+      <text x="690" y="33" text-anchor="middle" font-size="17" fill="#085041">目标音频（噪声）</text>
+      <rect x="855" y="6" width="210" height="42" rx="10" fill="#FAECE7" stroke="#D85A30"/>
+      <text x="960" y="33" text-anchor="middle" font-size="17" fill="#712B13">目标视频（噪声）</text>
+    </g>
+    <g class="stage" id="g_enc">
+      <line x1="150" y1="48" x2="150" y2="106" stroke="#75736c" stroke-width="1.6" marker-end="url(#oar)"/>
+      <line x1="420" y1="48" x2="420" y2="106" stroke="#75736c" stroke-width="1.6" marker-end="url(#oar)"/>
+      <line x1="690" y1="48" x2="690" y2="106" stroke="#75736c" stroke-width="1.6" marker-end="url(#oar)"/>
+      <line x1="960" y1="48" x2="960" y2="106" stroke="#75736c" stroke-width="1.6" marker-end="url(#oar)"/>
+      <text x="160" y="82" font-size="14.5" fill="#75736c">Qwen3-VL 编码</text>
+      <text x="430" y="82" font-size="14.5" fill="#75736c">视频 VAE · 切块</text>
+      <text x="700" y="82" font-size="14.5" fill="#75736c">40/秒 × 2 声道</text>
+      <text x="970" y="82" font-size="14.5" fill="#75736c">latent · 切块</text>
+      <rect x="45" y="110" width="210" height="40" rx="10" fill="#EEEDFE" stroke="#7F77DD"/>
+      <text x="150" y="136" text-anchor="middle" font-size="16.5" fill="#3C3489"><tspan font-weight="600">512</tspan> 行文本</text>
+      <rect x="315" y="110" width="210" height="40" rx="10" fill="#fff" stroke="#D85A30" stroke-width="1.6" stroke-dasharray="6 4"/>
+      <text x="420" y="136" text-anchor="middle" font-size="16.5" fill="#712B13"><tspan font-weight="600">1,008</tspan> 行条件</text>
+      <rect x="585" y="110" width="210" height="40" rx="10" fill="#E1F5EE" stroke="#1D9E75"/>
+      <text x="690" y="136" text-anchor="middle" font-size="16.5" fill="#085041"><tspan font-weight="600">414</tspan> 行音频</text>
+      <rect x="855" y="110" width="210" height="40" rx="10" fill="#FAECE7" stroke="#D85A30"/>
+      <text x="960" y="136" text-anchor="middle" font-size="16.5" fill="#712B13"><tspan font-weight="600">37,296</tspan> 行视频</text>
+    </g>
+    <g class="stage" id="g_pack">
+      <path d="M150,150 L150,168 Q150,178 160,178 L530,178" fill="none" stroke="#75736c" stroke-width="1.5"/>
+      <path d="M420,150 L420,168 Q420,178 430,178 L530,178" fill="none" stroke="#75736c" stroke-width="1.5"/>
+      <path d="M690,150 L690,168 Q690,178 680,178 L590,178" fill="none" stroke="#75736c" stroke-width="1.5"/>
+      <path d="M960,150 L960,168 Q960,178 950,178 L590,178" fill="none" stroke="#75736c" stroke-width="1.5"/>
+      <line x1="560" y1="178" x2="560" y2="196" stroke="#75736c" stroke-width="1.6" marker-end="url(#oar)"/>
+      <rect x="60" y="200" width="112" height="42" fill="#EEEDFE" stroke="#7F77DD"/>
+      <text x="116" y="227" text-anchor="middle" font-size="15" fill="#3C3489">文本</text>
+      <rect x="172" y="200" width="72" height="42" fill="#fff" stroke="#D85A30" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text x="208" y="227" text-anchor="middle" font-size="15" fill="#712B13">条件</text>
+      <rect x="244" y="200" width="62" height="42" fill="#E1F5EE" stroke="#1D9E75"/>
+      <text x="275" y="227" text-anchor="middle" font-size="15" fill="#085041">音频</text>
+      <rect x="306" y="200" width="754" height="42" fill="#FAECE7" stroke="#D85A30"/>
+      <text x="683" y="227" text-anchor="middle" font-size="15" fill="#712B13">目标视频（实际占 95%）</text>
+      <text x="560" y="264" text-anchor="middle" font-size="16" fill="#141412"><tspan font-weight="600">S = 39,230 行</tspan> × 5376 维</text>
+    </g>
+    <g class="stage" id="g_core">
+      <line x1="560" y1="270" x2="560" y2="292" stroke="#75736c" stroke-width="1.6" marker-end="url(#oar)"/>
+      <rect x="385" y="296" width="350" height="58" rx="12" fill="#2c2c2a"/>
+      <text x="560" y="320" text-anchor="middle" font-size="17.5" fill="#fff" font-weight="600">50 层 transformer</text>
+      <text x="560" y="342" text-anchor="middle" font-size="14" fill="#cfcdc6">每层全序列自注意力 · 一套权重</text>
+    </g>
+    <g class="stage" id="g_heads">
+      <path d="M480,354 L480,372" fill="none" stroke="#75736c" stroke-width="1.6" marker-end="url(#oar)"/>
+      <path d="M640,354 L640,372" fill="none" stroke="#75736c" stroke-width="1.6" marker-end="url(#oar)"/>
+      <rect x="360" y="376" width="240" height="44" rx="10" fill="#FAECE7" stroke="#D85A30"/>
+      <text x="480" y="404" text-anchor="middle" font-size="16" fill="#712B13">视频头 → 视频速度</text>
+      <rect x="620" y="376" width="240" height="44" rx="10" fill="#E1F5EE" stroke="#1D9E75"/>
+      <text x="740" y="404" text-anchor="middle" font-size="16" fill="#085041">音频头 → 音频速度</text>
+    </g>
+    <g class="stage" id="g_loop">
+      <path d="M865,398 Q1040,398 1040,320 Q1040,240 1050,232" fill="none" stroke="#D85A30" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#oarv)"/>
+      <text x="1064" y="322" text-anchor="middle" font-size="15" fill="#712B13" font-weight="600" transform="rotate(90 1064 322)">沿速度挪一步 · ×8</text>
+      <line x1="560" y1="420" x2="560" y2="438" stroke="#75736c" stroke-width="1.6" marker-end="url(#oar)"/>
+      <rect x="330" y="442" width="200" height="40" rx="10" fill="#fff" stroke="#141412" stroke-width="1.5"/>
+      <text x="430" y="468" text-anchor="middle" font-size="15.5" fill="#141412">视频 VAE 解码</text>
+      <rect x="550" y="442" width="200" height="40" rx="10" fill="#fff" stroke="#141412" stroke-width="1.5"/>
+      <text x="650" y="468" text-anchor="middle" font-size="15.5" fill="#141412">音频 VAE 解码</text>
+      <rect x="770" y="442" width="120" height="40" rx="10" fill="#2c2c2a"/>
+      <text x="830" y="468" text-anchor="middle" font-size="15.5" fill="#fff" font-weight="600">mp4</text>
+    </g>
+  </svg>
+  <div class="rowc" style="gap:9px;margin-top:2px">
+    <span class="chip frag" data-on="#g_enc" style="font-size:15.5px">编码成行</span>
+    <span class="chip frag" data-on="#g_pack" style="font-size:15.5px">拼一条 39,230</span>
+    <span class="chip frag" data-on="#g_core" style="font-size:15.5px">50 层自注意力</span>
+    <span class="chip frag" data-on="#g_heads" style="font-size:15.5px">两个头出速度</span>
+    <span class="chip frag" data-on="#g_loop" style="font-size:15.5px">↺ 8 步 → 解码</span>
+  </div>
+</section>
+
+<!-- ============ 5 一切成行 ============ -->
+<section class="slide">
+  <div class="kick">放大 · 行怎么来的</div>
+  <h1>一切成行</h1>
+  <div class="rowc" style="margin-top:-12px;margin-bottom:14px;gap:10px">
+    <span class="chip tagt">文本</span><span class="chip tagc">条件帧</span><span class="chip taga">音频</span><span class="chip tagv">视频</span>
+    <span class="note">四种原料，进模型前都变成同一种东西：「行」</span>
+  </div>
+  <table class="tb" style="width:100%">
+    <tr><th style="width:170px">原料</th><th>加工</th><th style="width:190px">得到</th><th style="width:130px">每行维度</th></tr>
+    <tr class="frag"><td><span class="chip tagt" style="font-size:16px">prompt</span></td><td>Qwen3-VL 编码，取中间层</td><td><b>512</b> 行文本</td><td>5120</td></tr>
+    <tr class="frag"><td><span class="chip tagc" style="font-size:16px">首帧图</span></td><td>视频 VAE → 切 2×2 小块</td><td><b>1,008</b> 行条件</td><td>96</td></tr>
+    <tr class="frag"><td><span class="chip taga" style="font-size:16px">目标音频(噪声)</span></td><td>40 latent/秒 × 2 声道</td><td><b>414</b> 行音频</td><td>32</td></tr>
+    <tr class="frag"><td><span class="chip tagv" style="font-size:16px">目标视频(噪声)</span></td><td>latent 37×48×84 → 切块</td><td><b>37,296</b> 行视频</td><td>96</td></tr>
+  </table>
+  <div class="rowc frag" style="justify-content:center;margin-top:24px;gap:14px">
+    <span class="chip tagv" style="font-size:18px">视频行占 95% —— 视频生成贵在这</span>
+    <span class="chip tagg" style="font-size:18px">每行随身三张身份证：模态 tag · 噪声水平 t · 时空坐标</span>
+  </div>
+</section>
+
+<!-- ============ 6 维度对齐 ============ -->
+<section class="slide">
+  <div class="kick">放大 · 进门</div>
+  <h1>维度对齐</h1>
+  <div style="flex:1;display:flex;gap:40px;align-items:center">
+    <div class="code" style="flex:1.3">self.proj_in          = nn.Linear(<span class="n">96</span>,   <span class="n">5376</span>)  <span class="cm"># 视频行</span>
+self.audio_proj_in    = nn.Linear(<span class="n">32</span>,   <span class="n">5376</span>)  <span class="cm"># 音频行</span>
+self.context_embedder = nn.Linear(<span class="n">5120</span>, <span class="n">5376</span>)  <span class="cm"># 文本行</span>
+
+<span class="cm"># 只有文本多走 2 层：</span>
+text = self.token_refiner(text)
+<span class="cm"># 把「猜下一个词」的表示掰成「指导画画」的</span></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+      <div class="rowc frag"><span class="chip tagv">96</span><span class="arrow">→</span><span class="chip tagv">5376</span></div>
+      <div class="rowc frag"><span class="chip taga">32</span><span class="arrow">→</span><span class="chip taga">5376</span></div>
+      <div class="rowc frag"><span class="chip tagt">5120</span><span class="arrow">→</span><span class="chip tagt">5376</span></div>
+      <div class="note frag">三个线性层，宽度对齐 · 此后再无模态专属权重</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7 Attention ============ -->
+<section class="slide">
+  <div class="kick">放大 · 主干</div>
+  <h1>Attention<span class="thin"> · 好处在这一步兑现</span></h1>
+  <div style="height:150px">
+    <div class="capline frag" data-on="#arc1"><b style="color:var(--txtx)">① 看文本</b>「prompt：一只橘猫，正在叫」<span class="note">= 内容对齐</span></div>
+    <div class="capline frag" data-on="#arc2"><b style="color:var(--vidtx)">② 看条件</b>「参考图：这只猫长这样」<span class="note">= 长相对齐</span></div>
+    <div class="capline frag" data-on="#arc3"><b style="color:var(--audtx)">③ 看音频</b>「这一刻在叫 → 嘴张开」<span class="note">= 音画同步</span></div>
+    <div class="capline frag" data-on="#arc4"><b style="color:var(--audtx)">④ 音频反过来看画面</b>「嘴张了 → 叫声放这一刻」<span class="note">= 反向同步</span></div>
+  </div>
+  <svg id="attsvg" width="1112" height="330" viewBox="0 0 1112 330">
+    <defs><marker id="ar2" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.7" stroke-linecap="round"/></marker></defs>
+    <path id="arc1" class="arc" stroke="#7F77DD" d="M826,196 Q504,20 182,196" marker-end="url(#ar2)"/>
+    <path id="arc2" class="arc" stroke="#D85A30" stroke-dasharray="7 5" style="stroke-dasharray:900" d="M826,196 Q573,60 320,196" marker-end="url(#ar2)"/>
+    <path id="arc3" class="arc" stroke="#1D9E75" d="M826,196 Q642,90 458,196" marker-end="url(#ar2)"/>
+    <path id="arc4" class="arc" stroke="#1D9E75" d="M412,196 Q619,110 826,196" marker-end="url(#ar2)"/>
+    <g id="cells"></g>
+    <rect x="802" y="200" width="48" height="54" rx="8" fill="none" stroke="#141412" stroke-width="2.6"/>
+    <text x="826" y="288" text-anchor="middle" font-size="15" fill="#141412" font-weight="600">当前 query：某个视频 patch</text>
+    <text x="162" y="312" text-anchor="middle" font-size="15.5" fill="#3C3489">文本</text>
+    <text x="311" y="312" text-anchor="middle" font-size="15.5" fill="#712B13">条件</text>
+    <text x="504" y="312" text-anchor="middle" font-size="15.5" fill="#085041">音频</text>
+    <text x="780" y="312" text-anchor="middle" font-size="15.5" fill="#712B13">视频</text>
+  </svg>
+  <div class="rowc frag" style="justify-content:center;margin-top:2px">
+    <span class="chip tagv" style="font-size:18px"><b>结论：每一帧下笔前，内容、长相、声音一次对齐</b> —— 全看原文，零专门模块</span>
+  </div>
+  <div class="note frag" style="text-align:center;margin-top:8px">代价：39,230² ≈ 15 亿对分数 → attention 占算力 80%</div>
+</section>
+
+<!-- ============ 8 出口 ============ -->
+<section class="slide">
+  <div class="kick">放大 · 出口</div>
+  <h1>出口<span class="thin"> · 哪些行的输出被留下</span></h1>
+  <div class="note" style="margin-top:-10px;margin-bottom:14px">50 层跑完，每行还是 5376 维。两个线性头<b style="color:var(--ink)">对每一行都算一遍</b>，然后按行的身份「各挑各的」：</div>
+  <div style="display:flex;height:44px;border-radius:10px;overflow:hidden;border:1px solid var(--line);font-size:15px;margin-bottom:6px">
+    <div style="width:14%;background:var(--txbg);color:var(--txtx);display:flex;align-items:center;justify-content:center">文本 512</div>
+    <div style="width:11%;background:#fff;color:var(--vidtx);border-left:1.6px dashed var(--vid);border-right:1.6px dashed var(--vid);display:flex;align-items:center;justify-content:center">条件 1,008</div>
+    <div style="width:11%;background:var(--audbg);color:var(--audtx);display:flex;align-items:center;justify-content:center">音频 414</div>
+    <div style="flex:1;background:var(--vidbg);color:var(--vidtx);display:flex;align-items:center;justify-content:center">目标视频 37,296</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:stretch">
+    <div class="fbox frag dim" style="grid-column:1"><b style="font-size:19px">✗ 丢弃</b><small>文本只当条件，不当产出</small></div>
+    <div class="fbox frag" style="grid-column:2;border:1.8px dashed var(--vid);color:var(--vidtx)"><b style="font-size:19px">✗ 必须手动扔</b><small>⚠ 预测会照常返回——不扔，首帧被一起去噪，直接跑飞</small></div>
+    <div class="fbox frag" style="grid-column:3;border-color:var(--aud);color:var(--audtx)"><b style="font-size:19px">✓ 音频头</b><small>5376 → 32 = 音频速度</small></div>
+    <div class="fbox frag" style="grid-column:4;border-color:var(--vid);color:var(--vidtx)"><b style="font-size:19px">✓ 视频头</b><small>5376 → 96 = 视频速度</small></div>
+  </div>
+  <div class="rowc frag" style="justify-content:center;gap:14px;margin-top:22px">
+    <span class="chip tagg" style="font-size:18px">速度 → 挪一小步 → 回去再问 ↺ × 8 步</span>
+    <span class="chip tagg" style="font-size:18px">两个 VAE 解码 → mp4</span>
+    <span class="chip tagv" style="font-size:18px">5 秒片 13 秒出（4×H100 实测）</span>
+  </div>
+</section>
+
+<!-- ============ 9 总结：好处与代价 ============ -->
+<section class="slide">
+  <div class="kick">总结</div>
+  <h1>拼在一起，值不值</h1>
+  <div style="flex:1;display:flex;gap:24px;align-items:stretch">
+    <div class="card frag" style="flex:1.3;border-top:5px solid var(--aud)">
+      <div style="font-size:23px;font-weight:600;margin-bottom:10px">好处</div>
+      <div class="big" style="font-size:20px;line-height:2">① 加条件 = 改拼法，不改架构<span class="note">（两个 ckpt 结构相同就是证据）</span><br>② 三模态 50 层互看 → 音画同步原生<br>③ 形态就是 LLM → 基建全白吃</div>
+    </div>
+    <div class="card frag" style="flex:1;border-top:5px solid var(--vid)">
+      <div style="font-size:23px;font-weight:600;margin-bottom:10px">代价</div>
+      <div class="big" style="font-size:20px;line-height:2">① 序列长，attention O(L²)<span class="note">，占算力 80%</span><br>② 文本行、条件行每步重新过 50 层<span class="note"><br>（Wan 的文本算一次、步步复用；H3 的每行跟着全序列变，存不下来）</span></div>
+      <div class="chip tagv frag" style="margin-top:14px;font-size:17px">一句话：拿算力换灵活性</div>
+    </div>
+  </div>
+  <div class="card frag" style="text-align:center;font-size:22px;border-width:2px">
+    遗留问题：模型内部不分模态，它怎么知道谁是参考、谁该生成？<br>
+    <span style="font-size:19px;color:var(--mut)">答案在每行的三张身份证里：<b style="color:var(--txtx)">模态 tag</b> · <b style="color:var(--vidtx)">噪声水平 t</b> · <b style="color:var(--audtx)">时空坐标</b> —— 下期展开</span>
+  </div>
+</section>
+
+</div>
+<div id="pg">1 / 11</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const slides=[...document.querySelectorAll('.slide')];
+let cur=-1; const entered=new Set();
+const INIT={};
+
+INIT.att=()=>{
+  const NS='http://www.w3.org/2000/svg';
+  const g=$('#cells');
+  const groups=[
+    {n:4,fill:'#EEEDFE',stroke:'#7F77DD',dash:false},
+    {n:2,fill:'#ffffff',stroke:'#D85A30',dash:true},
+    {n:4,fill:'#E1F5EE',stroke:'#1D9E75',dash:false},
+    {n:12,fill:'#FAECE7',stroke:'#D85A30',dash:false},
+  ];
+  let i=0;
+  groups.forEach(gr=>{
+    for(let k=0;k<gr.n;k++){
+      const r=document.createElementNS(NS,'rect');
+      r.setAttribute('x',70+46*i);r.setAttribute('y',200);
+      r.setAttribute('width',40);r.setAttribute('height',54);
+      r.setAttribute('rx',7);
+      r.setAttribute('fill',gr.fill);r.setAttribute('stroke',gr.stroke);
+      r.setAttribute('stroke-width',1.4);
+      if(gr.dash)r.setAttribute('stroke-dasharray','5 4');
+      g.appendChild(r);i++;
+    }
+  });
+};
+
+slides.forEach((s,idx)=>{
+  if(s.querySelector('#attsvg'))s.dataset.init='att';
+});
+
+function applyOn(f,on){
+  if(f.dataset.on)document.querySelectorAll(f.dataset.on).forEach(el=>el.classList.toggle('on',on));
+}
+function show(i){
+  if(i===cur)return;
+  slides.forEach((s,j)=>s.classList.toggle('act',j===i));
+  cur=i;
+  $('#pg').textContent=(i+1)+' / '+slides.length;
+  const s=slides[i];
+  if(!entered.has(i)){entered.add(i);
+    const init=s.dataset.init;
+    if(init&&INIT[init])INIT[init]();
+  }
+}
+function fragsOf(s){return [...s.querySelectorAll('.frag')];}
+function next(){
+  const f=fragsOf(slides[cur]).find(x=>!x.classList.contains('on'));
+  if(f){f.classList.add('on');applyOn(f,true);return;}
+  if(cur<slides.length-1)show(cur+1);
+}
+function prev(){
+  const on=fragsOf(slides[cur]).filter(x=>x.classList.contains('on'));
+  if(on.length){const f=on[on.length-1];f.classList.remove('on');applyOn(f,false);return;}
+  if(cur>0){show(cur-1);fragsOf(slides[cur]).forEach(x=>{x.classList.add('on');applyOn(x,true);});}
+}
+addEventListener('keydown',e=>{
+  if(['ArrowRight',' ','PageDown','ArrowDown','Enter'].includes(e.key)){e.preventDefault();next();}
+  else if(['ArrowLeft','PageUp','ArrowUp'].includes(e.key)){e.preventDefault();prev();}
+  else if(e.key==='Home')show(0);
+  else if(e.key==='End')show(slides.length-1);
+});
+addEventListener('click',e=>{
+  if(e.target.closest('input,button,a,select'))return;
+  next();
+});
+function fit(){
+  const s=Math.min(innerWidth/1280,innerHeight/720);
+  $('#stage').style.transform=`translate(-50%,-50%) scale(${s})`;
+}
+addEventListener('resize',fit);
+fit();show(0);
+</script>
+</body>
+</html>
