@@ -1,0 +1,1302 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>机器人仿真 · 从小球到 π0.5</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg:#F5F5F7; --ink:#1D1D1F; --muted:#6E6E73; --faint:#A1A1A6; --line:#D2D2D7; --card:#FFFFFF;
+  --accent:#0071E3;
+  --font:"PingFang SC","SF Pro Display","SF Pro SC","Hiragino Sans GB","Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono","Menlo","JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(1);transform-origin:center;background:var(--bg)}
+.slide{position:absolute;inset:0;padding:92px 128px 96px;display:none;flex-direction:column}
+.slide.active{display:flex}
+/* 页眉三件套：小标 / 大标题 / 可选副标 */
+.kicker{font-size:22px;font-weight:500;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.kicker b{color:var(--ink);font-weight:600;margin-right:14px}
+h1{font-size:68px;font-weight:600;letter-spacing:-.012em;line-height:1.15;margin-top:20px}
+h1 .thin{font-weight:400;color:var(--muted)}
+h1 .acc{color:var(--accent)}
+.sub{font-size:30px;color:var(--muted);margin-top:14px;font-weight:400;line-height:1.4}
+/* 图 / 视频 */
+.fig{flex:1;min-height:0;position:relative;margin-top:44px}
+.fig img,.fig video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.fig.card{background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.fig.card img,.fig.card video{padding:30px}
+.fig.plain img,.fig.plain video{border-radius:22px}
+.fig.video{background:#000;border-radius:26px;overflow:hidden}
+.fig.video video{background:#000}
+.fig2{flex:1;min-height:0;display:flex;gap:30px;margin-top:44px}
+.fig2 .fig{margin:0}
+/* 图 / 视频网格；.ph 是裁切填满的单元（object-fit:cover） */
+.grid2{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:20px;margin-top:44px}
+.grid4{flex:1;min-height:0;display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:1fr 1fr;gap:24px;margin-top:44px}
+.ph{position:relative;border-radius:22px;overflow:hidden;background:#000}
+.ph img,.ph video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ph.fit img,.ph.fit video{object-fit:contain}
+.ph.white{background:#fff;box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.ph .cap{position:absolute;left:0;right:0;bottom:0;padding:26px 24px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:28px;font-weight:600;line-height:1.3}
+.ph .tag{position:absolute;left:18px;bottom:16px;background:rgba(29,29,31,.82);color:#fff;font-size:20px;padding:8px 14px;border-radius:10px;font-weight:500}
+/* 满屏播片页 */
+.slide.film{padding:0;background:#000}
+.film video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.film .ov{position:absolute;left:50%;top:40px;transform:translateX(-50%);color:#fff;font-size:22px;letter-spacing:.14em;opacity:.8;z-index:2;white-space:nowrap}
+/* 自绘图：白卡里的 svg。.pad 版留边并居中，图顶不到卡边 */
+.diagbox{flex:1;min-height:0;position:relative;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);margin-top:44px}
+.diagbox svg{position:absolute;inset:0;width:100%;height:100%}
+.diagbox.pad svg{inset:0;margin:auto;width:calc(100% - 88px);height:calc(100% - 68px)}
+.sv text{font-family:"PingFang SC","Helvetica Neue",sans-serif}
+.sv .mono{font-family:"SF Mono","Menlo",monospace}
+/* 表 */
+.tblwrap{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:40px 56px;margin-top:44px}
+.fig2 .tblwrap{margin-top:0}
+.tblwrap .tt{font-size:24px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;font-weight:500;margin-bottom:26px;text-align:center}
+.tbl{width:100%;border-collapse:collapse;font-size:32px;text-align:center}
+.tbl th{font-size:24px;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;padding:0 0 18px;border-bottom:2px solid var(--line)}
+.tbl td{padding:22px 0;border-bottom:1px solid var(--line);font-family:var(--mono)}
+.tbl td:first-child{font-family:var(--mono);color:var(--muted)}
+.tbl tr.hi td{color:var(--accent);font-weight:600}
+.tbl tr.bad td{color:#D0342C}
+.tbl.small{font-size:28px}
+.tbl.small td{padding:18px 0}
+.tbl.left{text-align:left}
+.tbl.left th{text-align:left;padding-left:16px}
+.tbl.left td{font-family:var(--font);font-size:27px;padding:16px 16px;line-height:1.35}
+.tbl.left td:first-child{color:var(--ink);font-family:var(--font);font-weight:500}
+.tbl.left td.ok{color:var(--accent);font-weight:600;font-family:var(--font)}
+.tbl.left td.no{color:#D0342C;font-weight:600;font-family:var(--font)}
+.tbl.left td:nth-child(2){white-space:nowrap;color:var(--muted)}
+.tbl.left.compact td{font-size:25px;padding:13px 14px}
+.tbl.left.wrap td:nth-child(2){white-space:normal;color:var(--ink)}
+.tbl.left tr.hi td{color:var(--accent);font-weight:600}
+.tbl.num td{font-family:var(--mono);font-size:27px;padding:16px 10px}
+.tbl.num td:first-child{font-family:var(--font);text-align:left;color:var(--ink);font-weight:500;padding-left:16px}
+.tbl.num th:first-child{text-align:left;padding-left:16px}
+.tbl.num td.acc{color:var(--accent);font-weight:600}
+.tbl.num td.dim{color:var(--faint)}
+.tbl.num.two td{padding:14px 10px;line-height:1.25}
+.tbl.num.two td b{font-size:30px;font-weight:600}
+.tbl.num.two td small{font-size:21px;color:var(--muted)}
+.tbl.num.two td.acc small{color:var(--accent)}
+.tbl.num.compact td{font-size:24px;padding:11px 8px;white-space:nowrap}
+.tbl.num.compact th{padding-bottom:12px}
+/* 数字卡（2×3 / 2×2 网格） */
+.stats{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:44px;align-content:stretch}
+.stats.two{grid-template-columns:repeat(2,1fr)}
+.stat{background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:36px 40px;display:flex;flex-direction:column;justify-content:center;min-height:0}
+.stat .n{font-size:82px;font-weight:600;letter-spacing:-.02em;line-height:1;color:var(--accent);white-space:nowrap}
+.stat .n small{font-size:38px;color:var(--ink);margin-left:8px;font-weight:500}
+.stat .l{font-size:25px;color:var(--muted);margin-top:16px;line-height:1.35}
+.stat .l b{color:var(--ink);font-weight:600}
+.stat.dim .n{color:var(--ink)}
+.stat.text .n{font-size:44px;color:var(--ink);white-space:normal;line-height:1.2}
+.stat.text .n .acc{color:var(--accent)}
+/* 并排大卡 / 四步条 */
+.cards{flex:1;min-height:0;display:flex;gap:32px;justify-content:center;align-items:center;margin-top:44px}
+.card{flex:1;min-height:320px;display:flex;flex-direction:column;justify-content:center;background:var(--card);border-radius:30px;padding:54px 36px;box-shadow:0 14px 48px rgba(0,0,0,.06);text-align:center}
+.card .big{font-size:64px;font-weight:600;letter-spacing:-.02em;line-height:1.05}
+.card .big.mono{font-family:var(--mono);font-size:40px;letter-spacing:0}
+.card .h{font-size:26px;color:var(--muted);margin-top:22px;line-height:1.45}
+.steps{flex:1;min-height:0;display:flex;align-items:stretch;gap:24px;margin-top:44px}
+.step{flex:1;background:var(--card);border-radius:30px;padding:48px 30px;box-shadow:0 14px 48px rgba(0,0,0,.06);text-align:center;display:flex;flex-direction:column;justify-content:center}
+.step .n{font-family:var(--mono);font-size:22px;color:var(--accent);letter-spacing:.1em}
+.step .t{font-size:42px;font-weight:600;margin-top:16px;line-height:1.25;letter-spacing:-.01em}
+.step .s{font-size:26px;color:var(--muted);margin-top:14px;line-height:1.4}
+.step.dim{background:transparent;box-shadow:none;border:2px solid var(--line)}
+/* 时间线 */
+.timeline{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 10px}
+.tl-row{position:relative;display:flex;justify-content:space-between;padding-top:56px}
+.tl-row:before{content:"";position:absolute;left:7%;right:7%;top:0;height:2px;background:var(--line)}
+.tl{flex:1;text-align:center;position:relative}
+.tl .dot{position:absolute;left:50%;top:-66px;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:var(--line)}
+.tl.key .dot{background:var(--accent);box-shadow:0 0 0 10px rgba(0,113,227,.15)}
+.tl .d{font-family:var(--mono);font-size:20px;color:var(--muted);letter-spacing:.06em}
+.tl .n{font-size:38px;font-weight:600;margin-top:10px;letter-spacing:-.01em;line-height:1.15}
+.tl.key .n{color:var(--accent)}
+.tl.dim .n{color:var(--faint)}
+.tl .w{font-size:22px;color:var(--muted);margin-top:12px;line-height:1.4;padding:0 12px}
+/* 两列清单 */
+.two{display:flex;gap:80px;flex:1;margin-top:48px;align-items:flex-start}
+.two .col{flex:1}
+.h2{font-size:22px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;font-weight:500}
+.li{font-size:28px;line-height:1.45;padding:18px 0;border-top:1px solid var(--line)}
+.li:last-child{border-bottom:1px solid var(--line)}
+.li b{font-weight:600}
+/* 一句一行的大字页 */
+.bigline{flex:1;display:flex;flex-direction:column;justify-content:center;gap:30px}
+.bigline .row{font-size:54px;font-weight:600;letter-spacing:-.01em;line-height:1.3}
+.bigline .row .thin{font-weight:400;color:var(--muted)}
+.bigline .row .acc{color:var(--accent)}
+.bigline .row.small{font-size:36px;font-weight:400;color:var(--muted)}
+/* 原话卡 */
+.quotes{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:22px;margin-top:30px}
+.quote{background:var(--card);border-radius:22px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:26px 40px}
+.quote .q{font-size:34px;font-weight:600;line-height:1.35;letter-spacing:-.01em}
+.quote .q .acc{color:var(--accent)}
+.quote .src{font-size:20px;color:var(--muted);margin-top:10px}
+/* 代码卡 */
+.code2{flex:1;min-height:0;display:flex;gap:26px;margin-top:44px}
+.code{flex:1;min-height:0;background:var(--card);border-radius:26px;box-shadow:0 14px 48px rgba(0,0,0,.06);padding:24px 32px;display:flex;flex-direction:column;overflow:hidden}
+.code .tt{font-size:20px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;font-weight:500;margin-bottom:12px}
+.code pre{font-family:var(--mono);font-size:17px;line-height:1.36;white-space:pre;color:var(--ink);margin:0}
+.code .k{color:var(--muted)} .code .n{color:var(--accent);font-weight:600} .code .c{color:var(--faint)}
+/* 动画页（J / K 手动推进） */
+.row{flex:1;min-height:0;display:flex;gap:30px;margin-top:44px}
+.row.anim .diagbox{flex:1.75;margin-top:0}
+.stepcol{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;min-height:0}
+.step-item{display:flex;gap:16px;align-items:flex-start;padding:14px 18px;border-radius:18px;opacity:.38;transition:opacity .4s,background .4s}
+.step-item.cur{opacity:1;background:var(--card);box-shadow:0 14px 48px rgba(0,0,0,.06)}
+.step-item .sn{flex:none;width:36px;height:36px;border-radius:50%;background:var(--line);color:#fff;font-size:20px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.step-item.cur .sn{background:var(--accent)}
+.step-item .st{font-size:22px;line-height:1.4;color:var(--muted)}
+.step-item .st b{display:block;color:var(--ink);font-weight:600;font-size:25px;margin-bottom:2px}
+.step-item.cur .st{color:var(--ink)}
+svg[data-anim] [data-a]{opacity:.08;transition:opacity .5s}
+svg[data-anim] [data-a].on{opacity:1}
+/* 封面 / 过渡 / 收尾 */
+.cover{padding:0}
+.cover .t{position:absolute;left:128px;top:150px}
+.cover .kicker{font-size:24px}
+.cover h1{font-size:230px;letter-spacing:-.035em;line-height:.95;margin-top:26px}
+.cover .p{font-size:42px;color:var(--muted);margin-top:26px;font-weight:400;max-width:1560px;line-height:1.35}
+.cover .p b{color:var(--ink);font-weight:600}
+.cover .brand{position:absolute;right:128px;top:158px;font-size:26px;letter-spacing:.14em;color:var(--muted)}
+.cover .photos{position:absolute;left:0;right:0;bottom:0;height:330px;display:flex;gap:6px;background:#000}
+.cover .photos img{flex:1;min-width:0;height:100%;object-fit:cover;display:block}
+.divider{justify-content:center}
+.divider .num{font-family:var(--mono);font-size:26px;letter-spacing:.2em;color:var(--faint)}
+.divider .word{font-size:160px;font-weight:600;letter-spacing:-.03em;line-height:1.05;margin-top:18px}
+.divider .word .thin{font-weight:400;color:var(--muted)}
+.end{justify-content:center}
+.end h1{text-align:center;font-size:96px}
+.end .big{font-size:42px;text-align:center;color:var(--muted);margin-top:30px;line-height:1.5}
+.end .big b{color:var(--ink);font-weight:600}
+/* 导航（左上角热区）——所有期通用，不要改 */
+#nav-hot{position:fixed;left:0;top:0;width:220px;height:110px;z-index:20}
+#nav-btn{position:fixed;left:14px;top:14px;height:44px;padding:0 14px 0 10px;border-radius:10px;background:rgba(29,29,31,.82);color:#fff;font-size:18px;font-family:var(--mono);display:flex;align-items:center;gap:10px;cursor:pointer;opacity:.22;transition:opacity .25s;z-index:21;user-select:none}
+#nav-btn span.pg{font-size:18px;letter-spacing:.06em}
+#nav-btn .b{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14)}
+#nav-btn .b:hover{background:rgba(255,255,255,.3)}
+#nav-hot:hover ~ #nav-btn,#nav-btn:hover,#nav-btn.open{opacity:1}
+#nav-panel{position:fixed;left:14px;top:66px;width:440px;max-height:calc(100vh - 90px);overflow:auto;background:#fff;color:#1D1D1F;border:1px solid #D2D2D7;border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.18);padding:8px;display:none;z-index:22;font-family:var(--font);font-size:14px}
+#nav-panel.open{display:block}
+#nav-panel .sec-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:#6E6E73;padding:10px 10px 4px;text-transform:uppercase}
+#nav-panel .it{display:flex;gap:10px;align-items:baseline;padding:7px 10px;border-radius:8px;cursor:pointer;line-height:1.35}
+#nav-panel .it:hover{background:#F5F5F7}
+#nav-panel .it.cur{background:#E8F0FE;color:#0071E3}
+#nav-panel .it .k{font-family:var(--mono);font-size:12px;color:#6E6E73;min-width:24px;text-align:right}
+#nav-panel .it.cur .k{color:#0071E3}
+#hud{position:fixed;left:18px;bottom:14px;font-family:var(--mono);font-size:13px;color:#8e8e93;opacity:0;transition:opacity .6s;pointer-events:none;z-index:9}
+#hud.show{opacity:1}
+</style>
+<style>
+/* 本期加的几条 */
+.stats.six{grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr}
+.stat .n.mid{font-size:64px}
+.stat .n.sm{font-size:50px}
+.steps.five .step{padding:40px 22px}
+.steps.five .step .t{font-size:38px}
+.steps.five .step .s{font-size:24px}
+.bigline.tight{gap:24px}
+.bigline.tight .row{font-size:46px}
+.tbl.left.cmp td{font-size:28px;padding:20px 18px}
+.tbl.left.cmp td:nth-child(2){white-space:normal;color:var(--muted)}
+.tbl.left.cmp td:nth-child(3){color:var(--ink)}
+.tbl.left.cmp th{padding-left:18px}
+.tbl.left.cmp.why td.ok{color:var(--accent)}
+.tbl.left.eng th{text-transform:none;letter-spacing:.02em}
+.tbl.left.eng td{font-size:27px;padding:18px 16px;white-space:nowrap;color:var(--ink);font-family:var(--font)}
+.tbl.left.eng td:first-child{color:var(--muted);font-weight:500}
+.tbl.left.eng th{padding-left:16px}
+.tbl.left.eng th.today{color:var(--accent)}
+.kicker{text-transform:none;letter-spacing:.08em}
+.tl-row.four:before{left:10%;right:10%}
+.sv .mono text,.sv text.mono{font-family:"SF Mono","Menlo",monospace}
+.bgrid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:24px;margin-top:40px}
+.bcard{background:var(--card);border-radius:24px;box-shadow:0 14px 48px rgba(0,0,0,.06);overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.bcard .im{flex:0 0 46%;position:relative;background:#E5E5EA}
+.bcard .im img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.bcard .tx{flex:1;padding:18px 26px 16px;display:flex;flex-direction:column;justify-content:center;gap:8px}
+.bcard .nm{font-size:30px;font-weight:600;letter-spacing:-.01em}
+.bcard .nm small{font-size:20px;color:var(--muted);font-weight:400;margin-left:12px}
+.bcard .en{font-size:22px;color:var(--accent);font-weight:600}
+.bcard .ds{font-size:21px;color:var(--ink);line-height:1.4}
+.bcard.dash{background:transparent;box-shadow:none;border:2px dashed var(--line)}
+.bcard.dash .tx{padding:30px 34px;gap:14px}
+.bcard.dash .ds{color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="stage">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8E8E93"/></marker>
+  <marker id="arB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0071E3"/></marker>
+  <marker id="arK" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1D1D1F"/></marker>
+</defs></svg>
+
+<!-- ===== 1 封面 ===== -->
+<section class="slide cover" data-sec="封面" data-title="封面">
+  <div class="t">
+    <div class="kicker">具身智能 · 仿真实验</div>
+    <h1>机器人仿真</h1>
+    <div class="p">从一个小球落地，到 π0.5 在 LIBERO 里抓碗：<b>仿真每一步到底在算什么</b></div>
+  </div>
+  <div class="brand">可lip</div>
+  <div class="photos">
+    <img src="media/cover_ball.png" alt=""><img src="media/libero_scene_collision.png" alt=""><img src="media/libero_top.png" alt="">
+    <img src="media/libero_wrist.png" alt=""><img src="media/pi05_cine_success.png" alt="">
+  </div>
+</section>
+
+<!-- ===== 2 真机 vs 仿真 ===== -->
+<section class="slide" data-sec="00 开场" data-title="真机 vs 仿真">
+  <div class="kicker"><b>00</b>为什么用仿真 · 仿真一列是 LIBERO 实测</div>
+  <h1>先在仿真里做：<span class="thin">快、不怕坏、开局一模一样</span></h1>
+  <div class="tblwrap"><table class="tbl left cmp">
+    <tr><th></th><th>真机</th><th>仿真</th></tr>
+    <tr><td>一局多久</td><td>一两分钟，还要人把东西摆回去</td><td>一步 21 毫秒，一局约 5 秒（不算模型）</td></tr>
+    <tr><td>撞坏了</td><td>要修，可能伤人</td><td>重开就行</td></tr>
+    <tr><td>同时跑几台</td><td>有几台跑几台</td><td>GPU 仿真能同时开上千个环境</td></tr>
+    <tr><td>每局开局</td><td>很难摆得一模一样</td><td>每道题 50 个固定开局，各家考同一批</td></tr>
+    <tr><td>判成功</td><td>人看</td><td class="ok">代码判：碗心离盘心 &lt; 3 厘米</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== 3 路线 ===== -->
+<section class="slide" data-sec="00 开场" data-title="这期的四段">
+  <div class="kicker"><b>00</b>路线</div>
+  <h1>这期的四段</h1>
+  <div class="timeline"><div class="tl-row four">
+    <div class="tl"><div class="dot"></div><div class="d">01</div><div class="n">MuJoCo</div><div class="w">场景文件、每一步算什么<br>配一个小球落地</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">02</div><div class="n">LIBERO</div><div class="w">最经典的仿真 benchmark<br>怎么出题、怎么判</div></div>
+    <div class="tl key"><div class="dot"></div><div class="d">03</div><div class="n">π0.5 跑一局</div><div class="w">服务端 + 客户端<br>我们自己跑的结果</div></div>
+    <div class="tl"><div class="dot"></div><div class="d">04</div><div class="n">新 benchmark</div><div class="w">现在大家<br>在比什么</div></div>
+  </div></div>
+</section>
+
+<!-- ===== 4 全景 ===== -->
+<section class="slide" data-sec="00 开场" data-title="全景：谁管什么">
+  <div class="kicker"><b>00</b>全景 · 以这期跑的 π0.5 + LIBERO 为例</div>
+  <h1>模型出动作，LIBERO 出题判卷，<span class="acc">MuJoCo 算物理</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 620" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <clipPath id="ov1"><rect x="398" y="362" width="108" height="108" rx="12"/></clipPath>
+      <clipPath id="ov2"><rect x="518" y="362" width="108" height="108" rx="12"/></clipPath>
+    </defs>
+    <rect x="20" y="44" width="340" height="540" rx="24" fill="#FFFFFF" stroke="#A1A1A6" stroke-width="2" stroke-dasharray="8 6"/>
+    <text x="56" y="104" font-size="22" font-weight="500" fill="#6E6E73" letter-spacing="2">模型</text>
+    <text x="56" y="212" font-size="64" font-weight="600" fill="#1D1D1F">π0.5</text>
+    <text x="56" y="288" font-size="27" fill="#1D1D1F">看画面、听指令，</text>
+    <text x="56" y="328" font-size="27" fill="#1D1D1F">决定下一步怎么动</text>
+    <text x="56" y="508" font-size="20" fill="#6E6E73">换成别的 VLA、</text>
+    <text x="56" y="538" font-size="20" fill="#6E6E73">或者写死的脚本也行</text>
+
+    <rect x="640" y="10" width="940" height="600" rx="26" fill="#F5F5F7"/>
+    <text x="676" y="58" font-size="22" font-weight="500" fill="#6E6E73" letter-spacing="2">仿真</text>
+    <rect x="668" y="84" width="884" height="148" rx="18" fill="#FFFFFF"/>
+    <text x="704" y="148" font-size="34" font-weight="600" fill="#1D1D1F">LIBERO</text>
+    <text x="704" y="190" font-size="20" fill="#6E6E73">benchmark</text>
+    <text x="930" y="148" font-size="28" fill="#1D1D1F">出题、判卷</text>
+    <text x="930" y="190" font-size="20" fill="#6E6E73">130 道题：摆什么、摆在哪、怎样算成功 · 每一步判一次</text>
+    <rect x="668" y="268" width="884" height="148" rx="18" fill="#FFFFFF"/>
+    <text x="704" y="332" font-size="34" font-weight="600" fill="#1D1D1F">robosuite</text>
+    <text x="704" y="374" font-size="20" fill="#6E6E73">机器人框架</text>
+    <text x="930" y="332" font-size="28" fill="#1D1D1F">机器人、控制器、相机</text>
+    <text x="930" y="374" font-size="20" fill="#6E6E73">Franka 机械臂 · 动作 → 关节力矩 · 两台相机</text>
+    <rect x="668" y="452" width="884" height="148" rx="18" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+    <text x="704" y="516" font-size="34" font-weight="600" fill="#0071E3">MuJoCo</text>
+    <text x="704" y="558" font-size="20" fill="#0071E3">物理引擎</text>
+    <text x="930" y="516" font-size="28" fill="#0071E3">算物理、出画面</text>
+    <text x="930" y="558" font-size="20" fill="#1D1D1F">每 2 毫秒：碰撞 → 受力 → 积分 · 虚拟相机渲染</text>
+    <g stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)">
+      <line x1="760" y1="236" x2="760" y2="262"/><line x1="760" y1="420" x2="760" y2="446"/>
+    </g>
+
+    <line x1="366" y1="158" x2="660" y2="158" stroke="#0071E3" stroke-width="4" marker-end="url(#arB)"/>
+    <text x="512" y="124" text-anchor="middle" font-size="28" font-weight="600" fill="#0071E3">动作</text>
+    <text x="512" y="200" text-anchor="middle" font-size="20" fill="#1D1D1F">7 个数，每 0.05 秒一个</text>
+    <text x="512" y="342" text-anchor="middle" font-size="28" font-weight="600" fill="#1D1D1F">观测</text>
+    <image href="media/libero_agentview.png" x="398" y="362" width="108" height="108" clip-path="url(#ov1)" preserveAspectRatio="xMidYMid slice"/>
+    <image href="media/libero_wrist.png" x="518" y="362" width="108" height="108" clip-path="url(#ov2)" preserveAspectRatio="xMidYMid slice"/>
+    <line x1="660" y1="526" x2="372" y2="526" stroke="#8E8E93" stroke-width="4" marker-end="url(#ar)"/>
+    <text x="512" y="568" text-anchor="middle" font-size="20" fill="#1D1D1F">两张图 + 机器人状态</text>
+  </svg></div>
+</section>
+
+<!-- ===== 5 过渡：MuJoCo ===== -->
+<section class="slide divider" data-sec="01 MuJoCo" data-title="过渡：MuJoCo">
+  <div class="num">01</div>
+  <div class="word">MuJoCo</div>
+</section>
+
+<!-- ===== 6 MuJoCo 是什么 ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="MuJoCo 是什么">
+  <div class="kicker"><b>01</b>MuJoCo · 基本情况</div>
+  <h1>MuJoCo：<span class="thin">带接触的多关节动力学</span></h1>
+  <div class="stats six">
+    <div class="stat text"><div class="n">Multi-Joint dynamics <span class="acc">with Contact</span></div><div class="l">名字就是它干的事</div></div>
+    <div class="stat"><div class="n mid">2012</div><div class="l">Todorov 等 · IROS 论文<br><b>为「基于模型的控制」设计的物理引擎</b></div></div>
+    <div class="stat"><div class="n mid">2021 <small>/ 2022</small></div><div class="l">DeepMind 收购 / 开源（Apache 2.0）</div></div>
+    <div class="stat"><div class="n mid">0.002 <small>秒</small></div><div class="l">默认一步的时长</div></div>
+    <div class="stat text"><div class="n">robosuite → <span class="acc">LIBERO</span>、RoboCasa</div><div class="l">还有 Meta-World、DeepMind Control Suite</div></div>
+    <div class="stat text"><div class="n">pip install mujoco</div><div class="l">官方 Python 包，我们用的 3.2.3</div></div>
+  </div>
+</section>
+
+<!-- ===== 7 四样东西 ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="MJCF → mjModel + mjData → mj_step">
+  <div class="kicker"><b>01</b>MuJoCo · 核心定义</div>
+  <h1>MJCF <span class="thin">→</span> mjModel + mjData <span class="thin">→</span> <span class="acc">mj_step</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <rect x="20" y="175" width="300" height="200" rx="18" fill="#F5F5F7"/>
+    <text x="170" y="236" text-anchor="middle" font-size="34" font-weight="600" fill="#1D1D1F" class="mono">MJCF</text>
+    <text x="170" y="274" text-anchor="middle" font-size="22" fill="#1D1D1F">XML 场景文件</text>
+    <text x="170" y="312" text-anchor="middle" font-size="19" fill="#6E6E73">body · joint · geom</text>
+    <text x="170" y="340" text-anchor="middle" font-size="19" fill="#6E6E73">actuator · camera · light</text>
+    <text x="344" y="262" text-anchor="middle" font-size="20" fill="#6E6E73">编译</text>
+    <path d="M320 275 H 368 V 145 H 414" fill="none" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+    <path d="M368 275 V 415 H 414" fill="none" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+    <rect x="420" y="60" width="440" height="170" rx="18" fill="#F5F5F7"/>
+    <text x="450" y="112" font-size="32" font-weight="600" fill="#1D1D1F" class="mono">mjModel</text>
+    <text x="680" y="112" font-size="24" fill="#1D1D1F">不随时间变</text>
+    <text x="450" y="160" font-size="20" fill="#6E6E73">质量、尺寸、形状、关节能转多少</text>
+    <text x="450" y="194" font-size="20" fill="#6E6E73">柜子摆在哪、一步多长（Δt）</text>
+    <rect x="420" y="330" width="440" height="170" rx="18" fill="#F5F5F7"/>
+    <text x="450" y="382" font-size="32" font-weight="600" fill="#1D1D1F" class="mono">mjData</text>
+    <text x="680" y="382" font-size="24" fill="#1D1D1F">随时间变</text>
+    <text x="450" y="430" font-size="20" fill="#6E6E73">位置 qpos、速度 qvel、电机指令 ctrl</text>
+    <text x="450" y="464" font-size="20" fill="#6E6E73">这一刻的接触、时间</text>
+    <path d="M860 145 H 920 V 250 H 974" fill="none" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+    <path d="M860 415 H 920 V 300 H 974" fill="none" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+    <rect x="980" y="195" width="320" height="160" rx="18" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+    <text x="1140" y="256" text-anchor="middle" font-size="36" font-weight="600" fill="#0071E3" class="mono">mj_step</text>
+    <text x="1140" y="296" text-anchor="middle" font-size="20" fill="#1D1D1F">读 mjModel，改写 mjData</text>
+    <text x="1140" y="326" text-anchor="middle" font-size="20" fill="#1D1D1F">时间往前推一个 Δt</text>
+    <path d="M1140 355 V 470 H 866" fill="none" stroke="#0071E3" stroke-width="3" marker-end="url(#arB)"/>
+    <text x="1004" y="505" text-anchor="middle" font-size="20" fill="#0071E3">写回新的状态，下一步接着推</text>
+    <text x="1460" y="175" text-anchor="middle" font-size="18" fill="#A1A1A6">另一个常用函数</text>
+    <rect x="1350" y="195" width="220" height="160" rx="18" fill="#FFFFFF" stroke="#A1A1A6" stroke-width="2" stroke-dasharray="7 5"/>
+    <text x="1460" y="256" text-anchor="middle" font-size="28" font-weight="600" fill="#1D1D1F" class="mono">mj_forward</text>
+    <text x="1460" y="296" text-anchor="middle" font-size="19" fill="#6E6E73">只重算位置、接触</text>
+    <text x="1460" y="326" text-anchor="middle" font-size="19" fill="#6E6E73">不推进时间</text>
+  </svg></div>
+</section>
+
+<!-- ===== 8 小球的 MJCF ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="小球的场景文件">
+  <div class="kicker"><b>01</b>MuJoCo · config · 我们的小球例子</div>
+  <h1>小球的场景文件：<span class="thin">一块地板、一个球、一盏灯</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <defs><clipPath id="balltall"><rect x="1270" y="10" width="316" height="562" rx="18"/></clipPath></defs>
+    <g stroke="#C7C7CC" stroke-width="2" fill="none">
+      <path d="M58 70 V 185 M58 115 H 90 M58 185 H 90"/>
+      <path d="M108 210 V 395 M108 255 H 140 M108 325 H 140 M108 395 H 140"/>
+      <path d="M158 420 V 535 M158 465 H 190 M158 535 H 190"/>
+    </g>
+    <g font-size="22" class="mono">
+      <rect x="40" y="20" width="150" height="50" rx="12" fill="#F5F5F7"/><text x="58" y="53" fill="#1D1D1F">&lt;mujoco&gt;</text>
+      <rect x="90" y="90" width="392" height="50" rx="12" fill="#F5F5F7"/><text x="108" y="123" fill="#1D1D1F">&lt;option timestep="0.002"/&gt;</text>
+      <rect x="90" y="160" width="190" height="50" rx="12" fill="#F5F5F7"/><text x="108" y="193" fill="#1D1D1F">&lt;worldbody&gt;</text>
+      <rect x="140" y="230" width="312" height="50" rx="12" fill="#F5F5F7"/><text x="158" y="263" fill="#1D1D1F">&lt;light pos="0 0 3"/&gt;</text>
+      <rect x="140" y="300" width="512" height="50" rx="12" fill="#F5F5F7"/><text x="158" y="333" fill="#1D1D1F">&lt;geom type="plane" size="1 1 0.1"/&gt;</text>
+      <rect x="140" y="370" width="444" height="50" rx="12" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/><text x="158" y="403" fill="#0071E3" font-weight="600">&lt;body name="ball" pos="0 0 1"&gt;</text>
+      <rect x="190" y="440" width="206" height="50" rx="12" fill="#F5F5F7"/><text x="208" y="473" fill="#1D1D1F">&lt;freejoint/&gt;</text>
+      <rect x="190" y="510" width="605" height="50" rx="12" fill="#F5F5F7"/><text x="208" y="543" fill="#1D1D1F">&lt;geom type="sphere" size="0.05" mass="0.1"/&gt;</text>
+    </g>
+    <g font-size="22" fill="#6E6E73">
+      <text x="830" y="53">一份场景文件</text>
+      <text x="830" y="123">每一步 2 毫秒</text>
+      <text x="830" y="193">世界里有什么</text>
+      <text x="830" y="263">一盏灯，3 米高</text>
+      <text x="830" y="333">地板：一个平面</text>
+      <text x="830" y="403" fill="#0071E3" font-weight="600">小球：一个刚体，放在 1 米高</text>
+      <text x="830" y="473">自由关节：能平移、能转</text>
+      <text x="830" y="543">形状：半径 5 厘米，0.1 千克</text>
+    </g>
+    <image href="media/ball_tall_start.png" x="1270" y="10" width="316" height="562" preserveAspectRatio="xMidYMid slice" clip-path="url(#balltall)"/>
+  </svg></div>
+</section>
+
+<!-- ===== 9 仿真器每一步 ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="仿真器每一步做的事">
+  <div class="kicker"><b>01</b>MuJoCo · 物理引擎的一步</div>
+  <h1>把时间切成 2 毫秒一段，<span class="acc">一段一段往前算</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 580" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <g font-size="20" fill="#6E6E73" font-weight="500" letter-spacing="2"><text x="30" y="36">物理：每一步都做</text></g>
+    <rect x="30" y="66" width="250" height="138" rx="18" fill="#FFFFFF" stroke="#A1A1A6" stroke-width="2"/>
+    <text x="155" y="122" text-anchor="middle" font-size="28" font-weight="600" fill="#1D1D1F">状态</text>
+    <text x="155" y="158" text-anchor="middle" font-size="19" fill="#6E6E73">位置 qpos · 速度 qvel</text>
+    <text x="155" y="186" text-anchor="middle" font-size="19" fill="#6E6E73">时刻 t</text>
+    <rect x="350" y="66" width="270" height="138" rx="18" fill="#F5F5F7"/>
+    <text x="485" y="122" text-anchor="middle" font-size="26" font-weight="600" fill="#1D1D1F">① 碰撞检测</text>
+    <text x="485" y="158" text-anchor="middle" font-size="19" fill="#6E6E73">哪些形状碰上了</text>
+    <text x="485" y="186" text-anchor="middle" font-size="19" fill="#6E6E73">插进去多深</text>
+    <rect x="690" y="66" width="270" height="138" rx="18" fill="#F5F5F7"/>
+    <text x="825" y="122" text-anchor="middle" font-size="26" font-weight="600" fill="#1D1D1F">② 受力 → 加速度</text>
+    <text x="825" y="158" text-anchor="middle" font-size="19" fill="#6E6E73">重力 + 电机 + 接触力</text>
+    <text x="825" y="186" text-anchor="middle" font-size="19" fill="#6E6E73">牛顿第二定律</text>
+    <rect x="1030" y="66" width="270" height="138" rx="18" fill="#F5F5F7"/>
+    <text x="1165" y="122" text-anchor="middle" font-size="26" font-weight="600" fill="#1D1D1F">③ 积分</text>
+    <text x="1165" y="158" text-anchor="middle" font-size="19" fill="#6E6E73">速度 += 加速度 × Δt</text>
+    <text x="1165" y="186" text-anchor="middle" font-size="19" fill="#6E6E73">位置 += 速度 × Δt</text>
+    <rect x="1370" y="66" width="210" height="138" rx="18" fill="#FFFFFF" stroke="#A1A1A6" stroke-width="2"/>
+    <text x="1475" y="122" text-anchor="middle" font-size="28" font-weight="600" fill="#1D1D1F">新状态</text>
+    <text x="1475" y="158" text-anchor="middle" font-size="19" fill="#6E6E73">时刻 t + Δt</text>
+    <g stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)">
+      <line x1="284" y1="135" x2="344" y2="135"/><line x1="624" y1="135" x2="684" y2="135"/>
+      <line x1="964" y1="135" x2="1024" y2="135"/><line x1="1304" y1="135" x2="1364" y2="135"/>
+    </g>
+    <path d="M1475 208 V 290 H 155 V 214" fill="none" stroke="#0071E3" stroke-width="4" marker-end="url(#arB)"/>
+    <text x="815" y="338" text-anchor="middle" font-size="28" font-weight="600" fill="#0071E3">Δt = 0.002 秒，一秒重复 500 次</text>
+    <g font-size="20" fill="#6E6E73" font-weight="500" letter-spacing="2"><text x="30" y="420">需要时才做</text></g>
+    <text x="30" y="456" font-size="19" fill="#A1A1A6">LIBERO 里</text>
+    <text x="30" y="482" font-size="19" fill="#A1A1A6">每 50 毫秒一次</text>
+    <rect x="350" y="400" width="520" height="130" rx="18" fill="#FFFFFF" stroke="#A1A1A6" stroke-width="2" stroke-dasharray="7 5"/>
+    <text x="380" y="452" font-size="26" font-weight="600" fill="#1D1D1F">渲染：虚拟相机 → 一张图</text>
+    <text x="380" y="492" font-size="19" fill="#6E6E73">服务器没有显示器，用 EGL 在显卡上离屏画</text>
+    <rect x="930" y="400" width="520" height="130" rx="18" fill="#FFFFFF" stroke="#A1A1A6" stroke-width="2" stroke-dasharray="7 5"/>
+    <text x="960" y="452" font-size="26" font-weight="600" fill="#1D1D1F">判定：任务条件成立了吗</text>
+    <text x="960" y="492" font-size="19" fill="#6E6E73">比如：碗在不在盘子上 → 成功 / 没成功</text>
+  </svg></div>
+</section>
+
+<!-- ===== 10 开动以后：每一步怎么算 ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="开动以后：每一步怎么算">
+  <div class="kicker"><b>01</b>MuJoCo · 小球落地 · 每个数都是仿真里读出来的</div>
+  <h1>开动以后：<span class="thin">每 2 毫秒把这四步算一遍</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 604" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <g font-size="20" fill="#6E6E73" font-weight="500" letter-spacing="2">
+      <text x="350" y="22">① 碰撞检测</text><text x="650" y="22">② 受力</text><text x="960" y="22">③ 加速度</text><text x="1190" y="22">④ 积分：更新速度 v、高度 z</text>
+    </g>
+    <line x1="0" y1="38" x2="1600" y2="38" stroke="#E5E5EA" stroke-width="1.5"/>
+
+    <!-- 第 1 步：在空中 -->
+    <line x1="70" y1="50" x2="70" y2="64" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+    <text x="84" y="62" font-size="16" fill="#6E6E73">0.98 N</text>
+    <circle cx="70" cy="94" r="24" fill="#F5F5F7" stroke="#8E8E93" stroke-width="2"/>
+    <line x1="20" y1="188" x2="120" y2="188" stroke="#8E8E93" stroke-width="3"/>
+    <text x="140" y="104" font-size="28" font-weight="600" fill="#1D1D1F">第 1 步</text>
+    <text x="140" y="134" font-size="18" fill="#6E6E73">t = 0 s</text>
+    <text x="140" y="160" font-size="18" fill="#6E6E73">在空中</text>
+    <text x="350" y="104" font-size="20" fill="#6E6E73">球底离地 95 cm</text>
+    <text x="350" y="144" font-size="26" font-weight="600" fill="#1D1D1F">没碰上</text>
+    <text x="650" y="104" font-size="20" fill="#6E6E73">只有重力</text>
+    <text x="650" y="144" font-size="24" fill="#1D1D1F">0.1 × 9.81 = 0.98 N ↓</text>
+    <text x="960" y="104" font-size="20" fill="#6E6E73">a = 力 ÷ 质量</text>
+    <text x="960" y="144" font-size="26" font-weight="600" fill="#1D1D1F">−9.81 m/s²</text>
+    <text x="1190" y="104" font-size="21" fill="#1D1D1F">v = 0 − 9.81 × 0.002 = −0.0196 m/s</text>
+    <text x="1190" y="144" font-size="21" fill="#1D1D1F">z = 1 − 0.0196 × 0.002 = 0.99996 m</text>
+
+    <line x1="0" y1="206" x2="1600" y2="206" stroke="#E5E5EA" stroke-width="1.5"/>
+    <text x="140" y="234" font-size="20" fill="#6E6E73">⋮　同样的四步重复到第 220 步：v 变成 −4.32 m/s，z 掉到 4.61 cm</text>
+
+    <!-- 第 221 步：刚碰到地面 -->
+    <line x1="70" y1="258" x2="70" y2="274" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+    <text x="84" y="272" font-size="16" fill="#6E6E73">0.98 N</text>
+    <circle cx="70" cy="304" r="24" fill="#F5F5F7" stroke="#8E8E93" stroke-width="2"/>
+    <line x1="20" y1="326" x2="120" y2="326" stroke="#8E8E93" stroke-width="3"/>
+    <line x1="70" y1="384" x2="70" y2="336" stroke="#0071E3" stroke-width="4" marker-end="url(#arB)"/>
+    <text x="84" y="378" font-size="18" font-weight="600" fill="#0071E3">45 N</text>
+    <text x="140" y="300" font-size="28" font-weight="600" fill="#1D1D1F">第 221 步</text>
+    <text x="140" y="330" font-size="18" fill="#6E6E73">t = 0.440 s</text>
+    <text x="140" y="356" font-size="18" fill="#6E6E73">刚碰到地面</text>
+    <text x="350" y="300" font-size="20" fill="#6E6E73">球心 4.61 cm &lt; 半径 5 cm</text>
+    <text x="350" y="340" font-size="26" font-weight="600" fill="#1D1D1F">插进地面 3.9 mm</text>
+    <text x="650" y="300" font-size="20" fill="#6E6E73">重力 0.98 N ↓ ＋ 地面推力 ↑</text>
+    <text x="650" y="340" font-size="26" font-weight="600" fill="#0071E3">推力 45.1 N ↑</text>
+    <text x="650" y="370" font-size="18" fill="#0071E3">是重力的 46 倍</text>
+    <text x="960" y="300" font-size="20" fill="#6E6E73">(45.1 − 0.98) ÷ 0.1</text>
+    <text x="960" y="340" font-size="26" font-weight="600" fill="#1D1D1F">+441 m/s² ↑</text>
+    <text x="1190" y="300" font-size="21" fill="#1D1D1F">v = −4.32 + 441 × 0.002 = −3.43 m/s</text>
+    <text x="1190" y="340" font-size="21" fill="#1D1D1F">z = 4.61 cm − 0.69 cm = 3.92 cm</text>
+
+    <line x1="0" y1="404" x2="1600" y2="404" stroke="#E5E5EA" stroke-width="1.5"/>
+    <text x="140" y="432" font-size="20" fill="#6E6E73">⋮　地面每一步接着往上推：到第 230 步速度刹到 0，这时插得最深 2.9 cm；之后退回来，慢慢停住</text>
+
+    <!-- 第 500 步：停住了 -->
+    <line x1="70" y1="456" x2="70" y2="472" stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)"/>
+    <text x="84" y="470" font-size="16" fill="#6E6E73">0.98 N</text>
+    <circle cx="70" cy="502" r="24" fill="#F5F5F7" stroke="#8E8E93" stroke-width="2"/>
+    <line x1="20" y1="526" x2="120" y2="526" stroke="#8E8E93" stroke-width="3"/>
+    <line x1="70" y1="576" x2="70" y2="536" stroke="#1D1D1F" stroke-width="3" marker-end="url(#arK)"/>
+    <text x="84" y="570" font-size="16" fill="#1D1D1F">0.98 N</text>
+    <text x="140" y="498" font-size="28" font-weight="600" fill="#1D1D1F">第 500 步</text>
+    <text x="140" y="528" font-size="18" fill="#6E6E73">t = 1 s</text>
+    <text x="140" y="554" font-size="18" fill="#6E6E73">停住了</text>
+    <text x="350" y="498" font-size="20" fill="#6E6E73">还插着一点点</text>
+    <text x="350" y="538" font-size="26" font-weight="600" fill="#1D1D1F">0.37 mm</text>
+    <text x="650" y="498" font-size="20" fill="#6E6E73">地面推力 = 重力</text>
+    <text x="650" y="538" font-size="24" fill="#1D1D1F">0.98 N ↑ ＝ 0.98 N ↓</text>
+    <text x="960" y="498" font-size="20" fill="#6E6E73">合力为 0</text>
+    <text x="960" y="538" font-size="26" font-weight="600" fill="#1D1D1F">0</text>
+    <text x="1190" y="498" font-size="21" fill="#1D1D1F">v = 0</text>
+    <text x="1190" y="538" font-size="21" fill="#1D1D1F">z 不变：4.96 cm</text>
+  </svg></div>
+</section>
+
+<!-- ===== 11 碰撞网格 vs 视觉网格 ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="物理用的形状 vs 相机拍的外观">
+  <div class="kicker"><b>01</b>MuJoCo · LIBERO 场景 · 同一时刻、同一机位 · 左：只画参与碰撞的形状 · 右：只画外观网格</div>
+  <h1>物理算的是简化形状，<span class="thin">相机拍的是外观</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/libero_scene_collision.png" alt=""></div>
+    <div class="fig card"><img src="media/libero_scene.png" alt=""></div>
+  </div>
+</section>
+
+<!-- ===== 12 碗的特写 ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="碗在物理引擎眼里">
+  <div class="kicker"><b>01</b>MuJoCo · 同一只黑碗 · 左：参与碰撞的形状 · 右：外观网格</div>
+  <h1>物理引擎眼里的碗，<span class="acc">是 40 个小方块拼的</span></h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/bowl_collision.png" alt=""></div>
+    <div class="fig card"><img src="media/bowl_visual.png" alt=""></div>
+  </div>
+</section>
+
+<!-- ===== 13 场景里的 joint ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="LIBERO 场景里的 joint 和 site">
+  <div class="kicker"><b>01</b>MuJoCo · 核心定义 · LIBERO 场景一共 18 个 joint</div>
+  <h1>能动的东西，<span class="thin">都是 body 加一种 joint</span></h1>
+  <div class="diagbox pad"><!--BEGIN:scene--><svg class="sv" viewBox="430 20 1690 800" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<defs><clipPath id="sceneclip"><rect x="430" y="20" width="1100" height="800" rx="22"/></clipPath></defs>
+<image href="media/libero_scene.png" x="0" y="0" width="1920" height="1080" clip-path="url(#sceneclip)"/>
+<circle cx="1228" cy="253" r="9" fill="#0071E3" stroke="#fff" stroke-width="3"/>
+<circle cx="989" cy="147" r="9" fill="#0071E3" stroke="#fff" stroke-width="3"/>
+<circle cx="919" cy="156" r="9" fill="#0071E3" stroke="#fff" stroke-width="3"/>
+<circle cx="1262" cy="223" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1262" y="230" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">1</text>
+<circle cx="928" cy="314" r="9" fill="#0071E3" stroke="#fff" stroke-width="3"/>
+<circle cx="888" cy="306" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="888" y="312" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">2</text>
+<circle cx="942" cy="702" r="9" fill="#0071E3" stroke="#fff" stroke-width="3"/>
+<circle cx="1127" cy="710" r="9" fill="#0071E3" stroke="#fff" stroke-width="3"/>
+<circle cx="839" cy="737" r="9" fill="#0071E3" stroke="#fff" stroke-width="3"/>
+<circle cx="736" cy="663" r="9" fill="#0071E3" stroke="#fff" stroke-width="3"/>
+<circle cx="1040" cy="659" r="9" fill="#0071E3" stroke="#fff" stroke-width="3"/>
+<circle cx="942" cy="746" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="942" y="754" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">3</text>
+<circle cx="628" cy="505" r="9" fill="#0071E3" stroke="#fff" stroke-width="3"/>
+<circle cx="584" cy="505" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="584" y="512" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">4</text>
+<circle cx="993" cy="526" r="9" fill="#0071E3" stroke="#fff" stroke-width="3"/>
+<circle cx="1033" cy="500" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1033" y="507" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">5</text>
+<circle cx="930" cy="355" r="9" fill="#0071E3" stroke="#fff" stroke-width="3"/>
+<circle cx="890" cy="381" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="890" y="388" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">6</text>
+<text x="1570" y="94" font-size="24" fill="#6E6E73" font-weight="500" letter-spacing="2">joint 只有四种：hinge · slide · ball · free</text>
+<circle cx="1588" cy="158" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1588" y="165" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">1</text>
+<text x="1620" y="168" font-size="32" font-weight="600" fill="#1D1D1F" class="mono">hinge × 7</text>
+<text x="1620" y="208" font-size="24" fill="#6E6E73">机械臂的 7 个关节：只能转，各占 1 个数</text>
+<circle cx="1588" cy="262" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1588" y="269" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">2</text>
+<text x="1620" y="272" font-size="32" font-weight="600" fill="#1D1D1F" class="mono">slide × 2</text>
+<text x="1620" y="312" font-size="24" fill="#6E6E73">两根手指：只能滑，各占 1 个数</text>
+<circle cx="1588" cy="366" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1588" y="373" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">3</text>
+<text x="1620" y="376" font-size="32" font-weight="600" fill="#1D1D1F" class="mono">free × 5</text>
+<text x="1620" y="416" font-size="24" fill="#6E6E73">碗、盘子、饼干盒、小瓷碗：各占 7 个数</text>
+<circle cx="1588" cy="470" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1588" y="477" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">4</text>
+<text x="1620" y="480" font-size="32" font-weight="600" fill="#1D1D1F" class="mono">slide × 3</text>
+<text x="1620" y="520" font-size="24" fill="#6E6E73">柜子的三个抽屉：能拉出来</text>
+<circle cx="1588" cy="574" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1588" y="581" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">5</text>
+<text x="1620" y="584" font-size="32" font-weight="600" fill="#1D1D1F" class="mono">hinge × 1</text>
+<text x="1620" y="624" font-size="24" fill="#6E6E73">灶台旋钮：能拧</text>
+<circle cx="1588" cy="678" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1588" y="685" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">6</text>
+<text x="1620" y="688" font-size="32" font-weight="600" fill="#1D1D1F" class="mono">site</text>
+<text x="1620" y="728" font-size="24" fill="#6E6E73">grip_site：手的参考点，不参与碰撞</text>
+</svg><!--END:scene--></div>
+</section>
+
+<!-- ===== 14 小球的状态 ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="小球的状态：qpos 7、qvel 6">
+  <div class="kicker"><b>01</b>MuJoCo · 核心定义 · 小球开局那一刻</div>
+  <h1>小球的状态：<span class="acc">qpos 7 个数</span>，qvel 6 个数</h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 520" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <g id="qcells"></g>
+  </svg></div>
+</section>
+
+<!-- ===== 15 LIBERO 的 qpos ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="LIBERO 场景：qpos 48、存档 92">
+  <div class="kicker"><b>01</b>MuJoCo · 同一套表示放大到机器人场景 · libero_spatial 第 0 题实测</div>
+  <h1>换成 LIBERO 场景：<span class="thin">qpos 48 个数，开局存档</span> <span class="acc">92</span> <span class="thin">个数</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 480" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <g id="nqbar"></g>
+  </svg></div>
+</section>
+
+<!-- ===== 16 小球落地视频 ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="小球落地（视频）">
+  <div class="kicker"><b>01</b>MuJoCo · 自己跑的 · 0.25 倍速</div>
+  <h1>0.44 秒碰到地面，<span class="thin">和自由落体公式一样</span></h1>
+  <div class="fig card"><video muted loop playsinline preload="auto" src="media/ball_drop.mp4"></video></div>
+</section>
+
+<!-- ===== 17 小球的几个数 ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="小球的几个数">
+  <div class="kicker"><b>01</b>MuJoCo · 同一段仿真里读出来的</div>
+  <h1>接触是软的：<span class="thin">撞地会陷进去一点</span></h1>
+  <div class="stats six">
+    <div class="stat"><div class="n mid">0.44 <small>秒</small></div><div class="l">第一次碰到地面<br>公式 √(2 × 0.95 / 9.81) = 0.440 秒</div></div>
+    <div class="stat"><div class="n mid">2.9 <small>厘米</small></div><div class="l">撞地那一下陷进地面的深度<br>球半径才 5 厘米</div></div>
+    <div class="stat"><div class="n mid">0.37 <small>毫米</small></div><div class="l">停稳以后还陷着的深度</div></div>
+    <div class="stat text"><div class="n">不弹</div><div class="l">默认接触带阻尼，落地就停<br>想让它弹要改接触参数</div></div>
+    <div class="stat"><div class="n mid">2 <small>毫秒</small></div><div class="l">算完这 1 秒（500 步）用的时间<br>比真实时间快几百倍</div></div>
+    <div class="stat dim"><div class="n mid">1 0 0 0</div><div class="l">四元数全程没变：球是竖直掉下来的，没转</div></div>
+  </div>
+</section>
+
+<!-- ===== 18 步长对比 ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="步长 0.002 vs 0.05（视频）">
+  <div class="kicker"><b>01</b>MuJoCo · 同一个场景只改 timestep · 地面画成半透明 · 0.25 倍速</div>
+  <h1>步长改成 0.05 秒，<span class="acc">球整个钻进地面</span></h1>
+  <div class="fig card"><video muted loop playsinline preload="auto" src="media/ball_dt.mp4"></video></div>
+</section>
+
+<!-- ===== 19 仿真是近似 ===== -->
+<section class="slide" data-sec="01 MuJoCo" data-title="仿真是近似">
+  <div class="kicker"><b>01</b>MuJoCo · 小结</div>
+  <h1>仿真是近似</h1>
+  <div class="bigline tight">
+    <div class="row"><span class="thin">接触是软的：</span>撞地陷 2.9 厘米，停下还陷 0.37 毫米</div>
+    <div class="row"><span class="thin">步长要小：</span>0.05 秒一步，球钻进地面 10 厘米</div>
+    <div class="row"><span class="thin">参数是人填的：</span>质量、摩擦、接触软硬</div>
+    <div class="row"><span class="thin">画面是算出来的：</span>光照、材质都简化过</div>
+    <div class="row small">仿真和真实世界之间的这些差距，统称 <b style="color:var(--accent);font-weight:600">sim-to-real gap</b></div>
+  </div>
+</section>
+
+<!-- ===== 20 过渡：LIBERO ===== -->
+<section class="slide divider" data-sec="02 LIBERO" data-title="过渡：LIBERO">
+  <div class="num">02</div>
+  <div class="word">LIBERO</div>
+</section>
+
+<!-- ===== 21 LIBERO 基本情况 ===== -->
+<section class="slide" data-sec="02 LIBERO" data-title="LIBERO 基本情况">
+  <div class="kicker"><b>02</b>LIBERO · UT Austin 等 · NeurIPS 2023 数据集与 benchmark 赛道</div>
+  <h1>LIBERO：<span class="thin">VLA 论文最常用的仿真考试</span></h1>
+  <div class="stats six">
+    <div class="stat"><div class="n mid">130 <small>道题</small></div><div class="l">一句指令 + 一个场景 + 一个成功条件</div></div>
+    <div class="stat"><div class="n mid">4 × 10</div><div class="l">VLA 论文用的四组：<br><b>Spatial / Object / Goal / Long</b></div></div>
+    <div class="stat"><div class="n mid">50 <small>条</small></div><div class="l">每道题的人类示范<br>人用 3D 鼠标遥控录的</div></div>
+    <div class="stat"><div class="n mid">50 <small>个</small></div><div class="l">每道题的固定开局<br>第 i 局就用第 i 个</div></div>
+    <div class="stat text"><div class="n">Franka Panda <span class="acc">单臂</span></div><div class="l">每秒 20 步，每步 7 个数</div></div>
+    <div class="stat"><div class="n mid">96.85<small>%</small></div><div class="l">π0.5 四组平均，已经刷满</div></div>
+  </div>
+</section>
+
+<!-- ===== 22 三层 ===== -->
+<section class="slide" data-sec="02 LIBERO" data-title="三层：LIBERO / robosuite / MuJoCo">
+  <div class="kicker"><b>02</b>LIBERO · 读代码 · 行数是我们拉下来的这两份代码</div>
+  <h1>LIBERO 不算物理：<span class="thin">真正算物理的只有最底下一层</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 610" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <g font-size="19" fill="#A1A1A6" text-anchor="end">
+      <text x="250" y="74">VLA / agent / 脚本</text>
+      <text x="250" y="224">仿真层 7,223 行 Python</text>
+      <text x="250" y="374">核心 10 个文件 ≈ 4,600 行</text>
+      <text x="250" y="524">C 语言写的引擎</text>
+    </g>
+    <rect x="290" y="20" width="1290" height="104" rx="18" fill="#FFFFFF" stroke="#A1A1A6" stroke-width="2" stroke-dasharray="7 5"/>
+    <text x="330" y="68" font-size="30" font-weight="600" fill="#1D1D1F">策略</text>
+    <text x="470" y="68" font-size="24" fill="#1D1D1F">看观测，每 0.05 秒给 7 个数</text>
+    <text x="470" y="102" font-size="19" fill="#6E6E73" class="mono">dx dy dz droll dpitch dyaw 夹爪</text>
+    <rect x="290" y="170" width="1290" height="104" rx="18" fill="#F5F5F7"/>
+    <text x="330" y="218" font-size="30" font-weight="600" fill="#1D1D1F">LIBERO</text>
+    <text x="520" y="218" font-size="24" fill="#1D1D1F">出题、判卷</text>
+    <text x="520" y="252" font-size="19" fill="#6E6E73">读 BDDL 题目文件 → 摆场景、读固定开局 · 每一步判一次成没成功</text>
+    <rect x="290" y="320" width="1290" height="104" rx="18" fill="#F5F5F7"/>
+    <text x="330" y="368" font-size="30" font-weight="600" fill="#1D1D1F">robosuite</text>
+    <text x="520" y="368" font-size="24" fill="#1D1D1F">机器人、控制器、相机</text>
+    <text x="520" y="402" font-size="19" fill="#6E6E73">前 6 个数 → OSC 控制器 → 7 个关节力矩 · 第 7 个管夹爪 · 一步拆成 25 个子步 · 整理观测</text>
+    <rect x="290" y="470" width="1290" height="104" rx="18" fill="#E8F0FE" stroke="#0071E3" stroke-width="2"/>
+    <text x="330" y="518" font-size="30" font-weight="600" fill="#0071E3">MuJoCo</text>
+    <text x="520" y="518" font-size="24" fill="#0071E3">物理和出图</text>
+    <text x="520" y="552" font-size="19" fill="#1D1D1F">每 0.002 秒积分一次 · 碰撞和接触力 · 相机渲染</text>
+    <g stroke="#8E8E93" stroke-width="3" marker-end="url(#ar)">
+      <line x1="370" y1="126" x2="370" y2="164"/><line x1="370" y1="276" x2="370" y2="314"/><line x1="370" y1="426" x2="370" y2="464"/>
+    </g>
+    <g font-size="18" fill="#8E8E93" class="mono">
+      <text x="392" y="152">env.step(action)</text><text x="392" y="302">super().step()</text><text x="392" y="452">sim.step() × 25</text>
+    </g>
+  </svg></div>
+</section>
+
+<!-- ===== 23 BDDL ===== -->
+<section class="slide" data-sec="02 LIBERO" data-title="一道题 = 一份 BDDL">
+  <div class="kicker"><b>02</b>LIBERO · libero_spatial 第 0 题 · 俯视渲染 + BDDL 原文的区域坐标</div>
+  <h1>一道题 = 一份 BDDL：<span class="thin">摆什么、摆哪、怎样算对</span></h1>
+  <div class="diagbox pad"><!--BEGIN:bddl--><svg class="sv" viewBox="300 90 1500 800" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+<defs><clipPath id="topclip"><rect x="300" y="90" width="900" height="800" rx="22"/></clipPath></defs>
+<image href="media/libero_top.png" x="0" y="0" width="1440" height="1080" clip-path="url(#topclip)"/>
+<rect x="1054" y="618" width="22" height="22" rx="3" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="6 4"/>
+<rect x="631" y="752" width="22" height="22" rx="3" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="6 4"/>
+<rect x="709" y="507" width="22" height="56" rx="3" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="6 4"/>
+<rect x="709" y="830" width="22" height="22" rx="3" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="6 4"/>
+<rect x="932" y="551" width="22" height="22" rx="3" fill="rgba(0,113,227,.28)" stroke="#0071E3" stroke-width="3"/>
+<rect x="1065" y="406" width="22" height="22" rx="3" fill="rgba(0,113,227,.28)" stroke="#0071E3" stroke-width="3"/>
+<rect x="932" y="674" width="22" height="22" rx="3" fill="rgba(0,113,227,.28)" stroke="#0071E3" stroke-width="3"/>
+<rect x="932" y="384" width="22" height="22" rx="3" fill="rgba(0,113,227,.28)" stroke="#0071E3" stroke-width="3"/>
+<rect x="742" y="685" width="22" height="22" rx="3" fill="rgba(0,113,227,.28)" stroke="#0071E3" stroke-width="3"/>
+<rect x="408" y="640" width="22" height="22" rx="3" fill="rgba(0,113,227,.28)" stroke="#0071E3" stroke-width="3"/>
+<rect x="553" y="150" width="22" height="22" rx="3" fill="rgba(0,113,227,.28)" stroke="#0071E3" stroke-width="3"/>
+<path d="M 1015 555 C 1085 587, 1089 638, 1027 668" fill="none" stroke="#0071E3" stroke-width="5" marker-end="url(#arB)"/>
+<circle cx="970" cy="537" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="970" y="544" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">1</text>
+<circle cx="1104" cy="392" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1104" y="399" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">2</text>
+<circle cx="970" cy="660" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="970" y="667" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">3</text>
+<circle cx="970" cy="370" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="970" y="377" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">4</text>
+<circle cx="781" cy="671" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="781" y="678" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">5</text>
+<circle cx="446" cy="626" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="446" y="633" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">6</text>
+<circle cx="591" cy="136" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="591" y="143" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">7</text>
+<text x="1250" y="150" font-size="26" fill="#6E6E73" font-weight="500" letter-spacing="2">:regions 摆放区域 · 每个 2 cm 见方</text>
+<circle cx="1268" cy="203" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1268" y="210" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">1</text>
+<text x="1300" y="212" font-size="28" fill="#1D1D1F">黑碗 1（要拿的那只）</text>
+<circle cx="1268" cy="259" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1268" y="266" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">2</text>
+<text x="1300" y="268" font-size="28" fill="#1D1D1F">黑碗 2</text>
+<circle cx="1268" cy="315" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1268" y="322" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">3</text>
+<text x="1300" y="324" font-size="28" fill="#1D1D1F">盘子</text>
+<circle cx="1268" cy="371" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1268" y="378" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">4</text>
+<text x="1300" y="380" font-size="28" fill="#1D1D1F">小瓷碗 ramekin</text>
+<circle cx="1268" cy="427" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1268" y="434" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">5</text>
+<text x="1300" y="436" font-size="28" fill="#1D1D1F">饼干盒</text>
+<circle cx="1268" cy="483" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1268" y="490" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">6</text>
+<text x="1300" y="492" font-size="28" fill="#1D1D1F">柜子（朝向也在 152°–156° 里随机）</text>
+<circle cx="1268" cy="539" r="17" fill="#0071E3" stroke="#fff" stroke-width="3"/><text x="1268" y="546" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">7</text>
+<text x="1300" y="548" font-size="28" fill="#1D1D1F">灶台</text>
+<rect x="1256" y="576" width="24" height="24" rx="3" fill="none" stroke="#A1A1A6" stroke-width="3" stroke-dasharray="6 4"/>
+<text x="1300" y="598" font-size="26" fill="#6E6E73">虚线 4 个：给同组另外 9 道题用</text>
+<line x1="1250" y1="638" x2="1770" y2="638" stroke="#E5E5EA" stroke-width="1.5"/>
+<text x="1250" y="678" font-size="26" fill="#6E6E73" font-weight="500" letter-spacing="2">:goal 判卷标准</text>
+<text x="1250" y="726" font-size="32" fill="#0071E3" font-weight="600" class="mono">(On 黑碗1 盘子)</text>
+</svg><!--END:bddl--></div>
+</section>
+
+<!-- ===== 24 观测 ===== -->
+<section class="slide" data-sec="02 LIBERO" data-title="每一步的观测">
+  <div class="kicker"><b>02</b>LIBERO · 两台相机 · 相机真实视角 · 观测一共 32 项</div>
+  <h1>每一步交回来：<span class="thin">两张图、机器人读数、</span>物体坐标</h1>
+  <div class="fig2">
+    <div class="fig card"><img src="media/libero_agentview.png" alt=""></div>
+    <div class="fig card"><img src="media/libero_wrist.png" alt=""></div>
+  </div>
+</section>
+
+<!-- ===== 25 25 个子步 ===== -->
+<section class="slide" data-sec="02 LIBERO" data-title="动作 1 步 = 物理 25 步">
+  <div class="kicker"><b>02</b>LIBERO · robosuite 里一次 env.step</div>
+  <h1>动作走 1 步，<span class="acc">物理算 25 步</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 520" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <text x="40" y="160" font-size="34" font-weight="600" fill="#1D1D1F">动作</text>
+    <text x="40" y="196" font-size="20" fill="#6E6E73">每秒 20 个</text>
+    <text x="40" y="340" font-size="34" font-weight="600" fill="#0071E3">物理</text>
+    <text x="40" y="376" font-size="20" fill="#6E6E73">每秒 500 步</text>
+    <rect x="223" y="110" width="1154" height="96" rx="16" fill="#F5F5F7" stroke="#A1A1A6" stroke-width="2"/>
+    <text x="800" y="170" text-anchor="middle" font-size="28" fill="#1D1D1F">1 个动作：往哪挪、挪多快，管 50 毫秒</text>
+    <path d="M223 262 v-10 H263.4 v10" fill="none" stroke="#8E8E93" stroke-width="2"/>
+    <text x="276" y="262" font-size="22" fill="#1D1D1F">每格 2 毫秒：控制器算一次该怎么用力，MuJoCo 往前推一步</text>
+    <rect x="223.0" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="269.4" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="315.8" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="362.2" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="408.6" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="455.0" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="501.4" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="547.8" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="594.2" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="640.6" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="687.0" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="733.4" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="779.8" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="826.2" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="872.6" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="919.0" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="965.4" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="1011.8" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="1058.2" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="1104.6" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="1151.0" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="1197.4" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="1243.8" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="1290.2" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/><rect x="1336.6" y="300" width="40.4" height="88" rx="8" fill="#0071E3" opacity=".9"/>
+    <text x="243.2" y="420" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">1</text><text x="428.8" y="420" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">5</text><text x="660.8" y="420" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">10</text><text x="892.8" y="420" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">15</text><text x="1124.8" y="420" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">20</text><text x="1356.8" y="420" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">25</text>
+    <text x="223" y="462" font-size="20" fill="#A1A1A6" class="mono">0 ms</text>
+    <text x="1377" y="462" text-anchor="end" font-size="20" fill="#A1A1A6" class="mono">50 ms</text>
+    <line x1="1392" y1="344" x2="1432" y2="344" stroke="#1D1D1F" stroke-width="3" marker-end="url(#arK)"/>
+    <text x="1446" y="336" font-size="24" fill="#1D1D1F">拍照，</text>
+    <text x="1446" y="370" font-size="24" fill="#1D1D1F">交回模型</text>
+  </svg></div>
+</section>
+
+<!-- ===== 26 目标和手 ===== -->
+<section class="slide" data-sec="02 LIBERO" data-title="目标在前面，手被拽着追">
+  <div class="kicker"><b>02</b>LIBERO · π0.5 那一局第 23–29 步，x 方向实测 · 控制器 OSC</div>
+  <h1>目标放在前面 4.7 厘米，<span class="acc">手每步只走 1.2 厘米</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <text x="40" y="128" font-size="28" font-weight="600" fill="#1D1D1F">第 1 步</text>
+    <text x="40" y="160" font-size="19" fill="#6E6E73">0–50 毫秒</text>
+    <line x1="300" y1="120" x2="1500" y2="120" stroke="#EDEDF0" stroke-width="2"/>
+    <path d="M496.0 120 L512.0 111 L528.1 129 L544.1 111 L560.2 129 L576.2 111 L592.3 129 L608.3 111 L624.4 129 L640.4 111 L656.5 129 L672.5 111 L688.6 129 L704.6 111 L720.7 129 L736.7 111 L752.8 129 L768.8 111 L784.9 129 L800.9 111 L817.0 129 L833.0 111 L849.1 129 L865.1 111 L881.2 129 L897.2 111 L913.3 129 L929.3 111 L945.4 129 L961.4 111 L977.5 129 L993.5 120" fill="none" stroke="#0071E3" stroke-width="2.5" opacity=".45"/>
+    <circle cx="300" cy="120" r="14" fill="#FFFFFF" stroke="#8E8E93" stroke-width="3"/>
+    <circle cx="480.0" cy="120" r="14" fill="#1D1D1F"/>
+    <circle cx="1012.5" cy="120" r="17" fill="#E8F0FE" stroke="#0071E3" stroke-width="3"/><circle cx="1012.5" cy="120" r="5" fill="#0071E3"/>
+    <line x1="304" y1="156" x2="476.0" y2="156" stroke="#1D1D1F" stroke-width="3" marker-end="url(#arK)"/>
+    <text x="390.0" y="188" text-anchor="middle" font-size="22" font-weight="600" fill="#1D1D1F">手走了 1.2 厘米</text>
+    <text x="753.8" y="156" text-anchor="middle" font-size="20" fill="#0071E3">离目标差得越多，拉得越使劲</text>
+    <text x="1012.5" y="86" text-anchor="middle" font-size="22" fill="#0071E3">目标：手的位置 + 5 厘米 × 0.95</text>
+    <text x="300" y="86" text-anchor="middle" font-size="20" fill="#6E6E73">手</text>
+    <text x="40" y="278" font-size="28" font-weight="600" fill="#1D1D1F">第 2 步</text>
+    <text x="40" y="310" font-size="19" fill="#6E6E73">50–100 毫秒</text>
+    <line x1="300" y1="270" x2="1500" y2="270" stroke="#EDEDF0" stroke-width="2"/>
+    <path d="M676.0 270 L692.0 261 L708.1 279 L724.1 261 L740.2 279 L756.2 261 L772.3 279 L788.3 261 L804.4 279 L820.4 261 L836.5 279 L852.5 261 L868.6 279 L884.6 261 L900.7 279 L916.7 261 L932.8 279 L948.8 261 L964.9 279 L980.9 261 L997.0 279 L1013.0 261 L1029.1 279 L1045.1 261 L1061.2 279 L1077.2 261 L1093.3 279 L1109.3 261 L1125.4 279 L1141.4 261 L1157.5 279 L1173.5 270" fill="none" stroke="#0071E3" stroke-width="2.5" opacity=".45"/>
+    <circle cx="480.0" cy="270" r="14" fill="#FFFFFF" stroke="#8E8E93" stroke-width="3"/>
+    <circle cx="660.0" cy="270" r="14" fill="#1D1D1F"/>
+    <circle cx="1192.5" cy="270" r="17" fill="#E8F0FE" stroke="#0071E3" stroke-width="3"/><circle cx="1192.5" cy="270" r="5" fill="#0071E3"/>
+    <line x1="484.0" y1="306" x2="656.0" y2="306" stroke="#1D1D1F" stroke-width="3" marker-end="url(#arK)"/>
+    <text x="570.0" y="338" text-anchor="middle" font-size="22" font-weight="600" fill="#1D1D1F">手走了 1.2 厘米</text>
+    <text x="1192.5" y="236" text-anchor="middle" font-size="20" fill="#0071E3">目标又往前放 4.7 厘米</text>
+    <line x1="480.0" y1="134" x2="480.0" y2="252" stroke="#C7C7CC" stroke-width="2" stroke-dasharray="6 6"/>
+    <text x="40" y="428" font-size="28" font-weight="600" fill="#1D1D1F">第 3 步</text>
+    <text x="40" y="460" font-size="19" fill="#6E6E73">100–150 毫秒</text>
+    <line x1="300" y1="420" x2="1500" y2="420" stroke="#EDEDF0" stroke-width="2"/>
+    <path d="M856.0 420 L872.0 411 L888.1 429 L904.1 411 L920.2 429 L936.2 411 L952.3 429 L968.3 411 L984.4 429 L1000.4 411 L1016.5 429 L1032.5 411 L1048.6 429 L1064.6 411 L1080.7 429 L1096.7 411 L1112.8 429 L1128.8 411 L1144.9 429 L1160.9 411 L1177.0 429 L1193.0 411 L1209.1 429 L1225.1 411 L1241.2 429 L1257.2 411 L1273.3 429 L1289.3 411 L1305.4 429 L1321.4 411 L1337.5 429 L1353.5 420" fill="none" stroke="#0071E3" stroke-width="2.5" opacity=".45"/>
+    <circle cx="660.0" cy="420" r="14" fill="#FFFFFF" stroke="#8E8E93" stroke-width="3"/>
+    <circle cx="840.0" cy="420" r="14" fill="#1D1D1F"/>
+    <circle cx="1372.5" cy="420" r="17" fill="#E8F0FE" stroke="#0071E3" stroke-width="3"/><circle cx="1372.5" cy="420" r="5" fill="#0071E3"/>
+    <line x1="664.0" y1="456" x2="836.0" y2="456" stroke="#1D1D1F" stroke-width="3" marker-end="url(#arK)"/>
+    <text x="750.0" y="488" text-anchor="middle" font-size="22" font-weight="600" fill="#1D1D1F">手走了 1.2 厘米</text>
+    <text x="1372.5" y="386" text-anchor="middle" font-size="20" fill="#0071E3">目标又往前放 4.7 厘米</text>
+    <line x1="660.0" y1="284" x2="660.0" y2="402" stroke="#C7C7CC" stroke-width="2" stroke-dasharray="6 6"/>
+    <line x1="300" y1="508" x2="1500" y2="508" stroke="#C7C7CC" stroke-width="2"/><line x1="300" y1="508" x2="300" y2="518" stroke="#C7C7CC" stroke-width="2"/><text x="300" y="544" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">0</text><line x1="450" y1="508" x2="450" y2="518" stroke="#C7C7CC" stroke-width="2"/><text x="450" y="544" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">1</text><line x1="600" y1="508" x2="600" y2="518" stroke="#C7C7CC" stroke-width="2"/><text x="600" y="544" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">2</text><line x1="750" y1="508" x2="750" y2="518" stroke="#C7C7CC" stroke-width="2"/><text x="750" y="544" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">3</text><line x1="900" y1="508" x2="900" y2="518" stroke="#C7C7CC" stroke-width="2"/><text x="900" y="544" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">4</text><line x1="1050" y1="508" x2="1050" y2="518" stroke="#C7C7CC" stroke-width="2"/><text x="1050" y="544" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">5</text><line x1="1200" y1="508" x2="1200" y2="518" stroke="#C7C7CC" stroke-width="2"/><text x="1200" y="544" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">6</text><line x1="1350" y1="508" x2="1350" y2="518" stroke="#C7C7CC" stroke-width="2"/><text x="1350" y="544" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">7</text><line x1="1500" y1="508" x2="1500" y2="518" stroke="#C7C7CC" stroke-width="2"/><text x="1500" y="544" text-anchor="middle" font-size="18" fill="#A1A1A6" class="mono">8</text>
+    <text x="1514" y="544" font-size="18" fill="#A1A1A6">厘米</text>
+  </svg></div>
+</section>
+
+<!-- ===== 27 判成功 ===== -->
+<section class="slide" data-sec="02 LIBERO" data-title="判成功：On(碗, 盘子)">
+  <div class="kicker"><b>02</b>LIBERO · 判定函数 check_ontop · 实测</div>
+  <h1>判成功：<span class="thin">碗心离盘心不到 3 厘米，才算放在盘子上</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <circle cx="340" cy="270" r="190" fill="#FFFFFF" stroke="#C7C7CC" stroke-width="3"/>
+    <circle cx="340" cy="270" r="150" fill="none" stroke="#E5E5EA" stroke-width="3"/>
+    <circle cx="372" cy="270" r="112" fill="rgba(29,29,31,.07)" stroke="#1D1D1F" stroke-width="3"/>
+    <circle cx="340" cy="270" r="48" fill="none" stroke="#0071E3" stroke-width="3" stroke-dasharray="8 6"/>
+    <circle cx="340" cy="270" r="7" fill="#8E8E93"/>
+    <circle cx="372" cy="270" r="7" fill="#0071E3"/>
+    <text x="340" y="206" text-anchor="middle" font-size="22" font-weight="600" fill="#0071E3">3 cm</text>
+    <text x="340" y="352" text-anchor="middle" font-size="19" fill="#6E6E73">盘心</text>
+    <text x="398" y="252" font-size="19" fill="#0071E3">碗心</text>
+    <text x="340" y="505" text-anchor="middle" font-size="20" fill="#6E6E73">俯视：碗落在盘子上，碗心偏了 2 cm</text>
+    <g font-size="32">
+      <circle cx="800" cy="92" r="20" fill="#E8F0FE"/><path d="M790 92 l7 7 l13 -15" fill="none" stroke="#0071E3" stroke-width="4"/>
+      <text x="840" y="103" fill="#1D1D1F">① 碗和盘子有接触</text>
+      <circle cx="800" cy="182" r="20" fill="#E8F0FE"/><path d="M790 182 l7 7 l13 -15" fill="none" stroke="#0071E3" stroke-width="4"/>
+      <text x="840" y="193" fill="#1D1D1F">② 碗心不比盘心低</text>
+      <circle cx="800" cy="272" r="20" fill="#0071E3"/><path d="M790 272 l7 7 l13 -15" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+      <text x="840" y="283" fill="#0071E3" font-weight="600">③ 两个中心水平距离 &lt; 3 cm</text>
+    </g>
+    <line x1="780" y1="340" x2="1560" y2="340" stroke="#E5E5EA" stroke-width="1.5"/>
+    <text x="780" y="392" font-size="20" fill="#6E6E73">实测：把碗放到离盘心不同距离的地方，让它自己落稳</text>
+    <g class="mono" font-size="26" text-anchor="middle">
+      <rect x="780" y="420" width="180" height="84" rx="14" fill="#F5F5F7"/><text x="870" y="458" fill="#1D1D1F">0 cm</text><text x="870" y="490" font-size="20" fill="#0071E3">成功</text>
+      <rect x="976" y="420" width="180" height="84" rx="14" fill="#F5F5F7"/><text x="1066" y="458" fill="#1D1D1F">1.98 cm</text><text x="1066" y="490" font-size="20" fill="#0071E3">成功</text>
+      <rect x="1172" y="420" width="180" height="84" rx="14" fill="#F5F5F7"/><text x="1262" y="458" fill="#1D1D1F">3.49 cm</text><text x="1262" y="490" font-size="20" fill="#D0342C">失败</text>
+      <rect x="1368" y="420" width="180" height="84" rx="14" fill="#F5F5F7"/><text x="1458" y="458" fill="#1D1D1F">5.05 cm</text><text x="1458" y="490" font-size="20" fill="#D0342C">失败</text>
+    </g>
+  </svg></div>
+</section>
+
+<!-- ===== 28 过渡：π0.5 ===== -->
+<section class="slide divider" data-sec="03 π0.5" data-title="过渡：π0.5 跑一局">
+  <div class="num">03</div>
+  <div class="word">π0.5 <span class="thin">跑一局</span></div>
+</section>
+
+<!-- ===== 29 服务端 / 客户端 ===== -->
+<section class="slide" data-sec="03 π0.5" data-title="服务端 / 客户端">
+  <div class="kicker"><b>03</b>π0.5 · openpi 官方权重 pi05_libero · 一张 RTX 3090</div>
+  <h1>模型和仿真分成两个进程，<span class="acc">用 websocket 连起来</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <rect x="20" y="30" width="560" height="540" rx="24" fill="#F5F5F7"/>
+    <text x="60" y="96" font-size="36" font-weight="600" fill="#1D1D1F">客户端</text>
+    <text x="210" y="96" font-size="26" fill="#6E6E73">跑仿真</text>
+    <g font-size="22" fill="#1D1D1F">
+      <text x="60" y="170">LIBERO + robosuite 1.4.0 + mujoco 3.2.3</text>
+      <text x="60" y="212">Python 3.8</text>
+      <text x="60" y="254">物理在 CPU 上算，出图用显卡（EGL）</text>
+    </g>
+    <text x="60" y="310" font-size="19" fill="#6E6E73" class="mono">最小例子_pi05.py</text>
+    <line x1="60" y1="350" x2="540" y2="350" stroke="#E5E5EA" stroke-width="1.5"/>
+    <g font-size="22" fill="#1D1D1F">
+      <text x="60" y="400">每 5 步问一次模型</text>
+      <text x="60" y="442">回答 10 步，只执行前 5 步</text>
+      <text x="60" y="484">成功就停，最多 220 步</text>
+    </g>
+    <rect x="1020" y="30" width="560" height="540" rx="24" fill="#F5F5F7"/>
+    <text x="1060" y="96" font-size="36" font-weight="600" fill="#1D1D1F">服务端</text>
+    <text x="1210" y="96" font-size="26" fill="#6E6E73">跑模型</text>
+    <g font-size="22" fill="#1D1D1F">
+      <text x="1060" y="170">openpi · π0.5（LIBERO 微调版）</text>
+      <text x="1060" y="212">Python 3.11 + JAX</text>
+      <text x="1060" y="254">权重 12.4 GB，显存峰值约 9 GB</text>
+    </g>
+    <text x="1060" y="310" font-size="19" fill="#6E6E73" class="mono">scripts/serve_policy.py --env LIBERO</text>
+    <line x1="1060" y1="350" x2="1540" y2="350" stroke="#E5E5EA" stroke-width="1.5"/>
+    <g font-size="22" fill="#1D1D1F">
+      <text x="1060" y="400">一直开着，等客户端来问</text>
+      <text x="1060" y="442">第一次要编译，约 11 秒</text>
+      <text x="1060" y="484">之后每次约 116 毫秒</text>
+    </g>
+    <line x1="590" y1="190" x2="1008" y2="190" stroke="#0071E3" stroke-width="4" marker-end="url(#arB)"/>
+    <text x="800" y="104" text-anchor="middle" font-size="21" fill="#0071E3" class="mono">websocket · 本机 8000 端口</text>
+    <text x="800" y="164" text-anchor="middle" font-size="28" font-weight="600" fill="#0071E3">请求</text>
+    <g font-size="21" fill="#1D1D1F" text-anchor="middle">
+      <text x="800" y="232">两张图 224 × 224</text><text x="800" y="264">8 个机器人状态数</text><text x="800" y="296">一句指令</text>
+    </g>
+    <line x1="1010" y1="420" x2="592" y2="420" stroke="#8E8E93" stroke-width="4" marker-end="url(#ar)"/>
+    <text x="800" y="394" text-anchor="middle" font-size="28" font-weight="600" fill="#1D1D1F">回答</text>
+    <text x="800" y="462" text-anchor="middle" font-size="21" fill="#1D1D1F">10 步 × 7 个数</text>
+    <text x="800" y="494" text-anchor="middle" font-size="19" fill="#6E6E73">来回约 150 毫秒</text>
+  </svg></div>
+</section>
+
+<!-- ===== 30 服务端流水线 ===== -->
+<section class="slide" data-sec="03 π0.5" data-title="一次请求走过的代码">
+  <div class="kicker"><b>03</b>π0.5 · openpi 源码 · policy.py 里的 infer() 把这 8 步串起来</div>
+  <h1>一次请求：<span class="thin">前后处理 7 步，</span><span class="acc">模型本身 116 毫秒</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <g id="pipe"></g>
+  </svg></div>
+</section>
+
+<!-- ===== 31 模型收到的图 ===== -->
+<section class="slide" data-sec="03 π0.5" data-title="模型收到的三张图">
+  <div class="kicker"><b>03</b>π0.5 · 第 1 次请求的真实输入 · 已转 180°，和训练时一致</div>
+  <h1>模型真正看到的：<span class="thin">两张 224 像素的小图 + 一句指令</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 560" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <clipPath id="mi1"><rect x="70" y="20" width="420" height="420" rx="18"/></clipPath>
+      <clipPath id="mi2"><rect x="590" y="20" width="420" height="420" rx="18"/></clipPath>
+      <clipPath id="mi3"><rect x="1110" y="20" width="420" height="420" rx="18"/></clipPath>
+    </defs>
+    <image href="media/model_in_base.png" x="70" y="20" width="420" height="420" clip-path="url(#mi1)" style="image-rendering:pixelated"/>
+    <image href="media/model_in_wrist.png" x="590" y="20" width="420" height="420" clip-path="url(#mi2)" style="image-rendering:pixelated"/>
+    <image href="media/model_in_black.png" x="1110" y="20" width="420" height="420" clip-path="url(#mi3)" style="image-rendering:pixelated"/>
+    <g font-size="26" text-anchor="middle">
+      <text x="280" y="492" fill="#1D1D1F" font-weight="600">第三人称</text>
+      <text x="800" y="492" fill="#1D1D1F" font-weight="600">手腕</text>
+      <text x="1320" y="492" fill="#6E6E73" font-weight="600">第三个图位：全黑</text>
+    </g>
+    <g font-size="20" text-anchor="middle" fill="#6E6E73">
+      <text x="280" y="530" class="mono">base_0_rgb</text>
+      <text x="800" y="530" class="mono">left_wrist_0_rgb</text>
+      <text x="1320" y="530">mask = False，模型当它不存在</text>
+    </g>
+  </svg></div>
+</section>
+
+<!-- ===== 32 这一局（视频） ===== -->
+<section class="slide" data-sec="03 π0.5" data-title="这一局（视频）">
+  <div class="kicker"><b>03</b>π0.5 · libero_spatial 第 0 题 · 高清回放 · 0.5 倍速</div>
+  <h1>第 47 步抓空，<span class="thin">第 79 步重抓，</span><span class="acc">第 109 步成功</span></h1>
+  <div class="fig card"><video muted loop playsinline preload="auto" src="media/pi05_episode.mp4"></video></div>
+</section>
+
+<!-- ===== 33 关键时刻 ===== -->
+<section class="slide" data-sec="03 π0.5" data-title="关键时刻">
+  <div class="kicker"><b>03</b>π0.5 · 上排第三人称相机，下排手腕相机</div>
+  <h1>抓空了就张开重来：<span class="thin">每 5 步重新看一次画面</span></h1>
+  <div class="fig card"><img src="media/pi05_keyframes.png" alt=""></div>
+</section>
+
+<!-- ===== 34 数字 ===== -->
+<section class="slide" data-sec="03 π0.5" data-title="跑一局的账">
+  <div class="kicker"><b>03</b>π0.5 · 实测</div>
+  <h1>跑一局的账</h1>
+  <div class="stats six">
+    <div class="stat"><div class="n mid">2 <small>/ 2</small></div><div class="l">同样设置跑两次，都成功<br>第 109 步 / 第 114 步</div></div>
+    <div class="stat"><div class="n mid">20 <small>次</small></div><div class="l">这一局问了模型 20 次</div></div>
+    <div class="stat"><div class="n mid">11.2 <small>秒</small></div><div class="l">第一次问：JAX 要先编译</div></div>
+    <div class="stat"><div class="n mid">150 <small>毫秒</small></div><div class="l">之后每次来回<br>模型本身约 116 毫秒</div></div>
+    <div class="stat"><div class="n mid">9 <small>GB</small></div><div class="l">服务端显存峰值<br>一张 24 GB 的 3090 够用</div></div>
+    <div class="stat dim"><div class="n mid">96.85<small>%</small></div><div class="l">官方 500 局的平均成功率<br>我们只跑了 1 局，不能拿来比</div></div>
+  </div>
+</section>
+
+<!-- ===== 35 过渡：新 benchmark ===== -->
+<section class="slide divider" data-sec="04 新 benchmark" data-title="过渡：新 benchmark">
+  <div class="num">04</div>
+  <div class="word">新 benchmark</div>
+</section>
+
+<!-- ===== 36 新 benchmark 基本情况 ===== -->
+<section class="slide" data-sec="04 新 benchmark" data-title="新 benchmark：基本情况">
+  <div class="kicker"><b>04</b>新 benchmark · 和 LIBERO 比，换了哪一层</div>
+  <h1>新 benchmark：<span class="thin">换题、换引擎、换渲染</span></h1>
+  <div class="bgrid">
+    <div class="bcard"><div class="im"><img src="media/bench_liberoplus.jpg" alt=""></div><div class="tx">
+      <div class="nm">LIBERO-Plus / PRO<small>2025</small></div>
+      <div class="en">引擎不变，还是 LIBERO</div>
+      <div class="ds">同一批题换条件：相机、光照、指令、物体位置</div></div></div>
+    <div class="bcard"><div class="im"><img src="media/bench_robotwin.jpg" alt=""></div><div class="tx">
+      <div class="nm">RoboTwin 2.0<small>ICML 2026</small></div>
+      <div class="en">换引擎：SAPIEN（PhysX）</div>
+      <div class="ds">双臂 50 个任务；干净场景里训练，随机场景里考</div></div></div>
+    <div class="bcard"><div class="im"><img src="media/bench_robocasa.jpg" alt=""></div><div class="tx">
+      <div class="nm">RoboCasa365<small>ICLR 2026</small></div>
+      <div class="en">引擎不变：robosuite + MuJoCo</div>
+      <div class="ds">2,500 个厨房、365 个任务，300 个是多步组合；带移动底盘</div></div></div>
+    <div class="bcard"><div class="im"><img src="media/bench_behavior.jpg" alt=""></div><div class="tx">
+      <div class="nm">BEHAVIOR Challenge<small>2025 / 2026</small></div>
+      <div class="en">换引擎：OmniGibson（基于 Isaac Sim）</div>
+      <div class="ds">全身移动操作的长程家务：50 个任务，今年 100 个</div></div></div>
+    <div class="bcard"><div class="im"><img src="media/bench_robolab.jpg" alt=""></div><div class="tx">
+      <div class="nm">RoboLab<small>RSS 2026</small></div>
+      <div class="en">换渲染：Isaac Lab，要 RTX 显卡</div>
+      <div class="ds">不给训练数据，只考用真实数据训出来的模型</div></div></div>
+    <div class="bcard dash"><div class="tx">
+      <div class="nm">世界模型评测<small>2025–2026</small></div>
+      <div class="en">没有物理引擎</div>
+      <div class="ds">视频模型读「当前画面 + 动作」，直接生成下一帧；排名和真机接近，成功率偏低</div>
+      <div class="ds" style="font-size:19px">例：Veo 评估器、Ctrl-World</div></div></div>
+  </div>
+</section>
+
+<!-- ===== 37 换引擎 ===== -->
+<section class="slide" data-sec="04 新 benchmark" data-title="换引擎：原理没换">
+  <div class="kicker"><b>04</b>新 benchmark · 三个引擎对比 · 各家官方文档</div>
+  <h1>引擎换了，<span class="acc">原理没换</span></h1>
+  <div class="sub">每一步都是：碰撞检测 → 接触力 → 积分，再渲染。差在下面这几处</div>
+  <div class="tblwrap"><table class="tbl left eng">
+    <tr><th></th><th class="today">MuJoCo</th><th>SAPIEN</th><th>Isaac Sim</th></tr>
+    <tr><td>谁在用</td><td>LIBERO、RoboCasa365</td><td>RoboTwin 2.0</td><td>BEHAVIOR、RoboLab</td></tr>
+    <tr><td>物理</td><td>自己算</td><td colspan="2">英伟达 PhysX</td></tr>
+    <tr><td>接触力</td><td>软接触：允许陷进去一点，解一个优化问题</td><td colspan="2">迭代求解：一轮一轮把穿透推开</td></tr>
+    <tr><td>同时跑几个</td><td>CPU 为主，一个核一个环境</td><td colspan="2">一张 GPU 同时跑上千个环境</td></tr>
+    <tr><td>画面</td><td>OpenGL 光栅化，比较简单</td><td>光栅化，也能开光追</td><td>RTX 光线追踪，要带光追核心的卡</td></tr>
+    <tr><td>场景文件</td><td>MJCF</td><td>URDF</td><td>USD</td></tr>
+  </table></div>
+</section>
+
+<!-- ===== 38 基础模型成绩 ===== -->
+<section class="slide" data-sec="04 新 benchmark" data-title="新 benchmark：基础模型成绩">
+  <div class="kicker"><b>04</b>新 benchmark · π0.5 和各榜第一 · 排行榜 2026-09-28 查 · 协议不同，数字不能横比</div>
+  <h1>π0.5：LIBERO 上 97，<span class="acc">新 benchmark 上 12 到 46</span></h1>
+  <div class="diagbox pad"><svg class="sv" viewBox="0 0 1600 620" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <g id="benchbars"></g>
+  </svg></div>
+</section>
+
+<!-- ===== 39 小结 ===== -->
+<section class="slide" data-sec="小结" data-title="小结">
+  <div class="kicker"><b>05</b>小结</div>
+  <h1>仿真在干嘛</h1>
+  <div class="bigline tight">
+    <div class="row"><span class="thin">物理：</span>把时间切成 2 毫秒，碰撞 → 受力 → 积分</div>
+    <div class="row"><span class="thin">MuJoCo：</span>MJCF 写场景，mjData 记状态，mj_step 往前推</div>
+    <div class="row"><span class="thin">LIBERO：</span>出题判卷；robosuite 管机器人；MuJoCo 算物理</div>
+    <div class="row"><span class="thin">模型：</span>循环里的一环：看两张图 → 给 10 步 → 走 5 步 → 再看</div>
+    <div class="row"><span class="thin">新 benchmark：</span><span class="acc">换题、换引擎、换渲染</span></div>
+  </div>
+</section>
+
+<!-- ===== 40 收尾 ===== -->
+<section class="slide end" data-sec="收尾" data-title="收尾">
+  <h1>机器人仿真</h1>
+  <div class="big"><b>把时间切小，一步一步算，再让模型坐进这个循环里</b><br>MuJoCo · LIBERO · π0.5 · 新 benchmark</div>
+  <div class="big" style="margin-top:70px">可lip</div>
+</section>
+
+</div>
+<script>
+/* ---- 自绘：小球的 qpos / qvel ---- */
+(function(){
+  const g=document.getElementById('qcells'); if(!g) return;
+  const NS='http://www.w3.org/2000/svg';
+  const el=(tag,attrs,text)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;g.appendChild(e);return e;};
+  const rows=[
+    {y:40, name:'qpos', n:'nq = 7', vals:['0','0','1','1','0','0','0'], labs:['x','y','z','w','x','y','z'], split:3, g1:'位置（米）', g2:'朝向（四元数，1 0 0 0 = 没转）', hi:2},
+    {y:290,name:'qvel', n:'nv = 6', vals:['0','0','0','0','0','0'], labs:['vx','vy','vz','ωx','ωy','ωz'], split:3, g1:'平移速度（米 / 秒）', g2:'转动速度（弧度 / 秒）', hi:-1},
+  ];
+  const X0=300, W=128, GAP=14, GG=46;
+  rows.forEach(r=>{
+    el('text',{x:40,y:r.y+56,'font-size':40,'font-weight':600,fill:'#1D1D1F',class:'mono'},r.name);
+    el('text',{x:40,y:r.y+98,'font-size':26,'font-weight':600,fill:'#0071E3',class:'mono'},r.n);
+    let xEnd1=0,xStart2=0,xEnd2=0;
+    r.vals.forEach((v,i)=>{
+      const x=X0+i*(W+GAP)+(i>=r.split?GG:0);
+      const hi=(i===r.hi);
+      el('rect',{x:x,y:r.y,width:W,height:92,rx:14,fill:hi?'#E8F0FE':'#F5F5F7',stroke:hi?'#0071E3':'none','stroke-width':2});
+      el('text',{x:x+W/2,y:r.y+60,'text-anchor':'middle','font-size':40,'font-weight':600,fill:hi?'#0071E3':'#1D1D1F',class:'mono'},v);
+      el('text',{x:x+W/2,y:r.y+128,'text-anchor':'middle','font-size':22,fill:'#A1A1A6',class:'mono'},r.labs[i]);
+      if(i===r.split-1) xEnd1=x+W; if(i===r.split) xStart2=x; if(i===r.vals.length-1) xEnd2=x+W;
+    });
+    el('path',{d:`M${X0} ${r.y+148} v10 H${xEnd1} v-10`,fill:'none',stroke:'#C7C7CC','stroke-width':2});
+    el('path',{d:`M${xStart2} ${r.y+148} v10 H${xEnd2} v-10`,fill:'none',stroke:'#C7C7CC','stroke-width':2});
+    el('text',{x:(X0+xEnd1)/2,y:r.y+192,'text-anchor':'middle','font-size':22,fill:'#6E6E73'},r.g1);
+    el('text',{x:(xStart2+xEnd2)/2,y:r.y+192,'text-anchor':'middle','font-size':22,fill:'#6E6E73'},r.g2);
+  });
+  const tx=1400;
+  [['朝向用 4 个数记','#6E6E73'],['转动只有 3 个方向','#6E6E73'],['所以 nq ≠ nv','#0071E3']].forEach((t,i)=>el('text',{x:tx,y:230+i*40,'font-size':24,fill:t[1],'font-weight':i===2?600:400},t[0]));
+})();
+
+/* ---- 自绘：LIBERO 场景的 qpos 48 格 ---- */
+(function(){
+  const g=document.getElementById('nqbar'); if(!g) return;
+  const NS='http://www.w3.org/2000/svg';
+  const el=(tag,attrs,text)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;g.appendChild(e);return e;};
+  const X0=70, CW=30, Y=86, H=74;
+  const grp=[ {a:0,b:6,fill:'#D2D2D7',lab:'机械臂 7 个 hinge',c:'#1D1D1F'},
+              {a:7,b:8,fill:'#A1A1A6',lab:'手指 2',c:'#1D1D1F'},
+              {a:9,b:43,fill:'#BBD4F6',lab:'5 个物体 × 7（free：位置 3 + 四元数 4）',c:'#0071E3'},
+              {a:44,b:46,fill:'#D2D2D7',lab:'抽屉 3',c:'#1D1D1F'},
+              {a:47,b:47,fill:'#A1A1A6',lab:'旋钮',c:'#1D1D1F'} ];
+  grp.forEach(G=>{ for(let k=G.a;k<=G.b;k++){ el('rect',{x:X0+k*CW,y:Y,width:CW-3,height:H,rx:5,fill:G.fill}); } });
+  for(let o=0;o<5;o++){ const x=X0+(9+o*7)*CW-1.5; if(o>0) el('line',{x1:x,y1:Y-8,x2:x,y2:Y+H+8,stroke:'#0071E3','stroke-width':2}); }
+  [[0,'0'],[7,'7'],[9,'9'],[44,'44'],[47,'47']].forEach(([k,t])=>el('text',{x:X0+k*CW+CW/2-1,y:Y-16,'text-anchor':'middle','font-size':18,fill:'#A1A1A6',class:'mono'},t));
+  const lab=(a,b,t,c,dy)=>{ const x1=X0+a*CW, x2=X0+(b+1)*CW-3; el('path',{d:`M${x1} ${Y+H+14} v10 H${x2} v-10`,fill:'none',stroke:'#C7C7CC','stroke-width':2}); el('text',{x:(x1+x2)/2,y:Y+H+56+(dy||0),'text-anchor':'middle','font-size':22,fill:c,'font-weight':c==='#0071E3'?600:400},t); };
+  lab(0,6,'机械臂 7 个 hinge','#1D1D1F'); lab(7,8,'手指','#1D1D1F',30); lab(9,43,'5 个物体 × 7 个数（free）','#0071E3'); lab(44,46,'抽屉','#1D1D1F'); lab(47,47,'旋钮','#1D1D1F',30);
+  el('text',{x:X0+48*CW+14,y:Y+H/2+10,'font-size':26,'font-weight':600,fill:'#1D1D1F',class:'mono'},'= 48');
+  // 开局存档：1 + 48 + 43
+  const Y2=330, U=15;
+  el('text',{x:X0,y:Y2-22,'font-size':20,fill:'#6E6E73','font-weight':500,'letter-spacing':2},'开局存档（每道题 50 份，第 i 局用第 i 份）');
+  el('rect',{x:X0,y:Y2,width:U-3,height:70,rx:4,fill:'#A1A1A6'});
+  el('rect',{x:X0+U,y:Y2,width:48*U-3,height:70,rx:8,fill:'#D2D2D7'});
+  el('rect',{x:X0+49*U,y:Y2,width:43*U-3,height:70,rx:8,fill:'#E5E5EA'});
+  el('text',{x:X0+U+24*U,y:Y2+46,'text-anchor':'middle','font-size':26,fill:'#1D1D1F',class:'mono'},'qpos 48');
+  el('text',{x:X0+49*U+21.5*U,y:Y2+46,'text-anchor':'middle','font-size':26,fill:'#1D1D1F',class:'mono'},'qvel 43');
+  el('text',{x:X0+U/2,y:Y2+104,'text-anchor':'middle','font-size':20,fill:'#6E6E73',class:'mono'},'时间');
+  el('text',{x:X0+92*U+20,y:Y2+48,'font-size':34,'font-weight':600,fill:'#0071E3',class:'mono'},'= 92');
+})();
+
+/* ---- 自绘：服务端流水线 ---- */
+(function(){
+  const g=document.getElementById('pipe'); if(!g) return;
+  const NS='http://www.w3.org/2000/svg';
+  const el=(tag,attrs,text)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;g.appendChild(e);return e;};
+  const B=[
+    ['1','收包','websocket_policy_server.py',['msgpack 解包，交给 infer()']],
+    ['2','改名字、补图','libero_policy.py',['第 3 个图位补一张全黑','mask = False']],
+    ['3','归一化','transforms.py',['按 1% / 99% 分位数','压到 −1 ~ 1；状态补零到 32 维']],
+    ['4','指令切成 token','tokenizer.py',['20 个 token，补位到 200']],
+    ['5','π0.5 出动作','pi0.py · sample_actions',['图和指令过一遍大模型','从噪声出发走 10 步欧拉积分'],true],
+    ['6','反归一化','transforms.py',['−1 ~ 1 还原成原来的尺度']],
+    ['7','只留前 7 维','libero_policy.py',['32 维 → 7 维']],
+    ['8','发回','websocket_policy_server.py',['10 × 7 个动作 + 耗时']],
+  ];
+  const W=350, H=196, xs=[20,420,820,1220], y1=30, y2=320;
+  B.forEach((b,i)=>{
+    const top=i<4, x=top?xs[i]:xs[7-i], y=top?y1:y2, hi=!!b[4];
+    el('rect',{x:x,y:y,width:W,height:H,rx:18,fill:hi?'#E8F0FE':'#F5F5F7',stroke:hi?'#0071E3':'none','stroke-width':2});
+    el('text',{x:x+26,y:y+50,'font-size':20,'font-weight':600,fill:hi?'#0071E3':'#A1A1A6',class:'mono'},b[0]);
+    el('text',{x:x+56,y:y+50,'font-size':27,'font-weight':600,fill:hi?'#0071E3':'#1D1D1F'},b[1]);
+    el('text',{x:x+26,y:y+88,'font-size':17,fill:'#6E6E73',class:'mono'},b[2]);
+    b[3].forEach((t,k)=>el('text',{x:x+26,y:y+128+k*30,'font-size':20,fill:'#1D1D1F'},t));
+  });
+  const A=(d,c)=>el('path',{d:d,fill:'none',stroke:c||'#8E8E93','stroke-width':3,'marker-end':`url(#${c?'arB':'ar'})`});
+  A(`M${xs[0]+W+4} ${y1+H/2} H${xs[1]-6}`); A(`M${xs[1]+W+4} ${y1+H/2} H${xs[2]-6}`); A(`M${xs[2]+W+4} ${y1+H/2} H${xs[3]-6}`);
+  A(`M${xs[3]+W/2} ${y1+H+4} V${y2-6}`);
+  A(`M${xs[3]-4} ${y2+H/2} H${xs[2]+W+6}`); A(`M${xs[2]-4} ${y2+H/2} H${xs[1]+W+6}`); A(`M${xs[1]-4} ${y2+H/2} H${xs[0]+W+6}`);
+  el('text',{x:xs[3]+W-10,y:y2+H+34,'text-anchor':'end','font-size':20,'font-weight':600,fill:'#0071E3'},'≈ 116 毫秒');
+})();
+
+/* ---- 自绘：π0.5 在各 benchmark 上的成功率 + 各榜第一 ---- */
+(function(){
+  const g=document.getElementById('benchbars'); if(!g) return;
+  const NS='http://www.w3.org/2000/svg';
+  const el=(tag,attrs,text)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;g.appendChild(e);return e;};
+  const R=[
+    {n:'LIBERO', d:'四组平均 · 在 LIBERO 自带的示范上微调', v:96.85, t:'96.85', grey:true, top:['没有官方排行榜','各家自己报，早就刷满'], dim:true},
+    {n:'LIBERO-PRO', d:'只把物体换个位置 · 四组平均', v:20.75, t:'≈21', top:['π0.5 自己','另外 5 个模型基本都是 0'], self:true},
+    {n:'RoboTwin 2.0', d:'随机场景（Hard）· 官方复测', v:46.0, t:'46.0', b:68.12, top:['ME-Dex-1.0　68.1','理想汽车 · 9 月 24 日上榜']},
+    {n:'RoboLab', d:'不在仿真里训练 · 用真实数据训的版本', v:28.0, t:'28.0', b:42.9, top:['FLUX 3 Action　42.9','世界动作模型（WAM）']},
+    {n:'RoboCasa365', d:'50 个目标任务 · 论文表 1', v:16.9, t:'16.9', b:58.1, top:['Paimon-0　58.1','Primotion · 闭源']},
+    {n:'BEHAVIOR 2025', d:'完整做完的比例 · 这条是冠军，从 π0.5 改的', v:12.4, t:'12.4', top:['Robot Learning Collective','冠军，从 π0.5 改的'], self:true},
+  ];
+  const X0=560, W=640, Y0=64, RH=88, BH=34, X=v=>X0+W*v/100, TX=1256;
+  el('text',{x:X0,y:Y0-30,'font-size':18,fill:'#6E6E73','letter-spacing':1},'蓝条：π0.5　黑竖线：这个榜的第一名');
+  el('text',{x:TX,y:Y0-30,'font-size':18,fill:'#6E6E73','font-weight':600,'letter-spacing':2},'各榜第一');
+  [0,25,50,75,100].forEach(v=>{ el('line',{x1:X(v),y1:Y0-10,x2:X(v),y2:Y0+R.length*RH-20,stroke:v===0?'#C7C7CC':'#EFEFF2','stroke-width':v===0?2:1.5}); el('text',{x:X(v),y:Y0+R.length*RH+14,'text-anchor':'middle','font-size':18,fill:'#A1A1A6',class:'mono'},v+'%'); });
+  R.forEach((r,i)=>{
+    const y=Y0+i*RH;
+    el('text',{x:0,y:y+22,'font-size':28,'font-weight':600,fill:'#1D1D1F'},r.n);
+    el('text',{x:0,y:y+54,'font-size':18,fill:'#6E6E73'},r.d);
+    el('rect',{x:X0,y:y+4,width:W*r.v/100,height:BH,rx:8,fill:r.grey?'#C7C7CC':'#0071E3'});
+    if(r.v>85) el('text',{x:X(r.v)-12,y:y+32,'text-anchor':'end','font-size':26,'font-weight':600,fill:'#1D1D1F',class:'mono'},r.t);
+    else el('text',{x:X(r.v)+12,y:y+32,'font-size':26,'font-weight':600,fill:'#0071E3',class:'mono'},r.t);
+    if(r.b) el('line',{x1:X(r.b),y1:y-4,x2:X(r.b),y2:y+BH+12,stroke:'#1D1D1F','stroke-width':3});
+    el('text',{x:TX,y:y+24,'font-size':23,'font-weight':600,fill:r.self?'#0071E3':(r.dim?'#6E6E73':'#1D1D1F')},r.top[0]);
+    el('text',{x:TX,y:y+52,'font-size':17,fill:'#6E6E73'},r.top[1]);
+  });
+})();
+</script>
+<div id="nav-hot"></div>
+<div id="nav-btn"><div class="b" id="nb-prev">‹</div><span class="pg" id="nb-pg">1 / 1</span><div class="b" id="nb-next">›</div><div class="b" id="nb-list">☰</div></div>
+<div id="nav-panel"></div>
+<div id="hud"></div>
+<script>
+(function(){
+  const stage=document.getElementById('stage');
+  const slides=[...document.querySelectorAll('.slide')];
+  const hud=document.getElementById('hud');
+  let cur=-1, showCounter=false;
+  function fit(){ const s=Math.min(innerWidth/1920, innerHeight/1080); stage.style.transform=`translate(-50%,-50%) scale(${s})`; if(cur>=0) fitFigs(slides[cur]); }
+  // 让白色图卡贴合图片 / 视频比例：宽图不留大片空白，剩余空间上下均分
+  function fitFigs(sl){
+    sl.querySelectorAll(':scope > .fig.card, :scope > .fig.plain').forEach(f=>{
+      const img=f.querySelector('img,video'); if(!img) return;
+      const nw=img.naturalWidth||img.videoWidth, nh=img.naturalHeight||img.videoHeight; if(!nw||!nh) return;
+      f.style.flex=''; f.style.width=''; f.style.height=''; f.style.margin='';
+      const W=f.clientWidth, H=f.clientHeight; if(!W||!H) return;
+      const pad=f.classList.contains('card')?60:0, ar=nw/nh;
+      let w=W, h=(W-pad)/ar+pad; if(h>H){ h=H; w=(H-pad)*ar+pad; }
+      f.style.flex='0 0 auto'; f.style.width=Math.round(w)+'px'; f.style.height=Math.round(h)+'px'; f.style.margin='auto';
+    });
+    sl.querySelectorAll(':scope > .fig2').forEach(row=>{
+      const cards=[...row.querySelectorAll(':scope > .fig.card')]; if(!cards.length) return;
+      cards.forEach(f=>{ f.style.flex=''; f.style.width=''; f.style.height=''; f.style.alignSelf=''; });
+      row.style.justifyContent='';
+      const H=row.clientHeight; if(!H) return;
+      const sizes=cards.map(f=>{ const img=f.querySelector('img'); if(!img||!img.naturalWidth) return null;
+        const W=f.clientWidth, pad=60, ar=img.naturalWidth/img.naturalHeight; let w=W, h=(W-pad)/ar+pad; if(h>H){ h=H; w=(H-pad)*ar+pad; } return [w,h]; });
+      if(sizes.some(x=>!x)) return;
+      cards.forEach((f,i)=>{ f.style.flex='0 0 auto'; f.style.width=Math.round(sizes[i][0])+'px'; f.style.height=Math.round(sizes[i][1])+'px'; f.style.alignSelf='center'; });
+      row.style.justifyContent='center';
+    });
+  }
+  document.querySelectorAll('.slide > .fig img, .slide > .fig2 > .fig img').forEach(img=>img.addEventListener('load',()=>{ const sl=img.closest('.slide'); if(sl.classList.contains('active')) fitFigs(sl); }));
+  document.querySelectorAll('.slide > .fig video').forEach(v=>v.addEventListener('loadedmetadata',()=>{ const sl=v.closest('.slide'); if(sl.classList.contains('active')) fitFigs(sl); }));
+  function show(n){
+    n=Math.max(0,Math.min(slides.length-1,n)); if(n===cur) return;
+    slides.forEach((s,k)=>{ const on=k===n; s.classList.toggle('active',on); s.querySelectorAll('video').forEach(v=>{ if(on){ try{v.currentTime=0;}catch(e){} v.play().catch(()=>{}); } else { v.pause(); } }); });
+    const nx=slides[n+1]; if(nx) nx.querySelectorAll('video').forEach(v=>{ if(v.preload!=='auto'){ v.preload='auto'; v.load(); } });
+    cur=n; history.replaceState(null,'','#'+(n+1)); updateHud(); fitFigs(slides[n]); startAnim(slides[n]);
+  }
+  // ---- 分步动画：PH 的每一项是那一步要点亮的 data-a 名字。没有动画页就把这段连同 startAnim 调用一起删掉 ----
+  const PH=[ ['s1'], ['s1','s2'] ];
+  let anim=null;
+  function startAnim(sl){
+    anim=null; const svg=sl.querySelector('svg[data-anim]'); if(!svg) return;
+    const steps=[...sl.querySelectorAll('.step-item')];
+    const fixed=(location.search.match(/[?&]anim=(\d)/)||[])[1];
+    let k=fixed!==undefined?parseInt(fixed,10):0;
+    function apply(){ const on=new Set(PH[k]); svg.querySelectorAll('[data-a]').forEach(el=>el.classList.toggle('on',on.has(el.dataset.a))); steps.forEach((st,i)=>st.classList.toggle('cur',i===k)); }
+    apply();
+    anim={ next(){ k=(k+1)%PH.length; apply(); }, prev(){ k=(k-1+PH.length)%PH.length; apply(); } };
+  }
+  const navBtn=document.getElementById('nav-btn'), panel=document.getElementById('nav-panel'), pg=document.getElementById('nb-pg');
+  (function buildNav(){
+    let html='', lastSec=null;
+    slides.forEach((sl,k)=>{
+      const sec=sl.dataset.sec||''; const h=sl.querySelector('h1');
+      let title=sl.dataset.title||(h?h.textContent.trim():''); if(!title) title=sec;
+      if(sec!==lastSec){ html+=`<div class="sec-title">${sec||'—'}</div>`; lastSec=sec; }
+      html+=`<div class="it" data-k="${k}"><span class="k">${k+1}</span><span>${title}</span></div>`;
+    });
+    panel.innerHTML=html;
+  })();
+  function toggleNav(force){ const on=(force===undefined)?!panel.classList.contains('open'):force; panel.classList.toggle('open',on); navBtn.classList.toggle('open',on); }
+  document.getElementById('nb-list').addEventListener('click',e=>{ e.stopPropagation(); toggleNav(); });
+  document.getElementById('nb-prev').addEventListener('click',e=>{ e.stopPropagation(); prev(); });
+  document.getElementById('nb-next').addEventListener('click',e=>{ e.stopPropagation(); next(); });
+  navBtn.addEventListener('click',e=>{ e.stopPropagation(); });
+  panel.addEventListener('click',e=>{ e.stopPropagation(); const it=e.target.closest('.it'); if(!it) return; show(parseInt(it.dataset.k,10)); toggleNav(false); });
+  function updateHud(){ pg.textContent=`${cur+1} / ${slides.length}`; hud.textContent = showCounter ? `${cur+1} / ${slides.length}` : '← → 翻页 · F 全屏 · C 页码 · 左上角选页'; panel.querySelectorAll('.it').forEach((el,k)=>el.classList.toggle('cur',k===cur)); }
+  function next(){ show(cur+1); } function prev(){ show(cur-1); }
+  let buf='', bt=null;
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' ','Enter'].includes(e.key)){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if(e.key==='Escape'){ toggleNav(false); }
+    else if(e.key==='j'||e.key==='J'){ if(anim) anim.next(); }
+    else if(e.key==='k'||e.key==='K'){ if(anim) anim.prev(); }
+    else if(e.key==='g'||e.key==='G'){ toggleNav(); }
+    else if(e.key==='Home'){ show(0); } else if(e.key==='End'){ show(slides.length-1); }
+    else if(e.key==='f'||e.key==='F'){ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }
+    else if(e.key==='c'||e.key==='C'){ showCounter=!showCounter; hud.classList.toggle('show',showCounter); updateHud(); }
+    else if(/^[0-9]$/.test(e.key)){ buf=(buf+e.key).slice(-2); clearTimeout(bt); bt=setTimeout(()=>{ const k=parseInt(buf,10); if(k>=1&&k<=slides.length) show(k-1); buf=''; },500); }
+  });
+  addEventListener('click',e=>{ if(e.target.closest('a,#nav-panel,#nav-btn,#nav-hot')) return; if(panel.classList.contains('open')){ toggleNav(false); return; } const x=e.clientX/innerWidth; if(x<0.2) prev(); else next(); });
+  addEventListener('resize',fit); fit();
+  const h=parseInt((location.hash||'#1').slice(1),10); show(isNaN(h)?0:h-1);
+  if(/[?&]nav=1/.test(location.search)) toggleNav(true);
+  hud.classList.add('show'); setTimeout(()=>{ if(!showCounter) hud.classList.remove('show'); },4000);
+})();
+</script>
+</body>
+</html>
