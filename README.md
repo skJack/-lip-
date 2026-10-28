@@ -6,7 +6,7 @@
 - **VLA 入门**（第 21–24 期）：机器人大模型 VLA（Vision-Language-Action），按 Physical Intelligence 的 π 系列时间线走：RT-2 → OpenVLA → π0 → π0.5 → π*0.6 → π0.7
 - **世界模型**（第 27 期起）：第一期从 2018 年的 World Models 讲到 DayDreamer（在模型的梦里训策略）；第二期讲 LeCun 的 JEPA 这条线（不生成像素、在表征空间预测），从 2022 年立场文讲到 V-JEPA 2 真机抓放；第三期讲拿视频生成模型当世界模型这条线，UniPi、Genie 做背景，重点是 NVIDIA 的 Cosmos Policy 和 Cosmos 3，看动作怎么一步步从模型外面走进模型里面
 - **模型拆解**（单期）：第 30 期讲 TypeSafe 的 Jev——一个不生成文本、只返回校准概率的决策模型。它没有论文也没有权重，资料是官方文档 + 社区一万次 API 探针的逆向 + 九份独立评测
-- **具身智能基础**（第 32 期起）：第一期讲仿真到底在算什么——从一个小球落地讲 MuJoCo 每 2 毫秒算的碰撞、受力、积分，拆开 LIBERO 怎么出题、怎么判，再让 π0.5 在 LIBERO 里完整跑一局（抓空、重抓、放好），最后看 LIBERO-PRO、RoboTwin 2.0、RoboCasa365、BEHAVIOR、RoboLab 这些新 benchmark 换了哪一层，例子全是自己跑的；第二期讲数据集——从本体、观测、动作、示教这些基础概念讲起，把 BridgeData、DROID、OXE、AgiBot World、RoboMIND、RH20T、2026 年的五个新真机数据、robomimic、LIBERO、CALVIN、MimicGen、RoboCasa365、RoboTwin 2.0，到 Ego4D、EgoDex 这些人类数据过一遍，每个说清本体、采集方式、数据类型、规模、场景和开放下载情况；**30 个数据集的论文 / 项目 / 下载 / 许可链接都在那期的 README 里**；第三期（第 35 期「机器人大揭秘」）讲本体——单臂、手、双臂、四足、人形五类里最常出镜的 12 台（Franka、UR5e、SO-101、Shadow、Sharpa、ALOHA、智元精灵、Spot、Go2、G1、Atlas、Optimus、Figure 03）外加每类几台粗讲，每台讲清楚谁家做的、基本参数、能干什么、值多少钱
+- **具身智能基础**（第 32 期起）：第一期讲仿真到底在算什么——从一个小球落地讲 MuJoCo 每 2 毫秒算的碰撞、受力、积分，拆开 LIBERO 怎么出题、怎么判，再让 π0.5 在 LIBERO 里完整跑一局（抓空、重抓、放好），最后看 LIBERO-PRO、RoboTwin 2.0、RoboCasa365、BEHAVIOR、RoboLab 这些新 benchmark 换了哪一层，例子全是自己跑的；第二期讲数据集——从本体、观测、动作、示教这些基础概念讲起，把 BridgeData、DROID、OXE、AgiBot World、RoboMIND、RH20T、2026 年的五个新真机数据、robomimic、LIBERO、CALVIN、MimicGen、RoboCasa365、RoboTwin 2.0，到 Ego4D、EgoDex 这些人类数据过一遍，每个说清本体、采集方式、数据类型、规模、场景和开放下载情况；**30 个数据集的论文 / 项目 / 下载 / 许可链接都在那期的 README 里**；第三期（第 35 期「机器人大揭秘」）讲本体——单臂、手、双臂、四足、人形五类里最常出镜的 12 台（Franka、UR5e、SO-101、Shadow、Sharpa、ALOHA、智元精灵、Spot、Go2、G1、Atlas、Optimus、Figure 03）外加每类几台粗讲，每台讲清楚谁家做的、基本参数、能干什么、值多少钱；第四期（第 39 期）讲 VLN 视觉语言导航——机器人听一句话、自己走到地方：从第一个考场 R2R 讲起，按三条路线（专门训导航模型 → 大模型当大脑 → 导航 VLA，NaVid 详讲）走到 2026 年千问、高德、Mistral 下场，最后是 NavGPT-3 在 RxR-CE 上第一次追平人类
 
 | 期 | 系列 | 视频标题 | 讲的论文 | 目录 |
 |---|---|---|---|---|
@@ -26,6 +26,7 @@
 | 第 32 期 | 具身智能基础（一） | 具身智能仿真，一次讲清楚：从 MuJoCo、LIBERO 到 π0.5 实战 | MuJoCo、LIBERO、π0.5（自己跑）；新 benchmark：LIBERO-PRO、RoboTwin 2.0、RoboCasa365、BEHAVIOR、RoboLab | [`14-第32期-具身智能仿真-MuJoCo-LIBERO-π0.5/`](14-第32期-具身智能仿真-MuJoCo-LIBERO-π0.5/) |
 | 第 33 期 | 具身智能基础（二） | 具身智能数据集，一次讲清楚：从 DROID、OXE 到 AgiBot、LIBERO | 无主讲论文；30 个数据集：BridgeData V2、DROID、OXE、UMI、AgiBot World、RoboMIND、RH20T、MolmoAct2、HABIT、ABC-130K、robomimic、LIBERO、CALVIN、MimicGen、RoboCasa365、RoboTwin 2.0、Ego4D、EgoDex、R2R、HM3D 等（链接全在这期的 README） | [`15-第33期-具身智能的数据集-DROID-OXE-AgiBot-LIBERO/`](15-第33期-具身智能的数据集-DROID-OXE-AgiBot-LIBERO/) |
 | 第 35 期 | 具身智能基础（三） | 机器人大揭秘 | 无论文；Franka、UR5e、SO-101、Shadow、Sharpa、ALOHA、智元精灵、Spot、Go2、G1、Atlas、Optimus、Figure 03 | [`16-第35期-机器人大揭秘-Franka-ALOHA-Spot-宇树-Atlas/`](16-第35期-机器人大揭秘-Franka-ALOHA-Spot-宇树-Atlas/) |
+| 第 39 期 | 具身智能基础（四） | VLN 视觉语言导航：听一句话，在没来过的房子里自己走到地方 | R2R、Speaker-Follower、VLN-CE、NavGPT、NaVid、Uni-NaVid、StreamVLN、DualVLN、千问 Qwen-RobotNav、高德 ABot-N0 / N1、Mistral Robostral Navigate、NavGPT-3 | [`17-第39期-VLN视觉语言导航-R2R-NaVid-千问-高德-Mistral/`](17-第39期-VLN视觉语言导航-R2R-NaVid-千问-高德-Mistral/) |
 
 ## 目录结构
 
@@ -51,7 +52,7 @@ NN-第NN期-系列名(x)-论文名/
 
 第 16 期（H3 四期）的 deck 比其他系列早，按键不一样：画布 1280×720，`→` / 空格 / 单击会先把本页的动画一个个放出来、放完才翻页，`←` 回退，`Home` / `End` 首尾页；没有 `F`、`☰` 和 `#10` 这种跳页（第三、四期左上角有一排页码按钮，鼠标移过去才显出来）。这四份 deck 的图全是 SVG / Canvas 现画的，没有图片文件。
 
-第 30 期的 4 页视频也不在仓库里（3 页 TypeSafe 官方 demo、1 页我自己产品的前后对比），那几页换成了截图。第 24 期的 6 页演示视频不在仓库里，`deck.html` 从 Physical Intelligence 官网直接加载，看那几页需要联网。第 27 期的视频（World Models 官网的演示片段、DayDreamer 的官方视频）体积不大，直接放在 `slides/media/video/` 里，离线可看。第 28 期和第 29 期没有视频，各有一页键盘控制的分步动画（第 28 期第 16 页、第 29 期第 22 页，`J` 下一步、`K` 上一步）。第 32 期的 3 段视频（小球落地、步长对比、π0.5 一局的高清回放）是我们自己用 MuJoCo 渲染的，放在 `slides/media/` 里，离线可看。第 33 期的 13 段视频是各数据集官方项目页上的原视频，`deck.html` 在线加载，看那几页需要联网（封面帧在仓库里，离线能看到第一帧）。第 35 期的 35 段演示视频是从各公司和项目的官方视频里切的，仓库里不放，视频页换成了第一帧，原片链接在那期的 README。
+第 30 期的 4 页视频也不在仓库里（3 页 TypeSafe 官方 demo、1 页我自己产品的前后对比），那几页换成了截图。第 24 期的 6 页演示视频不在仓库里，`deck.html` 从 Physical Intelligence 官网直接加载，看那几页需要联网。第 27 期的视频（World Models 官网的演示片段、DayDreamer 的官方视频）体积不大，直接放在 `slides/media/video/` 里，离线可看。第 28 期和第 29 期没有视频，各有一页键盘控制的分步动画（第 28 期第 16 页、第 29 期第 22 页，`J` 下一步、`K` 上一步）。第 32 期的 3 段视频（小球落地、步长对比、π0.5 一局的高清回放）是我们自己用 MuJoCo 渲染的，放在 `slides/media/` 里，离线可看。第 33 期的 13 段视频是各数据集官方项目页上的原视频，`deck.html` 在线加载，看那几页需要联网（封面帧在仓库里，离线能看到第一帧）。第 35 期的 35 段演示视频是从各公司和项目的官方视频里切的，仓库里不放，视频页换成了第一帧，原片链接在那期的 README。第 39 期的 12 段演示视频同样不放，视频页换成了片段的一帧，原片链接在那期的 README；那期第 6 页是分步动画（`G` / `J` 下一步、`K` 上一步）。
 
 ## 关于笔记和图片
 
@@ -59,9 +60,10 @@ NN-第NN期-系列名(x)-论文名/
 - 第 32 期也没有论文笔记：`notes/` 里一份「技术事实核查」（每个数字是自己跑出来的、读代码看到的，还是引用论文和排行榜的），一份「benchmark 数字核查」（新 benchmark 的分数逐条回原文核对的明细，带论文版本、表号和排行榜链接）。
 - 第 33 期（数据集）也没有论文笔记：`notes/` 里是六份整理——数据集基本情况速查、使用现状与开放状态（许可、访问条件、榜上成绩）、2026 新真机数据核对、OXE 子集与 OpenVLA 配方、发表信息、技术事实核查；30 个数据集的论文 / 项目 / 下载 / 许可链接汇总在那期的 README。
 - 第 35 期（机器人本体）也没有论文笔记：`notes/` 里一份「技术事实核查」，公司背景和每页数字的出处，标了已核 / 媒体 / 口径。
+- 第 39 期（VLN）讲到的论文很多，但没有单独的论文笔记：`notes/` 里一份「技术事实核查」，每页数字对应的论文表号、图号、章节，还有各模型预训练底座的对照表；论文的 arXiv 链接列在那期的 README。
 - 第 16 期（H3 四期）也没有论文笔记：H3 没发论文，每期的 `notes/` 是一份「技术事实核查」——H3 的数字来自官方开源代码、权重配置和我自己的推理实测，通用知识（Flow Matching、AdaLN、RoPE）标了论文出处。
 - 笔记是我自己读论文的整理，数字来自论文正文和图表；PI 的结果图很多是没有数值的柱状图，笔记里标「估读」的数是从图上估的，视频里我都说的「左右」。
-- PPT 里的论文插图版权归各论文作者（Google DeepMind、Stanford、Physical Intelligence、UC Berkeley、MIT、NVIDIA 等），第 30 期里的产品截图和图表版权归 TypeSafe AI 及各报道方，第 32 期第 36 页的 benchmark 缩略图取自各论文首图和项目页，第 33 期的 13 张视频封面帧取自各数据集官方视频，第 35 期的视频封面帧和静帧取自各公司官方视频（Boston Dynamics、Tesla、Figure、宇树、智元、1X 等）；来源在各期的 `使用说明.md` 和 `notes/` 里都有标注；本仓库只用于学习交流。
+- PPT 里的论文插图版权归各论文作者（Google DeepMind、Stanford、Physical Intelligence、UC Berkeley、MIT、NVIDIA 等），第 30 期里的产品截图和图表版权归 TypeSafe AI 及各报道方，第 32 期第 36 页的 benchmark 缩略图取自各论文首图和项目页，第 33 期的 13 张视频封面帧取自各数据集官方视频，第 35 期的视频封面帧和静帧取自各公司官方视频（Boston Dynamics、Tesla、Figure、宇树、智元、1X 等），第 39 期的论文插图版权归各论文作者、视频页的静帧取自各项目页和官方视频（NaVILA、NaVid、DualVLN、千问、高德、Mistral 等）；来源在各期的 `使用说明.md` 和 `notes/` 里都有标注；本仓库只用于学习交流。
 - 论文原文请去 arXiv 看，仓库里不放 PDF。
 
 视频在各平台搜「可lip」。有问题欢迎开 issue 或在视频评论区留言。
